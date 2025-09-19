@@ -295,7 +295,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
     const MAX_PROJECTS_TO_SCAN = 5; // Limit how many projects we scan
     const MAX_FILES_PER_PROJECT = 5; // Limit files per project
 
-    // Get projects and sort by modification time (most recent first)
+    // Get projects and sort by most recent file activity (not directory mtime)
     const projects = await readdir(CLAUDE_DIR);
     const projectsWithStats = [];
 
@@ -304,10 +304,26 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
         const projectPath = join(CLAUDE_DIR, project);
         const projectStat = await stat(projectPath);
         if (projectStat.isDirectory()) {
+          // Get the most recent file modification time in this project
+          let mostRecentFileTime = projectStat.mtime;
+          try {
+            const files = await readdir(projectPath);
+            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+
+            for (const file of jsonlFiles) {
+              const fileStat = await stat(join(projectPath, file));
+              if (fileStat.mtime > mostRecentFileTime) {
+                mostRecentFileTime = fileStat.mtime;
+              }
+            }
+          } catch {
+            // If we can't read files, use directory mtime
+          }
+
           projectsWithStats.push({
             name: project,
             path: projectPath,
-            mtime: projectStat.mtime,
+            mtime: mostRecentFileTime, // Use most recent file time
           });
         }
       } catch (error) {
@@ -316,7 +332,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
       }
     }
 
-    // Sort by most recent first
+    // Sort by most recent first (based on file activity, not directory)
     const sortedProjects = projectsWithStats
       .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
       .slice(0, MAX_PROJECTS_TO_SCAN);
@@ -398,20 +414,36 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     const MAX_PROJECTS_TO_SCAN = 5; // Only scan the 15 most recently active projects
     const MAX_FILES_PER_PROJECT = 5; // Only process the 5 most recent conversation files per project
 
-    // STEP 1: Find all Claude Code projects and get their modification times
+    // STEP 1: Find all Claude Code projects and get their actual file activity times
     const projects = await readdir(CLAUDE_DIR); // Read ~/.claude/projects/ directory
     const projectsWithStats = [];
 
-    // Get modification time for each project directory to find most recently used projects
+    // Get most recent file modification time for each project (not directory mtime)
     for (const project of projects) {
       try {
         const projectPath = join(CLAUDE_DIR, project);
         const projectStat = await stat(projectPath);
         if (projectStat.isDirectory()) {
+          // Get the most recent file modification time in this project
+          let mostRecentFileTime = projectStat.mtime;
+          try {
+            const files = await readdir(projectPath);
+            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+
+            for (const file of jsonlFiles) {
+              const fileStat = await stat(join(projectPath, file));
+              if (fileStat.mtime > mostRecentFileTime) {
+                mostRecentFileTime = fileStat.mtime;
+              }
+            }
+          } catch {
+            // If we can't read files, use directory mtime as fallback
+          }
+
           projectsWithStats.push({
             name: project,
             path: projectPath,
-            mtime: projectStat.mtime, // When this project was last modified (last conversation)
+            mtime: mostRecentFileTime, // Use most recent file time to detect active sessions
           });
         }
       } catch (error) {
@@ -421,10 +453,10 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
       }
     }
 
-    // STEP 2: Sort projects by most recent activity and take only the top 5
+    // STEP 2: Sort projects by most recent file activity and take only the top ones
     const sortedProjects = projectsWithStats
-      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()) // Newest first
-      .slice(0, MAX_PROJECTS_TO_SCAN); // Only process 5 most recent projects
+      .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()) // Most recent file activity first
+      .slice(0, MAX_PROJECTS_TO_SCAN); // Only process most recently active projects
 
     // Array to collect ALL user messages from ALL projects before final sorting
     const topUserMessages: Message[] = [];

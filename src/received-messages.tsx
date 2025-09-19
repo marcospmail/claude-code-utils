@@ -2,6 +2,7 @@ import {
   Action,
   ActionPanel,
   Clipboard,
+  closeMainWindow,
   List,
   showToast,
   Toast,
@@ -74,6 +75,7 @@ export default function ReceivedMessages() {
         title: "Content copied",
         message: "Message content copied to clipboard",
       });
+      await closeMainWindow();
     } catch (error) {
       console.error({ error });
 
