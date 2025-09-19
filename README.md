@@ -11,7 +11,7 @@ A Claude Code Helper Extension
 1. Navigate to the extension directory:
 
    ```bash
-   cd /Users/personal/Downloads/marcosp-com-raycast-extensions/raycast-extensions/claude-messages/
+   cd path/to/claude-messages/
    ```
 
 2. Install dependencies (if not already done):
@@ -39,20 +39,19 @@ A Claude Code Helper Extension
 3. Select it to see two options:
    - **Claude's Responses** - View messages received from Claude
    - **My Sent Messages** - View messages sent to Claude
-4. Each option shows up to 10 most recent messages with time stamps
+4. Each option shows up to 50 most recent messages with time stamps
 5. Use the search bar to filter messages
 6. Select any message to copy it (full message, content only, or preview)
 
 ## How It Works
 
-### Memory-Efficient Architecture
+The extension uses a streaming approach to handle large conversation histories:
 
-The extension uses a sophisticated streaming approach to handle large conversation histories:
-
-1. **Smart Project Selection**: Only scans the 15 most recently modified projects
+1. **Smart Project Selection**: Only scans the 5 most recently modified projects
 2. **File Limiting**: Processes only the 5 most recent conversation files per project
-3. **Streaming Parsing**: Uses Node.js streams to read JSONL files line-by-line instead of loading entire files into memory
-4. **Role-Specific Filtering**: Separate streaming parsers for user vs assistant messages
+3. **Message Limiting**: Retrieves only the 10 most recent messages per file to prevent memory issues
+4. **Streaming Parsing**: Uses Node.js streams to read JSONL files line-by-line instead of loading entire files into memory
+5. **Role-Specific Filtering**: Separate streaming parsers for user vs assistant messages
 
 ### Data Source
 
@@ -62,7 +61,9 @@ The extension uses a sophisticated streaming approach to handle large conversati
 
 ### Performance Optimizations
 
-- Reads maximum 75 files (5 files × 15 projects) for optimal performance
+- Reads maximum 25 files (5 files × 5 projects) for optimal performance
+- Limits to 10 messages per file (maximum 250 messages in memory before final filtering)
+- Returns the 50 most recent messages globally
 - Sequential processing prevents memory buildup
 - Automatic cleanup of file handles and streams
 
@@ -70,32 +71,9 @@ The extension uses a sophisticated streaming approach to handle large conversati
 
 - Raycast 1.26.0 or higher
 - Node.js 22.14+
-- Claude Code with local message history
-
-## File Structure
-
-```
-claude-messages-raycast/
-├── src/
-│   ├── sent-messages.tsx      # Command for viewing sent messages
-│   ├── received-messages.tsx  # Command for viewing received messages
-│   └── utils/
-│       └── claudeMessages.ts  # Core logic for reading Claude messages
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## Development
-
-1. Clone this repository
-2. Run `npm install` to install dependencies
-3. Run `npm run build` to compile TypeScript
-4. Install in Raycast for testing
+- Claude Code
 
 ## Notes
 
 - Messages are stored locally on your machine by Claude Code
 - The extension only reads existing messages, it doesn't modify anything
-- Messages older than 30 days may be automatically cleaned up by Claude Code
-- Search functionality helps you quickly find specific messages

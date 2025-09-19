@@ -374,11 +374,10 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
       }
     }
 
-    // Sort by timestamp (newest first) and take only assistant messages, limited to 50
+    // Sort by timestamp (newest first) and take only assistant messages
     const assistantMessages = allMessages
       .filter((msg) => msg.role === "assistant")
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, 50);
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     console.log(
       `Memory-efficient scan complete. Found ${assistantMessages.length} assistant messages from ${sortedProjects.length} projects`
@@ -506,12 +505,11 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
       }
     }
 
-    // STEP 6: Final sorting and limiting across ALL projects
+    // STEP 6: Final sorting across ALL projects
     // Now we have user messages from multiple projects/conversations
     // Sort them globally by timestamp to get the most recent messages overall
     const finalMessages = topUserMessages
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Newest messages first across ALL projects
-      .slice(0, 50); // Take only the 50 most recent messages globally
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Newest messages first across ALL projects
 
     console.log(
       `Memory-efficient sent messages scan complete. Found ${finalMessages.length} user messages from ${sortedProjects.length} projects`
@@ -540,10 +538,11 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
 
 export async function getReceivedMessages(): Promise<ParsedMessage[]> {
   console.log("Fetching received messages...");
+
   const allMessages = await getAllClaudeMessages();
+
   const assistantMessages = allMessages
-    .filter((msg) => msg.role === "assistant")
-    .slice(0, 50); // Limit to last 50 assistant messages
+    .filter((msg) => msg.role === "assistant");
 
   console.log(`Found ${assistantMessages.length} assistant messages`);
 
