@@ -13,14 +13,50 @@
   "commands": [
     {
       "name": "index",
-      "title": "Claude Code Helper Extension",
-      "description": "Access Claude messages and conversation history",
+      "title": "Claude Messages Menu",
+      "description": "Access all Claude messages and conversation features",
       "mode": "view"
     },
     {
       "name": "pinned-messages",
       "title": "Pinned Messages",
       "description": "View your pinned Claude messages",
+      "mode": "view"
+    },
+    {
+      "name": "create-snippet",
+      "title": "Create Snippet",
+      "description": "Create a new snippet",
+      "mode": "view"
+    },
+    {
+      "name": "list-snippets",
+      "title": "List Snippets",
+      "description": "View and manage your snippets",
+      "mode": "view"
+    },
+    {
+      "name": "latest-sent-message",
+      "title": "Latest Sent Message",
+      "description": "View your most recent message sent to Claude",
+      "mode": "view"
+    },
+    {
+      "name": "latest-received-message",
+      "title": "Latest Claude Response",
+      "description": "View Claude's most recent response",
+      "mode": "view"
+    },
+    {
+      "name": "received-messages",
+      "title": "Claude's Responses",
+      "description": "View messages you received from Claude",
+      "mode": "view"
+    },
+    {
+      "name": "sent-messages",
+      "title": "My Sent Messages",
+      "description": "View messages you sent to Claude",
       "mode": "view"
     }
   ],

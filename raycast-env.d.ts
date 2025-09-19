@@ -17,6 +17,18 @@ declare namespace Preferences {
   export type Index = ExtensionPreferences & {}
   /** Preferences accessible in the `pinned-messages` command */
   export type PinnedMessages = ExtensionPreferences & {}
+  /** Preferences accessible in the `create-snippet` command */
+  export type CreateSnippet = ExtensionPreferences & {}
+  /** Preferences accessible in the `list-snippets` command */
+  export type ListSnippets = ExtensionPreferences & {}
+  /** Preferences accessible in the `latest-sent-message` command */
+  export type LatestSentMessage = ExtensionPreferences & {}
+  /** Preferences accessible in the `latest-received-message` command */
+  export type LatestReceivedMessage = ExtensionPreferences & {}
+  /** Preferences accessible in the `received-messages` command */
+  export type ReceivedMessages = ExtensionPreferences & {}
+  /** Preferences accessible in the `sent-messages` command */
+  export type SentMessages = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -24,5 +36,17 @@ declare namespace Arguments {
   export type Index = {}
   /** Arguments passed to the `pinned-messages` command */
   export type PinnedMessages = {}
+  /** Arguments passed to the `create-snippet` command */
+  export type CreateSnippet = {}
+  /** Arguments passed to the `list-snippets` command */
+  export type ListSnippets = {}
+  /** Arguments passed to the `latest-sent-message` command */
+  export type LatestSentMessage = {}
+  /** Arguments passed to the `latest-received-message` command */
+  export type LatestReceivedMessage = {}
+  /** Arguments passed to the `received-messages` command */
+  export type ReceivedMessages = {}
+  /** Arguments passed to the `sent-messages` command */
+  export type SentMessages = {}
 }
 
