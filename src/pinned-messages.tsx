@@ -6,12 +6,12 @@ import {
   showToast,
   Toast,
 } from "@raycast/api";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  getPinnedMessages,
-  unpinMessage,
   generateMessageId,
+  getPinnedMessages,
   ParsedMessage,
+  unpinMessage,
 } from "./utils/claudeMessages";
 
 export default function PinnedMessages() {
@@ -24,7 +24,7 @@ export default function PinnedMessages() {
       const pinnedMessages = await getPinnedMessages();
       // Sort by pinned date (most recent first)
       const sortedMessages = pinnedMessages.sort(
-        (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+        (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
       );
       setMessages(sortedMessages);
     } catch (error) {
@@ -79,10 +79,6 @@ export default function PinnedMessages() {
     }
   }
 
-  function getMessageTypeIcon(role: "user" | "assistant") {
-    return role === "user" ? "💬" : "🤖";
-  }
-
   return (
     <List
       isLoading={isLoading}
@@ -118,7 +114,7 @@ export default function PinnedMessages() {
           title={message.preview}
           accessories={[
             { text: "📌" },
-            { text: message.timestamp.toLocaleTimeString() },
+            { text: message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
           ]}
           actions={
             <ActionPanel>

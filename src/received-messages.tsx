@@ -6,15 +6,14 @@ import {
   showToast,
   Toast,
 } from "@raycast/api";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  formatMessageForDisplay,
+  generateMessageId,
   getReceivedMessages,
+  isPinned,
   ParsedMessage,
   pinMessage,
   unpinMessage,
-  generateMessageId,
-  isPinned,
 } from "./utils/claudeMessages";
 
 export default function ReceivedMessages() {
@@ -34,7 +33,7 @@ export default function ReceivedMessages() {
           const messageId = generateMessageId(msg);
           const pinned = await isPinned(messageId);
           return { ...msg, isPinned: pinned };
-        })
+        }),
       );
       // Sort so pinned messages appear first
       const sortedMessages = messagesWithPinnedStatus.sort((a, b) => {
@@ -58,24 +57,6 @@ export default function ReceivedMessages() {
   useEffect(() => {
     loadMessages();
   }, []);
-
-  async function copyMessage(message: ParsedMessage) {
-    try {
-      const fullMessage = formatMessageForDisplay(message);
-      await Clipboard.copy(fullMessage);
-      showToast({
-        style: Toast.Style.Success,
-        title: "Copied to clipboard",
-        message: "Message copied successfully",
-      });
-    } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Copy failed",
-        message: String(error),
-      });
-    }
-  }
 
   async function copyContent(message: ParsedMessage) {
     try {
@@ -172,7 +153,7 @@ export default function ReceivedMessages() {
                 title={message.preview}
                 accessories={[
                   { text: "📌" },
-                  { text: message.timestamp.toLocaleTimeString() },
+                  { text: message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
                 ]}
                 actions={
                   <ActionPanel>
@@ -210,7 +191,7 @@ export default function ReceivedMessages() {
             <List.Item
               key={message.id}
               title={message.preview}
-              accessories={[{ text: message.timestamp.toLocaleTimeString() }]}
+              accessories={[{ text: message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]}
               actions={
                 <ActionPanel>
                   <Action

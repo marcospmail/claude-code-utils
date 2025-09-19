@@ -1,8 +1,24 @@
-import { readdir, readFile, stat } from "fs/promises";
-import { join } from "path";
-import { homedir } from "os";
 import { createReadStream } from "fs";
+import { readdir, stat } from "fs/promises";
+import { homedir } from "os";
+import { join } from "path";
 import { createInterface } from "readline";
+
+// Type definitions for JSONL file content
+interface ContentItem {
+  type: string;
+  text?: string;
+}
+
+interface JSONLMessage {
+  role: "user" | "assistant" | "system";
+  content: string | ContentItem[];
+}
+
+interface JSONLData {
+  message?: JSONLMessage;
+  timestamp?: string | number;
+}
 
 export interface Message {
   role: "user" | "assistant" | "system";
@@ -40,10 +56,11 @@ async function parseUserMessagesOnlyStreaming(
   sessionId: string,
   projectPath: string
 ): Promise<Message[]> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const userMessages: Message[] = []; // Collect user messages as we find them
-    let fileStream: any = null; // File stream handle
-    let rl: any = null; // Readline interface handle
+    const MAX_MESSAGES_PER_FILE = 10; // Limit messages per file to prevent memory issues
+    let fileStream: ReturnType<typeof createReadStream> | null = null; // File stream handle
+    let rl: ReturnType<typeof createInterface> | null = null; // Readline interface handle
 
     // Clean up resources to prevent memory leaks
     const cleanup = () => {
@@ -57,7 +74,7 @@ async function parseUserMessagesOnlyStreaming(
           fileStream.destroy();
           fileStream = null;
         }
-      } catch (error) {
+      } catch {
         // Ignore cleanup errors - we're already handling an error condition
       }
     };
@@ -74,13 +91,13 @@ async function parseUserMessagesOnlyStreaming(
       });
 
       // Process each line of the JSONL file
-      rl.on("line", (line) => {
+      rl.on("line", (line: string) => {
         try {
           // Skip empty lines
           if (!line.trim()) return;
 
           // Each line in JSONL file is a separate JSON object
-          const data = JSON.parse(line);
+          const data: JSONLData = JSON.parse(line);
 
           // We only want user messages (messages sent TO Claude), not assistant responses
           if (data.message && data.message.role === "user") {
@@ -95,8 +112,8 @@ async function parseUserMessagesOnlyStreaming(
                 // Complex content with multiple parts (text, images, etc.)
                 // We only want the text parts
                 content = data.message.content
-                  .filter((item) => item.type === "text") // Only text content
-                  .map((item) => item.text || "")
+                  .filter((item: ContentItem) => item.type === "text") // Only text content
+                  .map((item: ContentItem) => item.text || "")
                   .join("\n");
               }
             }
@@ -122,28 +139,33 @@ async function parseUserMessagesOnlyStreaming(
             }
           }
         } catch (error) {
+          console.error(`Error parsing line ${line}:`, error);
           // Skip lines that aren't valid JSON - don't crash on malformed data
         }
       });
 
       rl.on("close", () => {
         cleanup();
-        resolve(userMessages);
+        // Sort by timestamp and take only the most recent messages
+        const recentMessages = userMessages
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+          .slice(0, MAX_MESSAGES_PER_FILE);
+        resolve(recentMessages);
       });
 
-      rl.on("error", (error) => {
+      rl.on("error", (error: Error) => {
         console.error(`Error reading file ${filePath}:`, error);
         cleanup();
         resolve([]); // Return empty array instead of rejecting
       });
 
-      fileStream.on("error", (error) => {
+      fileStream.on("error", (error: Error) => {
         console.error(`Error opening file ${filePath}:`, error);
         cleanup();
         resolve([]);
       });
-    } catch (error) {
-      console.error(`Error opening file ${filePath}:`, error);
+    } catch {
+      console.error(`Error opening file ${filePath}`);
       cleanup();
       resolve([]);
     }
@@ -155,10 +177,11 @@ async function parseAssistantMessagesOnlyStreaming(
   sessionId: string,
   projectPath: string
 ): Promise<Message[]> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const assistantMessages: Message[] = [];
-    let fileStream: any = null;
-    let rl: any = null;
+    const MAX_MESSAGES_PER_FILE = 10; // Limit messages per file to prevent memory issues
+    let fileStream: ReturnType<typeof createReadStream> | null = null;
+    let rl: ReturnType<typeof createInterface> | null = null;
 
     const cleanup = () => {
       try {
@@ -172,6 +195,7 @@ async function parseAssistantMessagesOnlyStreaming(
           fileStream = null;
         }
       } catch (error) {
+        console.error(`Error cleaning up file ${filePath}:`, error);
         // Ignore cleanup errors
       }
     };
@@ -184,11 +208,11 @@ async function parseAssistantMessagesOnlyStreaming(
         terminal: false,
       });
 
-      rl.on("line", (line) => {
+      rl.on("line", (line: string) => {
         try {
           if (!line.trim()) return;
 
-          const data = JSON.parse(line);
+          const data: JSONLData = JSON.parse(line);
 
           // Only process assistant messages to save memory
           if (data.message && data.message.role === "assistant") {
@@ -200,8 +224,8 @@ async function parseAssistantMessagesOnlyStreaming(
               } else if (Array.isArray(data.message.content)) {
                 // Extract only text content, not thinking
                 content = data.message.content
-                  .filter((item) => item.type === "text")
-                  .map((item) => item.text || "")
+                  .filter((item: ContentItem) => item.type === "text")
+                  .map((item: ContentItem) => item.text || "")
                   .join("\n");
               }
             }
@@ -217,145 +241,42 @@ async function parseAssistantMessagesOnlyStreaming(
             }
           }
         } catch (error) {
+          console.error(`Error parsing line ${line}:`, error);
           // Skip invalid JSON lines
         }
       });
 
       rl.on("close", () => {
         cleanup();
-        resolve(assistantMessages);
+        // Sort by timestamp and take only the most recent messages
+        const recentMessages = assistantMessages
+          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+          .slice(0, MAX_MESSAGES_PER_FILE);
+        resolve(recentMessages);
       });
 
-      rl.on("error", (error) => {
+      rl.on("error", (error: Error) => {
         console.error(`Error reading file ${filePath}:`, error);
         cleanup();
         resolve([]); // Return empty array instead of rejecting
       });
 
-      fileStream.on("error", (error) => {
+      fileStream.on("error", (error: Error) => {
         console.error(`Error opening file ${filePath}:`, error);
         cleanup();
         resolve([]);
       });
-    } catch (error) {
-      console.error(`Error opening file ${filePath}:`, error);
+    } catch {
+      console.error(`Error opening file ${filePath}`);
       cleanup();
       resolve([]);
     }
   });
 }
 
-async function parseJsonlFile(
-  filePath: string,
-  sessionId: string,
-  projectPath: string
-): Promise<Message[]> {
-  try {
-    const content = await readFile(filePath, "utf-8");
-    const lines = content.split("\n").filter((line) => line.trim());
-    const messages: Message[] = [];
-
-    for (const line of lines) {
-      try {
-        const data = JSON.parse(line);
-
-        // Check for user messages
-        if (data.message && data.message.role === "user") {
-          let content = "";
-
-          if (data.message.content) {
-            if (typeof data.message.content === "string") {
-              content = data.message.content;
-            } else if (Array.isArray(data.message.content)) {
-              // Handle array of content objects
-              content = data.message.content
-                .filter((item) => item.type === "text")
-                .map((item) => item.text || "")
-                .join("\n");
-            }
-          }
-
-          // Filter out command messages and interrupted requests
-          if (
-            content &&
-            content.trim() &&
-            !content.includes("<command-message>") &&
-            !content.includes("<command-name>") &&
-            !content.includes("[Request interrupted")
-          ) {
-            messages.push({
-              role: "user",
-              content,
-              timestamp: new Date(data.timestamp || Date.now()),
-              sessionId,
-              projectPath,
-            });
-          }
-        }
-
-        // Check for assistant messages
-        if (data.message && data.message.role === "assistant") {
-          let content = "";
-
-          if (data.message.content) {
-            if (typeof data.message.content === "string") {
-              content = data.message.content;
-            } else if (Array.isArray(data.message.content)) {
-              // Extract only text content, not thinking
-              content = data.message.content
-                .filter((item) => item.type === "text")
-                .map((item) => item.text || "")
-                .join("\n");
-            }
-          }
-
-          if (content && content.trim()) {
-            messages.push({
-              role: "assistant",
-              content,
-              timestamp: new Date(data.timestamp || Date.now()),
-              sessionId,
-              projectPath,
-            });
-          }
-        }
-      } catch (error) {
-        // Skip invalid JSON lines
-        continue;
-      }
-    }
-
-    return messages;
-  } catch (error) {
-    console.error(`Error parsing file ${filePath}:`, error);
-    return [];
-  }
-}
-
-async function getProjectMessages(projectDir: string): Promise<Message[]> {
-  try {
-    const files = await readdir(projectDir);
-    const jsonlFiles = files.filter((file) => file.endsWith(".jsonl"));
-    const allMessages: Message[] = [];
-
-    for (const file of jsonlFiles) {
-      const filePath = join(projectDir, file);
-      const sessionId = file.replace(".jsonl", "");
-      const messages = await parseJsonlFile(filePath, sessionId, projectDir);
-      allMessages.push(...messages);
-    }
-
-    return allMessages;
-  } catch (error) {
-    console.error(`Error reading project directory ${projectDir}:`, error);
-    return [];
-  }
-}
-
 export async function getAllClaudeMessages(): Promise<Message[]> {
   try {
-    const TARGET_ASSISTANT_MESSAGES = 50; // Target number of assistant messages to collect
-    const MAX_PROJECTS_TO_SCAN = 15; // Limit how many projects we scan
+    const MAX_PROJECTS_TO_SCAN = 5; // Limit how many projects we scan
     const MAX_FILES_PER_PROJECT = 5; // Limit files per project
 
     console.log("Starting memory-efficient scan for assistant messages...");
@@ -376,7 +297,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
           });
         }
       } catch (error) {
-        // Skip problematic projects
+        console.error(`Error processing project ${project}:`, error);
         continue;
       }
     }
@@ -401,10 +322,9 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
         const files = await readdir(project.path);
         const jsonlFiles = files.filter((file) => file.endsWith(".jsonl"));
 
-        // Sort files by modification time (most recent first)
+        // Get stats for ALL jsonl files to sort properly
         const filesWithStats = [];
-        for (const file of jsonlFiles.slice(0, MAX_FILES_PER_PROJECT * 2)) {
-          // Get extra files to sort properly
+        for (const file of jsonlFiles) {
           try {
             const filePath = join(project.path, file);
             const fileStat = await stat(filePath);
@@ -414,10 +334,12 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
               mtime: fileStat.mtime,
             });
           } catch (error) {
+            console.error(`Error processing file:`, error);
             continue;
           }
         }
 
+        // Sort by modification time and take only the most recent files
         const sortedFiles = filesWithStats
           .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
           .slice(0, MAX_FILES_PER_PROJECT);
@@ -452,11 +374,11 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
       }
     }
 
-    // Sort by timestamp (newest first) and take only assistant messages, limited to target
+    // Sort by timestamp (newest first) and take only assistant messages, limited to 50
     const assistantMessages = allMessages
       .filter((msg) => msg.role === "assistant")
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, TARGET_ASSISTANT_MESSAGES);
+      .slice(0, 50);
 
     console.log(
       `Memory-efficient scan complete. Found ${assistantMessages.length} assistant messages from ${sortedProjects.length} projects`
@@ -476,12 +398,10 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
 export async function getSentMessages(): Promise<ParsedMessage[]> {
   try {
     // Configuration: Control how many messages/projects/files we process
-    const TARGET_USER_MESSAGES = 50; // Final number of user messages to return
-    const MAX_PROJECTS_TO_SCAN = 15; // Only scan the 15 most recently active projects
+    const MAX_PROJECTS_TO_SCAN = 5; // Only scan the 15 most recently active projects
     const MAX_FILES_PER_PROJECT = 5; // Only process the 5 most recent conversation files per project
-    const MAX_MESSAGES_PER_PROJECT = 3; // Limit messages per project to ensure we scan multiple projects
 
-    console.log("Starting memory-efficient scan for sent messages...");
+    console.log("Starting scan for sent messages...");
 
     // STEP 1: Find all Claude Code projects and get their modification times
     const projects = await readdir(CLAUDE_DIR); // Read ~/.claude/projects/ directory
@@ -500,6 +420,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
           });
         }
       } catch (error) {
+        console.error(`Error processing project ${project}:`, error);
         // Skip projects we can't read (permissions, etc.)
         continue;
       }
@@ -545,6 +466,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
               mtime: fileStat.mtime, // When this conversation file was last modified
             });
           } catch (error) {
+            console.error("Error processing file", error);
             // Skip files we can't read
             continue;
           }
@@ -555,7 +477,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
           .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()) // Newest conversations first
           .slice(0, MAX_FILES_PER_PROJECT); // Only process 5 most recent conversation files per project
 
-        // STEP 5: Process each conversation file using memory-efficient streaming
+        // STEP 5: Process each conversation file using streaming
         for (const file of sortedFiles) {
           try {
             const sessionId = file.name.replace(".jsonl", ""); // Extract session ID from filename
@@ -567,9 +489,6 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
               file.path,
               sessionId,
               project.path
-            );
-            console.log(
-              `Found ${userMessages.length} user messages in ${file.name}`
             );
 
             // Add all user messages from this file to our collection
@@ -592,7 +511,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     // Sort them globally by timestamp to get the most recent messages overall
     const finalMessages = topUserMessages
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()) // Newest messages first across ALL projects
-      .slice(0, TARGET_USER_MESSAGES); // Take only the 50 most recent messages globally
+      .slice(0, 50); // Take only the 50 most recent messages globally
 
     console.log(
       `Memory-efficient sent messages scan complete. Found ${finalMessages.length} user messages from ${sortedProjects.length} projects`

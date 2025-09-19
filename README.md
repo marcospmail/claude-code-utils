@@ -1,31 +1,27 @@
 # Claude Code Helper Extension
 
-A memory-efficient Raycast extension to view and copy your latest Claude conversation messages across all projects.
+A Claude Code Helper Extension
 
 ## Features
 
-- **Single Entry Point**: One command "Claude Code Helper Extension" with organized options
-- **My Sent Messages**: View and copy the last 10 messages you sent to Claude
-- **Claude's Responses**: View and copy the last 10 messages you received from Claude
-- **Search**: Search through your messages
-- **Copy Options**: Copy full message with timestamp or just the content
-- **Memory Efficient**: Optimized to handle large conversation histories without crashing
-- **Multi-Project Support**: Scans across all your Claude Code projects
-- **Smart Filtering**: Automatically filters out interrupted requests and system messages
+// TBD
 
 ## Installation
 
 1. Navigate to the extension directory:
+
    ```bash
    cd /Users/personal/Downloads/marcosp-com-raycast-extensions/raycast-extensions/claude-messages/
    ```
 
 2. Install dependencies (if not already done):
+
    ```bash
    npm install
    ```
 
 3. Start the extension in development mode:
+
    ```bash
    npm run dev
    ```
@@ -50,22 +46,23 @@ A memory-efficient Raycast extension to view and copy your latest Claude convers
 ## How It Works
 
 ### Memory-Efficient Architecture
+
 The extension uses a sophisticated streaming approach to handle large conversation histories:
 
-1. **Smart Project Selection**: Only scans the 5 most recently modified projects
-2. **File Limiting**: Processes only the 3 most recent conversation files per project
+1. **Smart Project Selection**: Only scans the 15 most recently modified projects
+2. **File Limiting**: Processes only the 5 most recent conversation files per project
 3. **Streaming Parsing**: Uses Node.js streams to read JSONL files line-by-line instead of loading entire files into memory
-4. **Early Termination**: Stops scanning once it finds 10 messages of each type
-5. **Role-Specific Filtering**: Separate streaming parsers for user vs assistant messages
+4. **Role-Specific Filtering**: Separate streaming parsers for user vs assistant messages
 
 ### Data Source
+
 - Reads from `~/.claude/projects/` where Claude Code stores conversation history
 - Each project has JSONL files containing timestamped message exchanges
 - Files are sorted by modification time to find the most recent conversations first
 
 ### Performance Optimizations
-- **Before**: Would attempt to read 600+ files across 24+ projects → Out of Memory
-- **After**: Reads ~15 files maximum across 5 projects → Runs smoothly
+
+- Reads maximum 75 files (5 files × 15 projects) for optimal performance
 - Sequential processing prevents memory buildup
 - Automatic cleanup of file handles and streams
 
