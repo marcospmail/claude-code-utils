@@ -58,7 +58,6 @@ async function parseUserMessagesOnlyStreaming(
 ): Promise<Message[]> {
   return new Promise((resolve) => {
     const userMessages: Message[] = []; // Collect user messages as we find them
-    const MAX_MESSAGES_PER_FILE = 10; // Limit messages per file to prevent memory issues
     let fileStream: ReturnType<typeof createReadStream> | null = null; // File stream handle
     let rl: ReturnType<typeof createInterface> | null = null; // Readline interface handle
 
@@ -158,7 +157,7 @@ async function parseUserMessagesOnlyStreaming(
         // Sort by timestamp and take only the most recent messages
         const recentMessages = userMessages
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, MAX_MESSAGES_PER_FILE);
+          .slice(0, 10);
         resolve(recentMessages);
       });
 
@@ -189,7 +188,6 @@ async function parseAssistantMessagesOnlyStreaming(
 ): Promise<Message[]> {
   return new Promise((resolve) => {
     const assistantMessages: Message[] = [];
-    const MAX_MESSAGES_PER_FILE = 10; // Limit messages per file to prevent memory issues
     let fileStream: ReturnType<typeof createReadStream> | null = null;
     let rl: ReturnType<typeof createInterface> | null = null;
 
@@ -266,10 +264,10 @@ async function parseAssistantMessagesOnlyStreaming(
 
       rl.on("close", () => {
         cleanup();
-        // Sort by timestamp and take only the most recent messages
+        // Sort by timestamp (newest first) and limit to prevent memory issues
         const recentMessages = assistantMessages
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, MAX_MESSAGES_PER_FILE);
+          .slice(0, 10);
         resolve(recentMessages);
       });
 
@@ -683,5 +681,85 @@ export async function unpinMessage(messageId: string): Promise<void> {
   } catch (error) {
     console.error("Error unpinning message:", error);
     throw new Error("Failed to unpin message");
+  }
+}
+
+// Snippets functionality
+const SNIPPETS_KEY = "claude-messages-snippets";
+
+export interface Snippet {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Get all snippets from LocalStorage
+ */
+export async function getSnippets(): Promise<Snippet[]> {
+  try {
+    const snippetsData = await LocalStorage.getItem<string>(SNIPPETS_KEY);
+    if (!snippetsData) return [];
+
+    const snippets: Snippet[] = JSON.parse(snippetsData);
+    return snippets.map((snippet) => ({
+      ...snippet,
+      createdAt: new Date(snippet.createdAt),
+      updatedAt: new Date(snippet.updatedAt),
+    }));
+  } catch (error) {
+    console.error({ error });
+    return [];
+  }
+}
+
+/**
+ * Create a new snippet
+ */
+export async function createSnippet(
+  title: string,
+  content: string,
+): Promise<Snippet> {
+  try {
+    const snippetsData = await LocalStorage.getItem<string>(SNIPPETS_KEY);
+    const snippets: Snippet[] = snippetsData ? JSON.parse(snippetsData) : [];
+
+    const newSnippet: Snippet = {
+      id: createHash("md5")
+        .update(`${title}-${content}-${Date.now()}`)
+        .digest("hex"),
+      title,
+      content,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    snippets.push(newSnippet);
+    await LocalStorage.setItem(SNIPPETS_KEY, JSON.stringify(snippets));
+
+    return newSnippet;
+  } catch (error) {
+    console.error({ error });
+    throw new Error("Failed to create snippet");
+  }
+}
+
+/**
+ * Delete a snippet
+ */
+export async function deleteSnippet(id: string): Promise<void> {
+  try {
+    const snippetsData = await LocalStorage.getItem<string>(SNIPPETS_KEY);
+    if (!snippetsData) return;
+
+    let snippets: Snippet[] = JSON.parse(snippetsData);
+    snippets = snippets.filter((s) => s.id !== id);
+
+    await LocalStorage.setItem(SNIPPETS_KEY, JSON.stringify(snippets));
+  } catch (error) {
+    console.error({ error });
+    throw new Error("Failed to delete snippet");
   }
 }
