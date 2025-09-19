@@ -54,7 +54,7 @@ const CLAUDE_DIR = join(homedir(), ".claude", "projects");
 async function parseUserMessagesOnlyStreaming(
   filePath: string,
   sessionId: string,
-  projectPath: string
+  projectPath: string,
 ): Promise<Message[]> {
   return new Promise((resolve) => {
     const userMessages: Message[] = []; // Collect user messages as we find them
@@ -74,7 +74,8 @@ async function parseUserMessagesOnlyStreaming(
           fileStream.destroy();
           fileStream = null;
         }
-      } catch {
+      } catch (error) {
+        console.error({ error });
         // Ignore cleanup errors - we're already handling an error condition
       }
     };
@@ -162,15 +163,19 @@ async function parseUserMessagesOnlyStreaming(
       });
 
       rl.on("error", (error: Error) => {
+        console.error({ error });
         cleanup();
         resolve([]); // Return empty array instead of rejecting
       });
 
       fileStream.on("error", (error: Error) => {
+        console.error({ error });
         cleanup();
         resolve([]);
       });
-    } catch {
+    } catch (error) {
+      console.error({ error });
+
       cleanup();
       resolve([]);
     }
@@ -180,7 +185,7 @@ async function parseUserMessagesOnlyStreaming(
 async function parseAssistantMessagesOnlyStreaming(
   filePath: string,
   sessionId: string,
-  projectPath: string
+  projectPath: string,
 ): Promise<Message[]> {
   return new Promise((resolve) => {
     const assistantMessages: Message[] = [];
@@ -269,11 +274,13 @@ async function parseAssistantMessagesOnlyStreaming(
       });
 
       rl.on("error", (error: Error) => {
+        console.error({ error });
         cleanup();
         resolve([]); // Return empty array instead of rejecting
       });
 
       fileStream.on("error", (error: Error) => {
+        console.error({ error });
         cleanup();
         resolve([]);
       });
@@ -355,7 +362,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
             const messages = await parseAssistantMessagesOnlyStreaming(
               file.path,
               sessionId,
-              project.path
+              project.path,
             );
             allMessages.push(...messages);
           } catch (error) {
@@ -468,7 +475,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
             const userMessages = await parseUserMessagesOnlyStreaming(
               file.path,
               sessionId,
-              project.path
+              project.path,
             );
 
             // Add all user messages from this file to our collection
@@ -490,7 +497,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     // Now we have user messages from multiple projects/conversations
     // Sort them globally by timestamp to get the most recent messages overall
     const finalMessages = topUserMessages.sort(
-      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
     ); // Newest messages first across ALL projects
 
     // STEP 7: Format messages for Raycast display
@@ -510,7 +517,7 @@ export async function getReceivedMessages(): Promise<ParsedMessage[]> {
   const allMessages = await getAllClaudeMessages();
 
   const assistantMessages = allMessages.filter(
-    (msg) => msg.role === "assistant"
+    (msg) => msg.role === "assistant",
   );
 
   const parsedMessages = assistantMessages.map((msg, index) => {
@@ -650,7 +657,7 @@ export async function pinMessage(message: ParsedMessage): Promise<void> {
     pinnedMessages.push(pinnedMessage);
     await LocalStorage.setItem(
       PINNED_MESSAGES_KEY,
-      JSON.stringify(pinnedMessages)
+      JSON.stringify(pinnedMessages),
     );
   } catch (error) {
     console.error({ error });
@@ -671,7 +678,7 @@ export async function unpinMessage(messageId: string): Promise<void> {
 
     await LocalStorage.setItem(
       PINNED_MESSAGES_KEY,
-      JSON.stringify(pinnedMessages)
+      JSON.stringify(pinnedMessages),
     );
   } catch (error) {
     console.error("Error unpinning message:", error);
