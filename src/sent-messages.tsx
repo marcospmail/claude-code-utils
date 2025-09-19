@@ -9,8 +9,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   generateMessageId,
+  getPinnedMessageIds,
   getSentMessages,
-  isPinned,
   ParsedMessage,
   pinMessage,
   unpinMessage,
@@ -27,14 +27,17 @@ export default function SentMessages() {
     setIsLoading(true);
     try {
       const sentMessages = await getSentMessages();
-      // Check pinned status for each message
-      const messagesWithPinnedStatus = await Promise.all(
-        sentMessages.map(async (msg) => {
-          const messageId = generateMessageId(msg);
-          const pinned = await isPinned(messageId);
-          return { ...msg, isPinned: pinned };
-        }),
-      );
+      // Get all pinned IDs at once for efficient lookup
+      const pinnedIds = await getPinnedMessageIds();
+
+      // Check pinned status efficiently using the Set
+      const messagesWithPinnedStatus = sentMessages.map((msg) => {
+        const messageId = generateMessageId(msg);
+        return {
+          ...msg,
+          isPinned: pinnedIds.has(messageId),
+        };
+      });
       // Sort so pinned messages appear first
       const sortedMessages = messagesWithPinnedStatus.sort((a, b) => {
         if (a.isPinned && !b.isPinned) return -1;
@@ -43,6 +46,8 @@ export default function SentMessages() {
       });
       setMessages(sortedMessages);
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Error loading messages",
@@ -67,6 +72,8 @@ export default function SentMessages() {
         message: "Message content copied to clipboard",
       });
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Copy failed",
@@ -86,6 +93,8 @@ export default function SentMessages() {
       // Reload messages to update pinned status
       loadMessages();
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Pin failed",
@@ -106,6 +115,8 @@ export default function SentMessages() {
       // Reload messages to update pinned status
       loadMessages();
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Unpin failed",
@@ -153,7 +164,12 @@ export default function SentMessages() {
                 title={message.preview}
                 accessories={[
                   { text: "📌" },
-                  { text: message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+                  {
+                    text: message.timestamp.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                  },
                 ]}
                 actions={
                   <ActionPanel>
@@ -191,7 +207,14 @@ export default function SentMessages() {
             <List.Item
               key={message.id}
               title={message.preview}
-              accessories={[{ text: message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]}
+              accessories={[
+                {
+                  text: message.timestamp.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                },
+              ]}
               actions={
                 <ActionPanel>
                   <Action

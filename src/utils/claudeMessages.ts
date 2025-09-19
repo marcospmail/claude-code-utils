@@ -129,17 +129,25 @@ async function parseUserMessagesOnlyStreaming(
             ) {
               // Interrupted/cancelled messages
 
+              // Convert Unix timestamp (seconds) to JavaScript timestamp (milliseconds)
+              const timestamp = data.timestamp
+                ? typeof data.timestamp === "number" &&
+                  data.timestamp < 10000000000
+                  ? new Date(data.timestamp * 1000)
+                  : new Date(data.timestamp)
+                : new Date();
+
               userMessages.push({
                 role: "user",
                 content,
-                timestamp: new Date(data.timestamp || Date.now()), // When message was sent
+                timestamp,
                 sessionId, // Which conversation session this belongs to
                 projectPath, // Which project/folder this conversation was in
               });
             }
           }
         } catch (error) {
-          console.error(`Error parsing line ${line}:`, error);
+          console.error({ error });
           // Skip lines that aren't valid JSON - don't crash on malformed data
         }
       });
@@ -154,18 +162,15 @@ async function parseUserMessagesOnlyStreaming(
       });
 
       rl.on("error", (error: Error) => {
-        console.error(`Error reading file ${filePath}:`, error);
         cleanup();
         resolve([]); // Return empty array instead of rejecting
       });
 
       fileStream.on("error", (error: Error) => {
-        console.error(`Error opening file ${filePath}:`, error);
         cleanup();
         resolve([]);
       });
     } catch {
-      console.error(`Error opening file ${filePath}`);
       cleanup();
       resolve([]);
     }
@@ -195,7 +200,7 @@ async function parseAssistantMessagesOnlyStreaming(
           fileStream = null;
         }
       } catch (error) {
-        console.error(`Error cleaning up file ${filePath}:`, error);
+        console.error({ error });
         // Ignore cleanup errors
       }
     };
@@ -231,17 +236,25 @@ async function parseAssistantMessagesOnlyStreaming(
             }
 
             if (content && content.trim()) {
+              // Convert Unix timestamp (seconds) to JavaScript timestamp (milliseconds)
+              const timestamp = data.timestamp
+                ? typeof data.timestamp === "number" &&
+                  data.timestamp < 10000000000
+                  ? new Date(data.timestamp * 1000)
+                  : new Date(data.timestamp)
+                : new Date();
+
               assistantMessages.push({
                 role: "assistant",
                 content,
-                timestamp: new Date(data.timestamp || Date.now()),
+                timestamp,
                 sessionId,
                 projectPath,
               });
             }
           }
         } catch (error) {
-          console.error(`Error parsing line ${line}:`, error);
+          console.error({ error });
           // Skip invalid JSON lines
         }
       });
@@ -256,18 +269,16 @@ async function parseAssistantMessagesOnlyStreaming(
       });
 
       rl.on("error", (error: Error) => {
-        console.error(`Error reading file ${filePath}:`, error);
         cleanup();
         resolve([]); // Return empty array instead of rejecting
       });
 
       fileStream.on("error", (error: Error) => {
-        console.error(`Error opening file ${filePath}:`, error);
         cleanup();
         resolve([]);
       });
-    } catch {
-      console.error(`Error opening file ${filePath}`);
+    } catch (error) {
+      console.error({ error });
       cleanup();
       resolve([]);
     }
@@ -278,8 +289,6 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
   try {
     const MAX_PROJECTS_TO_SCAN = 5; // Limit how many projects we scan
     const MAX_FILES_PER_PROJECT = 5; // Limit files per project
-
-    console.log("Starting memory-efficient scan for assistant messages...");
 
     // Get projects and sort by modification time (most recent first)
     const projects = await readdir(CLAUDE_DIR);
@@ -297,7 +306,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
           });
         }
       } catch (error) {
-        console.error(`Error processing project ${project}:`, error);
+        console.error({ error });
         continue;
       }
     }
@@ -307,17 +316,10 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
       .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
       .slice(0, MAX_PROJECTS_TO_SCAN);
 
-    console.log(`Processing ${sortedProjects.length} most recent projects...`);
-    console.log(
-      `Selected projects: ${sortedProjects.map((p) => p.name).join(", ")}`
-    );
-
     const allMessages: Message[] = [];
 
     // Process projects sequentially
     for (const project of sortedProjects) {
-      console.log(`Scanning project: ${project.name}`);
-
       try {
         const files = await readdir(project.path);
         const jsonlFiles = files.filter((file) => file.endsWith(".jsonl"));
@@ -334,7 +336,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
               mtime: fileStat.mtime,
             });
           } catch (error) {
-            console.error(`Error processing file:`, error);
+            console.error({ error });
             continue;
           }
         }
@@ -344,15 +346,10 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
           .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
           .slice(0, MAX_FILES_PER_PROJECT);
 
-        console.log(
-          `Processing ${sortedFiles.length} most recent files from ${project.name}...`
-        );
-
         // Process files sequentially using streaming
         for (const file of sortedFiles) {
           try {
             const sessionId = file.name.replace(".jsonl", "");
-            console.log(`Streaming file: ${file.name}`);
 
             // Use streaming parser for memory efficiency
             const messages = await parseAssistantMessagesOnlyStreaming(
@@ -362,14 +359,14 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
             );
             allMessages.push(...messages);
           } catch (error) {
-            console.error(`Error processing file ${file.path}:`, error);
+            console.error({ error });
             continue;
           }
         }
 
         // Don't break early - scan all 5 projects
       } catch (error) {
-        console.error(`Error processing project ${project.name}:`, error);
+        console.error({ error });
         continue;
       }
     }
@@ -379,13 +376,9 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
       .filter((msg) => msg.role === "assistant")
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    console.log(
-      `Memory-efficient scan complete. Found ${assistantMessages.length} assistant messages from ${sortedProjects.length} projects`
-    );
-
     return assistantMessages;
   } catch (error) {
-    console.error("Error in memory-efficient Claude messages scan:", error);
+    console.error({ error });
     return [];
   }
 }
@@ -399,8 +392,6 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     // Configuration: Control how many messages/projects/files we process
     const MAX_PROJECTS_TO_SCAN = 5; // Only scan the 15 most recently active projects
     const MAX_FILES_PER_PROJECT = 5; // Only process the 5 most recent conversation files per project
-
-    console.log("Starting scan for sent messages...");
 
     // STEP 1: Find all Claude Code projects and get their modification times
     const projects = await readdir(CLAUDE_DIR); // Read ~/.claude/projects/ directory
@@ -419,8 +410,8 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
           });
         }
       } catch (error) {
-        console.error(`Error processing project ${project}:`, error);
         // Skip projects we can't read (permissions, etc.)
+        console.error({ error });
         continue;
       }
     }
@@ -430,20 +421,11 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
       .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()) // Newest first
       .slice(0, MAX_PROJECTS_TO_SCAN); // Only process 5 most recent projects
 
-    console.log(
-      `Processing ${sortedProjects.length} most recent projects for sent messages...`
-    );
-    console.log(
-      `Selected projects: ${sortedProjects.map((p) => p.name).join(", ")}`
-    );
-
     // Array to collect ALL user messages from ALL projects before final sorting
     const topUserMessages: Message[] = [];
 
     // STEP 3: Process each of the 5 selected projects to find conversation files
     for (const project of sortedProjects) {
-      console.log(`Scanning project for sent messages: ${project.name}`);
-
       try {
         // Get all conversation files (.jsonl) in this project
         const files = await readdir(project.path);
@@ -465,8 +447,8 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
               mtime: fileStat.mtime, // When this conversation file was last modified
             });
           } catch (error) {
-            console.error("Error processing file", error);
             // Skip files we can't read
+            console.error({ error });
             continue;
           }
         }
@@ -480,7 +462,6 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
         for (const file of sortedFiles) {
           try {
             const sessionId = file.name.replace(".jsonl", ""); // Extract session ID from filename
-            console.log(`Processing file: ${file.name}`);
 
             // Stream through the file line-by-line to extract user messages
             // This avoids loading huge files into memory all at once
@@ -493,14 +474,14 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
             // Add all user messages from this file to our collection
             topUserMessages.push(...userMessages);
           } catch (error) {
-            console.error(`Error processing file ${file.path}:`, error);
+            console.error({ error });
             continue; // Skip problematic files
           }
         }
 
         // Continue to next project (don't break early - we want to scan all 5 projects)
       } catch (error) {
-        console.error(`Error processing project ${project.name}:`, error);
+        console.error({ error });
         continue; // Skip problematic projects
       }
     }
@@ -508,20 +489,9 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     // STEP 6: Final sorting across ALL projects
     // Now we have user messages from multiple projects/conversations
     // Sort them globally by timestamp to get the most recent messages overall
-    const finalMessages = topUserMessages
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Newest messages first across ALL projects
-
-    console.log(
-      `Memory-efficient sent messages scan complete. Found ${finalMessages.length} user messages from ${sortedProjects.length} projects`
-    );
-    console.log(
-      `Latest messages: ${finalMessages
-        .slice(0, 3)
-        .map(
-          (m) => `"${m.content.slice(0, 30)}..." (${m.timestamp.toISOString()})`
-        )
-        .join(", ")}`
-    );
+    const finalMessages = topUserMessages.sort(
+      (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+    ); // Newest messages first across ALL projects
 
     // STEP 7: Format messages for Raycast display
     return finalMessages.map((msg, index) => ({
@@ -531,27 +501,32 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
         msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : ""), // Preview text for list
     }));
   } catch (error) {
-    console.error("Error in memory-efficient sent messages scan:", error);
+    console.error({ error });
     return [];
   }
 }
 
 export async function getReceivedMessages(): Promise<ParsedMessage[]> {
-  console.log("Fetching received messages...");
-
   const allMessages = await getAllClaudeMessages();
 
-  const assistantMessages = allMessages
-    .filter((msg) => msg.role === "assistant");
+  const assistantMessages = allMessages.filter(
+    (msg) => msg.role === "assistant"
+  );
 
-  console.log(`Found ${assistantMessages.length} assistant messages`);
+  const parsedMessages = assistantMessages.map((msg, index) => {
+    const preview = msg.content
+      ? msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : "")
+      : "[Empty message]";
+    return {
+      ...msg,
+      id: `received-${index}`,
+      preview: preview,
+      timestamp:
+        msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp),
+    };
+  });
 
-  return assistantMessages.map((msg, index) => ({
-    ...msg,
-    id: `received-${index}`,
-    preview:
-      msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : ""),
-  }));
+  return parsedMessages;
 }
 
 export function formatMessageForDisplay(message: ParsedMessage): string {
@@ -569,10 +544,19 @@ const PINNED_MESSAGES_KEY = "claude-messages-pinned";
  * Generate a unique ID for a message based on content and timestamp
  */
 export function generateMessageId(message: ParsedMessage): string {
-  const content = `${message.content}-${message.timestamp.getTime()}-${
-    message.sessionId
-  }`;
-  return createHash("md5").update(content).digest("hex");
+  try {
+    const timestamp =
+      message.timestamp instanceof Date
+        ? message.timestamp.getTime()
+        : new Date(message.timestamp).getTime();
+    const content = `${message.content}-${timestamp}-${message.sessionId}`;
+    return createHash("md5").update(content).digest("hex");
+  } catch (error) {
+    console.error({ error });
+    // Fallback if timestamp is invalid
+    const fallbackContent = `${message.content}-${message.sessionId}-${message.id}`;
+    return createHash("md5").update(fallbackContent).digest("hex");
+  }
 }
 
 /**
@@ -596,8 +580,24 @@ export async function getPinnedMessages(): Promise<ParsedMessage[]> {
       isPinned: true,
     }));
   } catch (error) {
-    console.error("Error getting pinned messages:", error);
+    console.error({ error });
     return [];
+  }
+}
+
+/**
+ * Get all pinned message IDs as a Set for efficient lookup
+ */
+export async function getPinnedMessageIds(): Promise<Set<string>> {
+  try {
+    const pinnedData = await LocalStorage.getItem<string>(PINNED_MESSAGES_KEY);
+    if (!pinnedData) return new Set();
+
+    const pinnedMessages: PinnedMessage[] = JSON.parse(pinnedData);
+    return new Set(pinnedMessages.map((msg) => msg.id));
+  } catch (error) {
+    console.error({ error });
+    return new Set();
   }
 }
 
@@ -606,13 +606,16 @@ export async function getPinnedMessages(): Promise<ParsedMessage[]> {
  */
 export async function isPinned(messageId: string): Promise<boolean> {
   try {
+    if (!messageId) return false;
+
     const pinnedData = await LocalStorage.getItem<string>(PINNED_MESSAGES_KEY);
+
     if (!pinnedData) return false;
 
     const pinnedMessages: PinnedMessage[] = JSON.parse(pinnedData);
-    return pinnedMessages.some((msg) => msg.id === messageId);
+    return pinnedMessages.some((msg) => msg?.id === messageId);
   } catch (error) {
-    console.error("Error checking if message is pinned:", error);
+    console.error({ error });
     return false;
   }
 }
@@ -650,7 +653,7 @@ export async function pinMessage(message: ParsedMessage): Promise<void> {
       JSON.stringify(pinnedMessages)
     );
   } catch (error) {
-    console.error("Error pinning message:", error);
+    console.error({ error });
     throw new Error("Failed to pin message");
   }
 }

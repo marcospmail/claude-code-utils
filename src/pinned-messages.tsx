@@ -28,6 +28,8 @@ export default function PinnedMessages() {
       );
       setMessages(sortedMessages);
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Error loading pinned messages",
@@ -51,6 +53,8 @@ export default function PinnedMessages() {
         message: "Message content copied to clipboard",
       });
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Copy failed",
@@ -71,6 +75,8 @@ export default function PinnedMessages() {
       // Reload messages
       loadMessages();
     } catch (error) {
+      console.error({ error });
+
       showToast({
         style: Toast.Style.Failure,
         title: "Unpin failed",
@@ -114,7 +120,12 @@ export default function PinnedMessages() {
           title={message.preview}
           accessories={[
             { text: "📌" },
-            { text: message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+            {
+              text: message.timestamp.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            },
           ]}
           actions={
             <ActionPanel>
