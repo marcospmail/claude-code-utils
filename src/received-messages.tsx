@@ -3,19 +3,16 @@ import {
   ActionPanel,
   Clipboard,
   closeMainWindow,
+  Detail,
+  Icon,
   List,
+  showHUD,
   showToast,
   Toast,
 } from "@raycast/api";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  generateMessageId,
-  getPinnedMessageIds,
-  getReceivedMessages,
-  ParsedMessage,
-  pinMessage,
-  unpinMessage,
-} from "./utils/claudeMessages";
+import { getReceivedMessages, ParsedMessage } from "./utils/claudeMessages";
+import CreateSnippet from "./create-snippet";
 
 export default function ReceivedMessages() {
   const [messages, setMessages] = useState<ParsedMessage[]>([]);
@@ -28,26 +25,10 @@ export default function ReceivedMessages() {
     setIsLoading(true);
     try {
       const receivedMessages = await getReceivedMessages();
-
-      // Get all pinned IDs at once for efficient lookup
-      const pinnedIds = await getPinnedMessageIds();
-
-      // Check pinned status efficiently using the Set
-      const messagesWithPinnedStatus = receivedMessages.map((msg) => {
-        const messageId = generateMessageId(msg);
-        return {
-          ...msg,
-          isPinned: pinnedIds.has(messageId),
-        };
-      });
-
-      // Sort so pinned messages appear first
-      const sortedMessages = messagesWithPinnedStatus.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return b.timestamp.getTime() - a.timestamp.getTime();
-      });
-
+      // Sort by timestamp (newest first)
+      const sortedMessages = receivedMessages.sort(
+        (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
+      );
       setMessages(sortedMessages);
     } catch (error) {
       console.error({ error });
@@ -67,15 +48,19 @@ export default function ReceivedMessages() {
     loadMessages();
   }, []);
 
-  async function copyContent(message: ParsedMessage) {
+  async function copyContent(message: ParsedMessage, closeWindow = false) {
     try {
       await Clipboard.copy(message.content);
-      showToast({
-        style: Toast.Style.Success,
-        title: "Content copied",
-        message: "Message content copied to clipboard",
-      });
-      await closeMainWindow();
+      if (closeWindow) {
+        await closeMainWindow();
+        await showHUD("Copied to Clipboard");
+      } else {
+        await showToast({
+          style: Toast.Style.Success,
+          title: "Content copied",
+          message: "Message content copied to clipboard",
+        });
+      }
     } catch (error) {
       console.error({ error });
 
@@ -87,47 +72,49 @@ export default function ReceivedMessages() {
     }
   }
 
-  async function handlePin(message: ParsedMessage) {
-    try {
-      await pinMessage(message);
-      showToast({
-        style: Toast.Style.Success,
-        title: "Message pinned",
-        message: "Message added to pinned list",
-      });
-      // Reload messages to update pinned status
-      loadMessages();
-    } catch (error) {
-      console.error({ error });
-
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Pin failed",
-        message: String(error),
-      });
-    }
-  }
-
-  async function handleUnpin(message: ParsedMessage) {
-    try {
-      const messageId = generateMessageId(message);
-      await unpinMessage(messageId);
-      showToast({
-        style: Toast.Style.Success,
-        title: "Message unpinned",
-        message: "Message removed from pinned list",
-      });
-      // Reload messages to update pinned status
-      loadMessages();
-    } catch (error) {
-      console.error({ error });
-
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Unpin failed",
-        message: String(error),
-      });
-    }
+  function MessageDetail({ message }: { message: ParsedMessage }) {
+    return (
+      <Detail
+        markdown={message.content}
+        navigationTitle="Message Detail"
+        metadata={
+          <Detail.Metadata>
+            <Detail.Metadata.Label
+              title="Time"
+              text={message.timestamp.toLocaleString()}
+            />
+            <Detail.Metadata.Separator />
+            <Detail.Metadata.Label
+              title="Session ID"
+              text={message.sessionId}
+            />
+            <Detail.Metadata.Label
+              title="Project"
+              text={
+                message.projectPath?.split("/").pop() ||
+                message.projectPath ||
+                "Unknown"
+              }
+            />
+          </Detail.Metadata>
+        }
+        actions={
+          <ActionPanel>
+            <Action
+              title="Copy Message"
+              icon={Icon.Clipboard}
+              onAction={() => copyContent(message, true)}
+            />
+            <Action.Push
+              title="Create Snippet from Message"
+              icon={Icon.Document}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "s" }}
+              target={<CreateSnippet content={message.content} />}
+            />
+          </ActionPanel>
+        }
+      />
+    );
   }
 
   return (
@@ -159,88 +146,47 @@ export default function ReceivedMessages() {
           }
         />
       )}
-      {messages.filter((message) => message.isPinned).length > 0 && (
-        <List.Section title="Pinned">
-          {messages
-            .filter((message) => message.isPinned)
-            .map((message) => (
-              <List.Item
-                key={message.id}
-                title={message.preview}
-                accessories={[
-                  { text: "📌" },
-                  {
-                    text: message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
-                  },
-                ]}
-                actions={
-                  <ActionPanel>
-                    <Action
-                      title="Copy Message"
-                      onAction={() => copyContent(message)}
-                    />
-                    <Action
-                      title="Unpin Message"
-                      style={Action.Style.Destructive}
-                      shortcut={{ modifiers: ["cmd", "shift"], key: "p" }}
-                      onAction={() => handleUnpin(message)}
-                    />
-                    <Action
-                      title="Refresh Messages"
-                      shortcut={{ modifiers: ["cmd"], key: "r" }}
-                      onAction={loadMessages}
-                    />
-                  </ActionPanel>
-                }
+      {messages.map((message) => (
+        <List.Item
+          key={message.id}
+          title={message.preview}
+          accessories={[
+            {
+              text: message.timestamp.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            },
+          ]}
+          actions={
+            <ActionPanel>
+              <Action.Push
+                title="View Message"
+                icon={Icon.Eye}
+                target={<MessageDetail message={message} />}
               />
-            ))}
-        </List.Section>
-      )}
-      <List.Section
-        title={
-          messages.filter((message) => message.isPinned).length > 0
-            ? "Recent Messages"
-            : ""
-        }
-      >
-        {messages
-          .filter((message) => !message.isPinned)
-          .map((message) => (
-            <List.Item
-              key={message.id}
-              title={message.preview}
-              accessories={[
-                {
-                  text: message.timestamp.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                },
-              ]}
-              actions={
-                <ActionPanel>
-                  <Action
-                    title="Copy Message"
-                    onAction={() => copyContent(message)}
-                  />
-                  <Action
-                    title="Pin Message"
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "p" }}
-                    onAction={() => handlePin(message)}
-                  />
-                  <Action
-                    title="Refresh Messages"
-                    shortcut={{ modifiers: ["cmd"], key: "r" }}
-                    onAction={loadMessages}
-                  />
-                </ActionPanel>
-              }
-            />
-          ))}
-      </List.Section>
+              <Action
+                title="Copy Message"
+                icon={Icon.Clipboard}
+                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                onAction={() => copyContent(message, true)}
+              />
+              <Action.Push
+                title="Create Snippet from Message"
+                icon={Icon.Document}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "s" }}
+                target={<CreateSnippet content={message.content} />}
+              />
+              <Action
+                title="Refresh Messages"
+                icon={Icon.ArrowClockwise}
+                shortcut={{ modifiers: ["cmd"], key: "r" }}
+                onAction={loadMessages}
+              />
+            </ActionPanel>
+          }
+        />
+      ))}
     </List>
   );
 }

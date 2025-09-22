@@ -2,7 +2,10 @@ import {
   Action,
   ActionPanel,
   Clipboard,
+  closeMainWindow,
+  Detail,
   List,
+  showHUD,
   showToast,
   Toast,
   confirmAlert,
@@ -42,14 +45,19 @@ export default function ListSnippets() {
     loadSnippets();
   }, [loadSnippets]);
 
-  async function copyContent(snippet: Snippet) {
+  async function copyContent(snippet: Snippet, closeWindow = false) {
     try {
       await Clipboard.copy(snippet.content);
-      showToast({
-        style: Toast.Style.Success,
-        title: "Content copied",
-        message: `"${snippet.title}" copied to clipboard`,
-      });
+      if (closeWindow) {
+        await closeMainWindow();
+        await showHUD("Copied to Clipboard");
+      } else {
+        showToast({
+          style: Toast.Style.Success,
+          title: "Content copied",
+          message: `"${snippet.title}" copied to clipboard`,
+        });
+      }
     } catch (error) {
       console.error({ error });
       showToast({
@@ -88,6 +96,59 @@ export default function ListSnippets() {
         });
       }
     }
+  }
+
+  function SnippetDetail({ snippet }: { snippet: Snippet }) {
+    return (
+      <Detail
+        markdown={snippet.content}
+        navigationTitle="Snippet Detail"
+        metadata={
+          <Detail.Metadata>
+            <Detail.Metadata.Label
+              title="Title"
+              text={snippet.title || "Untitled"}
+            />
+            <Detail.Metadata.Separator />
+            <Detail.Metadata.Label
+              title="Created"
+              text={snippet.createdAt.toLocaleString()}
+            />
+            <Detail.Metadata.Label
+              title="Updated"
+              text={snippet.updatedAt.toLocaleString()}
+            />
+          </Detail.Metadata>
+        }
+        actions={
+          <ActionPanel>
+            <Action
+              title="Copy Snippet"
+              icon={Icon.Clipboard}
+              onAction={() => copyContent(snippet, true)}
+            />
+            <Action.Push
+              title="Duplicate Snippet"
+              icon={Icon.CopyClipboard}
+              shortcut={{ modifiers: ["cmd"], key: "d" }}
+              target={
+                <CreateSnippet
+                  title={snippet.title ? `${snippet.title} (Copy)` : "Copy"}
+                  content={snippet.content}
+                />
+              }
+            />
+            <Action
+              title="Delete Snippet"
+              style={Action.Style.Destructive}
+              icon={Icon.Trash}
+              shortcut={{ modifiers: ["ctrl"], key: "x" }}
+              onAction={() => handleDelete(snippet)}
+            />
+          </ActionPanel>
+        }
+      />
+    );
   }
 
   return (
@@ -134,12 +195,31 @@ export default function ListSnippets() {
           ]}
           actions={
             <ActionPanel>
+              <Action.Push
+                title="View Snippet"
+                icon={Icon.Eye}
+                target={<SnippetDetail snippet={snippet} />}
+              />
               <Action
                 title="Copy Snippet"
-                onAction={() => copyContent(snippet)}
+                icon={Icon.Clipboard}
+                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                onAction={() => copyContent(snippet, true)}
+              />
+              <Action.Push
+                title="Duplicate Snippet"
+                icon={Icon.CopyClipboard}
+                shortcut={{ modifiers: ["cmd"], key: "d" }}
+                target={
+                  <CreateSnippet
+                    title={snippet.title ? `${snippet.title} (Copy)` : "Copy"}
+                    content={snippet.content}
+                  />
+                }
               />
               <Action.Push
                 title="Create New Snippet"
+                icon={Icon.Plus}
                 target={<CreateSnippet />}
                 shortcut={{ modifiers: ["cmd"], key: "n" }}
               />
