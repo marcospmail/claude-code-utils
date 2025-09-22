@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "claude-messages",
-  "title": "Claude Messages",
+  "title": "Claude Code Utils",
   "description": "Claude Code Helper Extension",
   "icon": "icon.png",
   "author": "marcospmail",
@@ -13,49 +13,31 @@
   "commands": [
     {
       "name": "index",
-      "title": "Claude Messages Menu",
+      "title": "Claude Code Utils - Menu",
       "description": "Access all Claude messages and conversation features",
       "mode": "view"
     },
     {
-      "name": "pinned-messages",
-      "title": "Pinned Messages",
-      "description": "View your pinned Claude messages",
-      "mode": "view"
-    },
-    {
       "name": "create-snippet",
-      "title": "Create Snippet",
+      "title": "Claude Code Utils - Create Snippets",
       "description": "Create a new snippet",
       "mode": "view"
     },
     {
       "name": "list-snippets",
-      "title": "List Snippets",
+      "title": "Claude Code Utils - List Snippets",
       "description": "View and manage your snippets",
       "mode": "view"
     },
     {
-      "name": "latest-sent-message",
-      "title": "Latest Sent Message",
-      "description": "View your most recent message sent to Claude",
-      "mode": "view"
-    },
-    {
-      "name": "latest-received-message",
-      "title": "Latest Claude Response",
-      "description": "View Claude's most recent response",
-      "mode": "view"
-    },
-    {
       "name": "received-messages",
-      "title": "Claude's Responses",
+      "title": "Claude Code Utils - Received Messages",
       "description": "View messages you received from Claude",
       "mode": "view"
     },
     {
       "name": "sent-messages",
-      "title": "My Sent Messages",
+      "title": "Claude Code Utils - Sent Messages",
       "description": "View messages you sent to Claude",
       "mode": "view"
     }
