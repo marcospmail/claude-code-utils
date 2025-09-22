@@ -5,13 +5,29 @@ import {
   showToast,
   Toast,
   popToRoot,
+  LaunchProps,
 } from "@raycast/api";
 import { useState } from "react";
 import { createSnippet } from "./utils/claudeMessages";
 
-export default function CreateSnippet() {
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+export interface CreateSnippetProps {
+  content?: string;
+  title?: string;
+}
+
+export default function CreateSnippet(
+  props?:
+    | LaunchProps<{ launchContext: CreateSnippetProps }>
+    | CreateSnippetProps,
+) {
+  // Handle both LaunchProps and direct props
+  const initialProps =
+    props && "launchContext" in props
+      ? props.launchContext
+      : (props as CreateSnippetProps | undefined);
+
+  const [title, setTitle] = useState(initialProps?.title || "");
+  const [content, setContent] = useState(initialProps?.content || "");
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleSubmit() {
