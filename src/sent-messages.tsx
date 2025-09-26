@@ -1,23 +1,38 @@
 import {
   Action,
   ActionPanel,
+  AI,
   Clipboard,
   closeMainWindow,
+  Color,
   Detail,
+  environment,
   Icon,
   List,
   showHUD,
   showToast,
   Toast,
 } from "@raycast/api";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { getSentMessages, ParsedMessage } from "./utils/claudeMessages";
+import { semanticSearch, normalSearch } from "./utils/aiSearch";
 import CreateSnippet from "./create-snippet";
 
 export default function SentMessages() {
   const [messages, setMessages] = useState<ParsedMessage[]>([]);
+  const [filteredMessages, setFilteredMessages] = useState<ParsedMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [useAISearch, setUseAISearch] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState("");
+  const [aiSearchFailed, setAiSearchFailed] = useState<
+    false | true | "pro-required"
+  >(false);
   const loadingRef = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Check if user has AI access
+  const hasAIAccess = environment.canAccess(AI);
 
   const loadMessages = useCallback(async () => {
     if (loadingRef.current) return;
@@ -30,6 +45,7 @@ export default function SentMessages() {
         (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
       );
       setMessages(sortedMessages);
+      setFilteredMessages(sortedMessages);
     } catch (error) {
       console.error({ error });
 
@@ -47,6 +63,81 @@ export default function SentMessages() {
   useEffect(() => {
     loadMessages();
   }, []);
+
+  // Handle search text changes with debouncing for AI search
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (useAISearch) {
+      // Debounce AI search by 500ms
+      debounceTimerRef.current = setTimeout(() => {
+        setDebouncedSearchText(searchText);
+      }, 500);
+    } else {
+      // No debounce for normal search
+      setDebouncedSearchText(searchText);
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchText, useAISearch]);
+
+  // Filter messages immediately for normal search
+  const displayMessages = useMemo(() => {
+    if (!useAISearch && searchText.trim()) {
+      return normalSearch(messages, searchText);
+    }
+    return filteredMessages;
+  }, [messages, searchText, useAISearch, filteredMessages]);
+
+  // Perform AI search only on debounced text
+  useEffect(() => {
+    async function performAISearch() {
+      if (!debouncedSearchText.trim()) {
+        setFilteredMessages(messages);
+        return;
+      }
+
+      if (useAISearch) {
+        setIsLoading(true);
+        setAiSearchFailed(false);
+        try {
+          const results = await semanticSearch(messages, debouncedSearchText);
+          setFilteredMessages(results);
+          setAiSearchFailed(false);
+        } catch (error) {
+          console.error("AI search error:", error);
+          // Clear results and show error state
+          setFilteredMessages([]);
+
+          // Check if it's a Pro subscription error (either by checking access or error message)
+          if (!hasAIAccess || error?.message?.includes("Raycast Pro")) {
+            setAiSearchFailed("pro-required");
+          } else {
+            setAiSearchFailed(true);
+          }
+
+          // Show error toast
+          showToast({
+            style: Toast.Style.Failure,
+            title: "AI search failed",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setFilteredMessages(normalSearch(messages, debouncedSearchText));
+        setAiSearchFailed(false);
+      }
+    }
+
+    performAISearch();
+  }, [debouncedSearchText, useAISearch, messages]);
 
   async function copyContent(message: ParsedMessage, closeWindow = false) {
     try {
@@ -120,7 +211,30 @@ export default function SentMessages() {
   return (
     <List
       isLoading={isLoading}
-      searchBarPlaceholder="Search your messages to Claude..."
+      searchBarPlaceholder={
+        useAISearch
+          ? "Search with AI (semantic)..."
+          : "Search your messages to Claude..."
+      }
+      onSearchTextChange={setSearchText}
+      searchBarAccessory={
+        <List.Dropdown
+          tooltip="Search Mode"
+          value={useAISearch ? "ai" : "normal"}
+          onChange={(value) => setUseAISearch(value === "ai")}
+        >
+          <List.Dropdown.Item
+            title="Normal Search"
+            value="normal"
+            icon={Icon.MagnifyingGlass}
+          />
+          <List.Dropdown.Item
+            title="AI Search (Semantic)"
+            value="ai"
+            icon={Icon.Stars}
+          />
+        </List.Dropdown>
+      }
       actions={
         <ActionPanel>
           <Action
@@ -146,7 +260,29 @@ export default function SentMessages() {
           }
         />
       )}
-      {messages.map((message) => (
+      {aiSearchFailed && displayMessages.length === 0 && !isLoading && (
+        <List.EmptyView
+          icon={{
+            source:
+              aiSearchFailed === "pro-required"
+                ? Icon.Lock
+                : Icon.ExclamationMark,
+            tintColor:
+              aiSearchFailed === "pro-required" ? Color.Orange : Color.Red,
+          }}
+          title={
+            aiSearchFailed === "pro-required"
+              ? "Raycast Pro Required"
+              : "AI Search Failed"
+          }
+          description={
+            aiSearchFailed === "pro-required"
+              ? "AI search requires a Raycast Pro subscription"
+              : "Could not perform semantic search."
+          }
+        />
+      )}
+      {displayMessages.map((message) => (
         <List.Item
           key={message.id}
           title={message.preview}
@@ -168,7 +304,7 @@ export default function SentMessages() {
               <Action
                 title="Copy Message"
                 icon={Icon.Clipboard}
-                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                shortcut={{ modifiers: ["cmd"], key: "c" }}
                 onAction={() => copyContent(message, true)}
               />
               <Action.Push

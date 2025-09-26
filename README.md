@@ -11,7 +11,7 @@ A Claude Code Helper Extension
 1. Navigate to the extension directory:
 
    ```bash
-   cd path/to/claude-messages/
+   cd path/to/claude-code-helper-extension/
    ```
 
 2. Install dependencies (if not already done):

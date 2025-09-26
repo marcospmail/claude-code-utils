@@ -1,9 +1,12 @@
 import {
   Action,
   ActionPanel,
+  AI,
   Clipboard,
   closeMainWindow,
+  Color,
   Detail,
+  environment,
   List,
   showHUD,
   showToast,
@@ -12,13 +15,25 @@ import {
   Alert,
   Icon,
 } from "@raycast/api";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef, useMemo } from "react";
 import { getSnippets, deleteSnippet, Snippet } from "./utils/claudeMessages";
+import { semanticSearchSnippets, normalSearchSnippets } from "./utils/aiSearch";
 import CreateSnippet from "./create-snippet";
 
 export default function ListSnippets() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [useAISearch, setUseAISearch] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState("");
+  const [aiSearchFailed, setAiSearchFailed] = useState<
+    false | true | "pro-required"
+  >(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+
+  // Check if user has AI access
+  const hasAIAccess = environment.canAccess(AI);
 
   const loadSnippets = useCallback(async () => {
     setIsLoading(true);
@@ -29,6 +44,7 @@ export default function ListSnippets() {
         (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
       );
       setSnippets(sortedSnippets);
+      setFilteredSnippets(sortedSnippets);
     } catch (error) {
       console.error({ error });
       showToast({
@@ -44,6 +60,86 @@ export default function ListSnippets() {
   useEffect(() => {
     loadSnippets();
   }, [loadSnippets]);
+
+  // Handle search text changes with debouncing for AI search
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (useAISearch) {
+      // Debounce AI search by 500ms
+      debounceTimerRef.current = setTimeout(() => {
+        setDebouncedSearchText(searchText);
+      }, 500);
+    } else {
+      // No debounce for normal search
+      setDebouncedSearchText(searchText);
+    }
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchText, useAISearch]);
+
+  // Filter snippets immediately for normal search
+  const displaySnippets = useMemo(() => {
+    if (!useAISearch && searchText.trim()) {
+      return normalSearchSnippets(snippets, searchText);
+    }
+    return filteredSnippets;
+  }, [snippets, searchText, useAISearch, filteredSnippets]);
+
+  // Perform AI search only on debounced text
+  useEffect(() => {
+    async function performAISearch() {
+      if (!debouncedSearchText.trim()) {
+        setFilteredSnippets(snippets);
+        return;
+      }
+
+      if (useAISearch) {
+        setIsLoading(true);
+        setAiSearchFailed(false);
+        try {
+          const results = await semanticSearchSnippets(
+            snippets,
+            debouncedSearchText,
+          );
+          setFilteredSnippets(results);
+          setAiSearchFailed(false);
+        } catch (error) {
+          console.error("AI search error:", error);
+          // Clear results and show error state
+          setFilteredSnippets([]);
+
+          // Check if it's a Pro subscription error (either by checking access or error message)
+          if (!hasAIAccess || error?.message?.includes("Raycast Pro")) {
+            setAiSearchFailed("pro-required");
+          } else {
+            setAiSearchFailed(true);
+          }
+
+          // Show error toast
+          showToast({
+            style: Toast.Style.Failure,
+            title: "AI search failed",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setFilteredSnippets(
+          normalSearchSnippets(snippets, debouncedSearchText),
+        );
+        setAiSearchFailed(false);
+      }
+    }
+
+    performAISearch();
+  }, [debouncedSearchText, useAISearch, snippets]);
 
   async function copyContent(snippet: Snippet, closeWindow = false) {
     try {
@@ -154,7 +250,28 @@ export default function ListSnippets() {
   return (
     <List
       isLoading={isLoading}
-      searchBarPlaceholder="Search your snippets..."
+      searchBarPlaceholder={
+        useAISearch ? "Search with AI (semantic)..." : "Search your snippets..."
+      }
+      onSearchTextChange={setSearchText}
+      searchBarAccessory={
+        <List.Dropdown
+          tooltip="Search Mode"
+          value={useAISearch ? "ai" : "normal"}
+          onChange={(value) => setUseAISearch(value === "ai")}
+        >
+          <List.Dropdown.Item
+            title="Normal Search"
+            value="normal"
+            icon={Icon.MagnifyingGlass}
+          />
+          <List.Dropdown.Item
+            title="AI Search (Semantic)"
+            value="ai"
+            icon={Icon.Stars}
+          />
+        </List.Dropdown>
+      }
       actions={
         <ActionPanel>
           <Action.Push
@@ -180,7 +297,29 @@ export default function ListSnippets() {
           }
         />
       )}
-      {snippets.map((snippet) => (
+      {aiSearchFailed && displaySnippets.length === 0 && !isLoading && (
+        <List.EmptyView
+          icon={{
+            source:
+              aiSearchFailed === "pro-required"
+                ? Icon.Lock
+                : Icon.ExclamationMark,
+            tintColor:
+              aiSearchFailed === "pro-required" ? Color.Orange : Color.Red,
+          }}
+          title={
+            aiSearchFailed === "pro-required"
+              ? "Raycast Pro Required"
+              : "AI Search Failed"
+          }
+          description={
+            aiSearchFailed === "pro-required"
+              ? "AI search requires a Raycast Pro subscription"
+              : "Could not perform semantic search."
+          }
+        />
+      )}
+      {displaySnippets.map((snippet) => (
         <List.Item
           key={snippet.id}
           title={snippet.title}
@@ -203,7 +342,7 @@ export default function ListSnippets() {
               <Action
                 title="Copy Snippet"
                 icon={Icon.Clipboard}
-                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                shortcut={{ modifiers: ["cmd"], key: "c" }}
                 onAction={() => copyContent(snippet, true)}
               />
               <Action.Push
