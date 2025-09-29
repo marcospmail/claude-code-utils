@@ -3,6 +3,7 @@ import ReceivedMessages from "./received-messages";
 import SentMessages from "./sent-messages";
 import CreateSnippet from "./create-snippet";
 import ListSnippets from "./list-snippets";
+import ListCommands from "./list-commands";
 
 interface Option {
   id: string;
@@ -46,9 +47,34 @@ const snippetsOptions: Option[] = [
   },
 ];
 
+const commandsOptions: Option[] = [
+  {
+    id: "list-commands",
+    title: "Claude Code Utils - Commands Cheat Sheet",
+    description: "Browse all Claude Code commands and shortcuts",
+    icon: Icon.Terminal,
+    component: ListCommands,
+  },
+];
+
 export default function ClaudeCodeHelper() {
   return (
     <List searchBarPlaceholder="Search Claude Code helper options...">
+      <List.Section title="Commands">
+        {commandsOptions.map((option) => (
+          <List.Item
+            key={option.id}
+            title={option.title}
+            subtitle={option.description}
+            icon={option.icon}
+            actions={
+              <ActionPanel>
+                <Action.Push title="Open" target={<option.component />} />
+              </ActionPanel>
+            }
+          />
+        ))}
+      </List.Section>
       <List.Section title="Snippets">
         {snippetsOptions.map((option) => (
           <List.Item
