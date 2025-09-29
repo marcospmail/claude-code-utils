@@ -4,7 +4,8 @@ import {
   Form,
   showToast,
   Toast,
-  popToRoot,
+  launchCommand,
+  LaunchType,
   LaunchProps,
 } from "@raycast/api";
 import { useState } from "react";
@@ -51,9 +52,12 @@ export default function CreateSnippet(
           ? `"${snippetTitle}" has been saved`
           : "Snippet has been saved",
       });
-      await popToRoot();
+      // Navigate to list-snippets command
+      await launchCommand({
+        name: "list-snippets",
+        type: LaunchType.UserInitiated,
+      });
     } catch (error) {
-      console.error({ error });
       showToast({
         style: Toast.Style.Failure,
         title: "Failed to create snippet",

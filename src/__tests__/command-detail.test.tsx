@@ -77,13 +77,6 @@ describe("CommandDetail", () => {
     expect(markdown).toContain("# /help");
   });
 
-  it("should include category in markdown", () => {
-    const { getByTestId } = render(<CommandDetail command={mockCommand} />);
-    const detail = getByTestId("detail");
-    const markdown = detail.getAttribute("data-markdown");
-    expect(markdown).toContain("**Category:** Slash Commands");
-  });
-
   it("should include description in markdown", () => {
     const { getByTestId } = render(<CommandDetail command={mockCommand} />);
     const detail = getByTestId("detail");
@@ -91,6 +84,19 @@ describe("CommandDetail", () => {
     expect(markdown).toContain(
       "**Description:** Get usage help and list available commands",
     );
+  });
+
+  it("should show usage before description when both are present", () => {
+    const { getByTestId } = render(<CommandDetail command={mockCommand} />);
+    const detail = getByTestId("detail");
+    const markdown = detail.getAttribute("data-markdown") || "";
+
+    const usageIndex = markdown.indexOf("**Usage:**");
+    const descriptionIndex = markdown.indexOf("**Description:**");
+
+    expect(usageIndex).toBeGreaterThan(-1);
+    expect(descriptionIndex).toBeGreaterThan(-1);
+    expect(usageIndex).toBeLessThan(descriptionIndex);
   });
 
   it("should include usage when provided", () => {

@@ -7,7 +7,7 @@ import {
 } from "./commands-data";
 import CommandDetail from "./command-detail";
 
-export default function ListCommands() {
+export default function BrowseCommandsCheatsheet() {
   const [searchText, setSearchText] = useState("");
   const commandsByCategory = getCommandsByCategory();
   const filteredCommands = searchText ? searchCommands(searchText) : [];

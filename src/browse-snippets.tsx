@@ -20,7 +20,7 @@ import { getSnippets, deleteSnippet, Snippet } from "./utils/claudeMessages";
 import { semanticSearchSnippets, normalSearchSnippets } from "./utils/aiSearch";
 import CreateSnippet from "./create-snippet";
 
-export default function ListSnippets() {
+export default function BrowseSnippets() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +46,6 @@ export default function ListSnippets() {
       setSnippets(sortedSnippets);
       setFilteredSnippets(sortedSnippets);
     } catch (error) {
-      console.error({ error });
       showToast({
         style: Toast.Style.Failure,
         title: "Error loading snippets",
@@ -111,12 +110,13 @@ export default function ListSnippets() {
           setFilteredSnippets(results);
           setAiSearchFailed(false);
         } catch (error) {
-          console.error("AI search error:", error);
           // Clear results and show error state
           setFilteredSnippets([]);
 
           // Check if it's a Pro subscription error (either by checking access or error message)
-          if (!hasAIAccess || error?.message?.includes("Raycast Pro")) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
             setAiSearchFailed("pro-required");
           } else {
             setAiSearchFailed(true);
@@ -155,7 +155,6 @@ export default function ListSnippets() {
         });
       }
     } catch (error) {
-      console.error({ error });
       showToast({
         style: Toast.Style.Failure,
         title: "Copy failed",
@@ -184,7 +183,6 @@ export default function ListSnippets() {
         });
         loadSnippets();
       } catch (error) {
-        console.error({ error });
         showToast({
           style: Toast.Style.Failure,
           title: "Delete failed",

@@ -19,9 +19,7 @@ import {
   getSnippets,
   createSnippet,
   deleteSnippet,
-  type Message,
   type ParsedMessage,
-  type Snippet,
 } from "../claudeMessages";
 
 // Mock all external dependencies
@@ -94,7 +92,7 @@ class MockReadlineInterface extends EventEmitter {
   }
 
   // Override emit to handle error events properly
-  emit(eventName: string | symbol, ...args: any[]): boolean {
+  emit(eventName: string | symbol, ...args: unknown[]): boolean {
     if (eventName === "error") {
       // Handle errors gracefully by not throwing if no listeners
       if (this.listenerCount("error") === 0) {
@@ -121,24 +119,6 @@ class MockFileStream extends EventEmitter {
 }
 
 describe("claudeMessages", () => {
-  // Helper function to setup mock readline interfaces
-  const setupMockStreams = () => {
-    let mockReadlineInterface: MockReadlineInterface;
-    let mockFileStream: MockFileStream;
-
-    mockedCreateReadStream.mockImplementation(() => {
-      mockFileStream = new MockFileStream();
-      return mockFileStream as any;
-    });
-
-    mockedCreateInterface.mockImplementation(() => {
-      mockReadlineInterface = new MockReadlineInterface();
-      return mockReadlineInterface as any;
-    });
-
-    return () => ({ mockReadlineInterface, mockFileStream });
-  };
-
   let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
@@ -221,8 +201,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       // Start the function
       const resultPromise = getSentMessages();
@@ -289,8 +269,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -372,8 +352,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -423,8 +403,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -485,8 +465,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -540,8 +520,16 @@ describe("claudeMessages", () => {
         const mockReadlineInterface = new MockReadlineInterface();
         const mockFileStream = new MockFileStream();
         readlineInterfaces.push(mockReadlineInterface);
-        mockedCreateReadStream.mockReturnValueOnce(mockFileStream as any);
-        mockedCreateInterface.mockReturnValueOnce(mockReadlineInterface as any);
+        mockedCreateReadStream.mockReturnValueOnce(
+          mockFileStream as unknown as ReturnType<
+            typeof mockedCreateReadStream
+          >,
+        );
+        mockedCreateInterface.mockReturnValueOnce(
+          mockReadlineInterface as unknown as ReturnType<
+            typeof mockedCreateInterface
+          >,
+        );
       }
 
       const resultPromise = getSentMessages();
@@ -578,8 +566,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -647,8 +635,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -699,8 +687,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getReceivedMessages();
 
@@ -750,8 +738,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getReceivedMessages();
 
@@ -808,8 +796,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const longContent = "A".repeat(200);
       const resultPromise = getReceivedMessages();
@@ -856,8 +844,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getReceivedMessages();
 
@@ -903,8 +891,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getReceivedMessages();
 
@@ -1611,8 +1599,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -1646,8 +1634,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -1730,8 +1718,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -1783,8 +1771,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -1883,8 +1871,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -1956,8 +1944,8 @@ describe("claudeMessages", () => {
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+      mockedCreateReadStream.mockReturnValue(mockFileStream);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
 
       const resultPromise = getSentMessages();
 
@@ -2056,11 +2044,27 @@ describe("claudeMessages", () => {
       const mockFileStream2 = new MockFileStream();
 
       mockedCreateReadStream
-        .mockReturnValueOnce(mockFileStream1 as any)
-        .mockReturnValueOnce(mockFileStream2 as any);
+        .mockReturnValueOnce(
+          mockFileStream1 as unknown as ReturnType<
+            typeof mockedCreateReadStream
+          >,
+        )
+        .mockReturnValueOnce(
+          mockFileStream2 as unknown as ReturnType<
+            typeof mockedCreateReadStream
+          >,
+        );
       mockedCreateInterface
-        .mockReturnValueOnce(mockReadlineInterface1 as any)
-        .mockReturnValueOnce(mockReadlineInterface2 as any);
+        .mockReturnValueOnce(
+          mockReadlineInterface1 as unknown as ReturnType<
+            typeof mockedCreateInterface
+          >,
+        )
+        .mockReturnValueOnce(
+          mockReadlineInterface2 as unknown as ReturnType<
+            typeof mockedCreateInterface
+          >,
+        );
 
       const resultPromise = getAllClaudeMessages();
 

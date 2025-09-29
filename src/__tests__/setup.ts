@@ -5,12 +5,13 @@ import { configure } from "@testing-library/react";
 configure({ testIdAttribute: "data-testid" });
 
 // Configure global test environment
-global.IS_REACT_ACT_ENVIRONMENT = true;
+(global as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
+  true;
 
 // Set up proper act() environment for concurrent React features
 const originalError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === "string" &&
       (args[0].includes(

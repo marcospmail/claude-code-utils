@@ -1,79 +1,144 @@
-# Claude Code Helper Extension
+# Claude Code Utils
 
-A Claude Code Helper Extension
+A powerful Raycast extension for browsing, searching, and managing your Claude Code conversations. Access your message history, create reusable snippets, and quickly reference Claude Code commands.
 
 ## Features
 
-// TBD
+### 📨 **Message History**
+- **Claude's Responses** - Browse all messages received from Claude
+- **Your Messages** - Review messages you sent to Claude
+- **AI-Powered Search** - Use semantic search to find relevant messages (Raycast Pro required)
+- **Quick Copy** - Copy any message instantly to clipboard
+- **Time-based Filtering** - Messages sorted by most recent first
+
+### ✂️ **Snippet Management**
+- **Create Snippets** - Save frequently used code or text as reusable snippets
+- **Browse & Search** - Quickly find snippets with intelligent search
+- **Organize** - Tag and categorize your snippets for easy access
+- **Export** - Copy snippets to use in any application
+
+### 📚 **Commands Cheat Sheet**
+- **Slash Commands** - Quick reference for all `/` commands
+- **Keyboard Shortcuts** - Master Claude Code keyboard navigation
+- **CLI Flags** - Reference for command-line options
+- **Special Keywords** - Learn about `@file`, `@docs` and other special features
+
+### 🔍 **Smart Search Features**
+- **Normal Search** - Fast keyword-based search across all content
+- **AI Search** - Semantic search that understands context and meaning (Pro)
+- **Real-time Filtering** - Results update as you type
+- **Category Filters** - Filter by message type, command category, or snippet tags
 
 ## Installation
 
-1. Navigate to the extension directory:
+### From Raycast Store
+1. Open Raycast
+2. Search for "Claude Code Utils"
+3. Click Install
 
-   ```bash
-   cd path/to/claude-code-helper-extension/
-   ```
+### Manual Installation
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/claude-code-utils.git
 
-2. Install dependencies (if not already done):
+# Navigate to the extension directory
+cd claude-code-utils
 
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-3. Start the extension in development mode:
+# Build and install in Raycast
+npm run build && npm run publish
+```
 
-   ```bash
-   npm run dev
-   ```
+## Usage
 
-4. The extension will automatically appear in Raycast. You can find it by:
-   - Opening Raycast (⌘ + Space)
-   - Searching for "Claude Code Helper Extension"
+### Quick Start
+1. Open Raycast (`⌘ + Space`)
+2. Type "Claude" to see all available commands
+3. Select the feature you want to use:
+   - **Claude Code Utils** - Main menu with all features
+   - **Claude's Responses** - View received messages
+   - **Your Messages** - View sent messages
+   - **Browse Snippets** - Manage your snippets
+   - **Commands Cheat Sheet** - Reference guide
 
-5. The extension will remain available in Raycast even after stopping the dev server with `⌃ C`
+### Keyboard Shortcuts
+- `⌘ + C` - Copy selected message or snippet
+- `⌘ + K` - Quick search
+- `⌘ + ⇧ + S` - Create snippet from message
+- `⌘ + R` - Refresh message list
+- `⌘ + Enter` - View details
 
-## How to Use
+### Search Modes
+Toggle between search modes using the dropdown:
+- **Normal Search** - Fast keyword matching
+- **AI Search** - Semantic understanding (requires Raycast Pro)
 
-1. Open Raycast (⌘ + Space)
-2. Type "Claude" to find "Claude Code Helper Extension"
-3. Select it to see two options:
-   - **Claude's Responses** - View messages received from Claude
-   - **My Sent Messages** - View messages sent to Claude
-4. Each option shows up to 50 most recent messages with time stamps
-5. Use the search bar to filter messages
-6. Select any message to copy it (full message, content only, or preview)
-
-## How It Works
-
-The extension uses a streaming approach to handle large conversation histories:
-
-1. **Smart Project Selection**: Only scans the 5 most recently modified projects
-2. **File Limiting**: Processes only the 5 most recent conversation files per project
-3. **Message Limiting**: Retrieves only the 10 most recent messages per file to prevent memory issues
-4. **Streaming Parsing**: Uses Node.js streams to read JSONL files line-by-line instead of loading entire files into memory
-5. **Role-Specific Filtering**: Separate streaming parsers for user vs assistant messages
-
-### Data Source
-
-- Reads from `~/.claude/projects/` where Claude Code stores conversation history
-- Each project has JSONL files containing timestamped message exchanges
-- Files are sorted by modification time to find the most recent conversations first
+## Technical Details
 
 ### Performance Optimizations
+- **Smart Caching** - Messages cached for instant access
+- **Lazy Loading** - Only loads data when needed
+- **Stream Processing** - Handles large conversation files efficiently
+- **Debounced Search** - Optimized search performance
 
-- Reads maximum 25 files (5 files × 5 projects) for optimal performance
-- Limits to 10 messages per file (maximum 250 messages in memory before final filtering)
-- Returns the 50 most recent messages globally
-- Sequential processing prevents memory buildup
-- Automatic cleanup of file handles and streams
+### Data Source
+- Reads from `~/.claude/projects/` where Claude Code stores conversations
+- Processes JSONL files containing timestamped messages
+- Automatically finds the most recent conversations
+- No data is sent to external servers (except for AI search with Raycast Pro)
+
+### Limitations
+- Maximum 50 most recent messages per view (for performance)
+- AI Search requires Raycast Pro subscription
+- Large conversation files may take a moment to load initially
 
 ## Requirements
 
-- Raycast 1.26.0 or higher
-- Node.js 22.14+
-- Claude Code
+- **Raycast** 1.26.0 or higher
+- **Node.js** 20.0+
+- **Claude Code** installed and configured
+- **Raycast Pro** (optional, for AI search features)
 
-## Notes
+## Troubleshooting
 
-- Messages are stored locally on your machine by Claude Code
-- The extension only reads existing messages, it doesn't modify anything
+### No messages appearing
+- Ensure Claude Code is installed and you have conversation history
+- Check that `~/.claude/projects/` directory exists
+- Try refreshing with `⌘ + R`
+
+### Search not working
+- For AI search, ensure you have Raycast Pro subscription
+- Try switching to Normal search mode if AI search fails
+- Clear search and try again
+
+### Performance issues
+- The extension limits to 50 most recent messages
+- Large conversation histories are automatically optimized
+- Try closing and reopening if performance degrades
+
+## Privacy & Security
+
+- **Local Processing** - All data processing happens locally on your machine
+- **No External Storage** - Your messages are never uploaded or stored externally
+- **AI Search** - When using AI search, queries are processed by Raycast's AI service (Pro only)
+- **Open Source** - Full source code available for review
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues, feature requests, or questions:
+- [GitHub Issues](https://github.com/yourusername/claude-code-utils/issues)
+- [Raycast Community](https://raycast.com/community)
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Credits
+
+Created with ❤️ for the Claude Code community

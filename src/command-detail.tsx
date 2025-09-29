@@ -9,19 +9,16 @@ export default function CommandDetail({ command }: CommandDetailProps) {
   const markdown = `
 # ${command.name}
 
-**Category:** ${command.category}
-
-**Description:** ${command.description}
-
 ${
   command.usage
     ? `**Usage:**
 \`\`\`bash
 ${command.usage}
 \`\`\`
+
 `
     : ""
-}
+}**Description:** ${command.description}
 
 ${
   command.examples && command.examples.length > 0

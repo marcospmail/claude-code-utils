@@ -5,8 +5,9 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import CreateSnippet, { CreateSnippetProps } from "../create-snippet";
-import { createSnippet } from "../utils/claudeMessages";
+import { createSnippet, type Snippet } from "../utils/claudeMessages";
 import * as RaycastAPI from "@raycast/api";
+import { LaunchType } from "@raycast/api";
 
 interface MockFormProps {
   children: React.ReactNode;
@@ -96,7 +97,11 @@ jest.mock("@raycast/api", () => ({
       Animated: "animated",
     },
   },
-  popToRoot: jest.fn(),
+  launchCommand: jest.fn(),
+  LaunchType: {
+    UserInitiated: "userInitiated",
+    Background: "background",
+  },
   LaunchProps: {},
 }));
 
@@ -111,8 +116,8 @@ const mockCreateSnippet = createSnippet as jest.MockedFunction<
 const mockShowToast = RaycastAPI.showToast as jest.MockedFunction<
   typeof RaycastAPI.showToast
 >;
-const mockPopToRoot = RaycastAPI.popToRoot as jest.MockedFunction<
-  typeof RaycastAPI.popToRoot
+const mockLaunchCommand = RaycastAPI.launchCommand as jest.MockedFunction<
+  typeof RaycastAPI.launchCommand
 >;
 
 describe("CreateSnippet", () => {
@@ -121,7 +126,7 @@ describe("CreateSnippet", () => {
     // Reset all mocks before each test
     mockCreateSnippet.mockReset();
     mockShowToast.mockReset();
-    mockPopToRoot.mockReset();
+    mockLaunchCommand.mockReset();
   });
 
   describe("Component Rendering", () => {
@@ -194,6 +199,8 @@ describe("CreateSnippet", () => {
 
     it("should initialize with LaunchProps format", () => {
       const launchProps = {
+        launchType: LaunchType.UserInitiated,
+        arguments: {},
         launchContext: {
           title: "Launch Title",
           content: "Launch Content",
@@ -290,7 +297,7 @@ describe("CreateSnippet", () => {
       });
 
       expect(mockCreateSnippet).not.toHaveBeenCalled();
-      expect(mockPopToRoot).not.toHaveBeenCalled();
+      expect(mockLaunchCommand).not.toHaveBeenCalled();
     });
 
     it("should show error toast when content is only whitespace", async () => {
@@ -371,7 +378,10 @@ describe("CreateSnippet", () => {
         message: '"Test Title" has been saved',
       });
 
-      expect(mockPopToRoot).toHaveBeenCalled();
+      expect(mockLaunchCommand).toHaveBeenCalledWith({
+        name: "list-snippets",
+        type: "userInitiated",
+      });
     });
 
     it("should create snippet with only content (no title)", async () => {
@@ -403,7 +413,10 @@ describe("CreateSnippet", () => {
         message: "Snippet has been saved",
       });
 
-      expect(mockPopToRoot).toHaveBeenCalled();
+      expect(mockLaunchCommand).toHaveBeenCalledWith({
+        name: "list-snippets",
+        type: "userInitiated",
+      });
     });
 
     it("should trim whitespace from title and content", async () => {
@@ -438,8 +451,8 @@ describe("CreateSnippet", () => {
     });
 
     it("should show loading state during submission", async () => {
-      let resolvePromise: (value: unknown) => void;
-      const promise = new Promise((resolve) => {
+      let resolvePromise: (value: Snippet) => void;
+      const promise = new Promise<Snippet>((resolve) => {
         resolvePromise = resolve;
       });
 
@@ -493,7 +506,7 @@ describe("CreateSnippet", () => {
         });
       });
 
-      expect(mockPopToRoot).not.toHaveBeenCalled();
+      expect(mockLaunchCommand).not.toHaveBeenCalled();
     });
 
     it("should handle non-Error exceptions", async () => {
@@ -532,28 +545,6 @@ describe("CreateSnippet", () => {
       await waitFor(() => {
         expect(form).toHaveAttribute("data-loading", "false");
       });
-    });
-
-    it("should log error to console", async () => {
-      const consoleSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => undefined);
-      const error = new Error("Test error");
-      mockCreateSnippet.mockRejectedValueOnce(error);
-
-      render(<CreateSnippet />);
-
-      const contentField = screen.getByTestId("form-textarea-content");
-      const submitButton = screen.getByTestId("action-submit-form");
-
-      fireEvent.change(contentField, { target: { value: "Test content" } });
-      fireEvent.click(submitButton);
-
-      await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith({ error });
-      });
-
-      consoleSpy.mockRestore();
     });
   });
 

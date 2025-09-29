@@ -1,50 +1,65 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "claude-code-helper-extension",
+  "name": "claude-code-utils",
   "title": "Claude Code Utils",
-  "description": "Claude Code Helper Extension",
+  "description": "Browse, search, and manage your Claude Code conversations. Access sent/received messages, create snippets, and view command shortcuts.",
   "icon": "icon.png",
   "author": "marcospmail",
-  "owner": "marcosp-com",
   "categories": [
-    "Productivity"
+    "Productivity",
+    "Developer Tools"
+  ],
+  "keywords": [
+    "claude",
+    "ai",
+    "code",
+    "messages",
+    "snippets",
+    "productivity"
   ],
   "license": "MIT",
+  "platforms": ["macOS"],
   "commands": [
     {
-      "name": "index",
-      "title": "Claude Code Utils - Menu",
-      "description": "Access all Claude messages and conversation features",
-      "mode": "view"
-    },
-    {
       "name": "create-snippet",
-      "title": "Claude Code Utils - Create Snippets",
-      "description": "Create a new snippet",
+      "title": "Create Snippet",
+      "description": "Create a new reusable code snippet",
       "mode": "view"
     },
     {
-      "name": "list-snippets",
-      "title": "Claude Code Utils - List Snippets",
-      "description": "View and manage your snippets",
+      "name": "browse-snippets",
+      "title": "Browse Snippets",
+      "description": "View, search, and manage your saved code snippets",
       "mode": "view"
     },
     {
       "name": "received-messages",
-      "title": "Claude Code Utils - Received Messages",
-      "description": "View messages you received from Claude",
+      "title": "Received Messages",
+      "description": "Browse messages received from Claude with AI-powered search",
       "mode": "view"
     },
     {
       "name": "sent-messages",
-      "title": "Claude Code Utils - Sent Messages",
-      "description": "View messages you sent to Claude",
+      "title": "Sent Messages",
+      "description": "Browse messages you sent to Claude",
       "mode": "view"
     },
     {
-      "name": "list-commands",
-      "title": "Claude Code Utils - Commands Cheat Sheet",
-      "description": "Browse all Claude Code commands and shortcuts",
+      "name": "browse-commands-cheatsheet",
+      "title": "Commands Cheat Sheet",
+      "description": "Quick reference for all Claude Code commands and keyboard shortcuts",
+      "mode": "view"
+    },
+    {
+      "name": "browse-agents",
+      "title": "Browse /agents",
+      "description": "View and manage your Claude Code agents from ~/.claude/agents",
+      "mode": "view"
+    },
+    {
+      "name": "browse-commands",
+      "title": "Browse /commands",
+      "description": "View and manage your Claude Code slash commands from ~/.claude/commands",
       "mode": "view"
     }
   ],

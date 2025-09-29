@@ -1,5 +1,4 @@
 import { jest } from "@jest/globals";
-import { EventEmitter } from "events";
 
 // Mock all the modules before importing the target module
 jest.mock("fs", () => ({
@@ -29,22 +28,14 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Import the mocked modules
-import { existsSync, createReadStream, readdir, stat } from "fs";
-import { createInterface } from "readline";
+import { existsSync, readdir } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { LocalStorage } from "@raycast/api";
 
 // Type the mocked modules
 const mockedExistsSync = existsSync as jest.MockedFunction<typeof existsSync>;
-const mockedCreateReadStream = createReadStream as jest.MockedFunction<
-  typeof createReadStream
->;
-const mockedCreateInterface = createInterface as jest.MockedFunction<
-  typeof createInterface
->;
 const mockedReaddir = readdir as jest.MockedFunction<typeof readdir>;
-const mockedStat = stat as jest.MockedFunction<typeof stat>;
 const mockedJoin = join as jest.MockedFunction<typeof join>;
 const mockedHomedir = homedir as jest.MockedFunction<typeof homedir>;
 const mockedLocalStorage = LocalStorage as jest.Mocked<typeof LocalStorage>;
@@ -52,7 +43,6 @@ const mockedLocalStorage = LocalStorage as jest.Mocked<typeof LocalStorage>;
 // Import the functions to test
 import {
   getSentMessages,
-  getReceivedMessages,
   getAllClaudeMessages,
   formatMessageForDisplay,
   generateMessageId,

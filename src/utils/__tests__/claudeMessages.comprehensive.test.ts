@@ -7,7 +7,8 @@ import * as fs from "fs";
 import * as fsPromises from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-import { createReadStream, createInterface } from "readline";
+import * as readline from "readline";
+import { createInterface } from "readline";
 import { createHash } from "crypto";
 import {
   getSentMessages,
@@ -53,9 +54,9 @@ const mockCreateHash = createHash as jest.MockedFunction<typeof createHash>;
 const { LocalStorage } = jest.requireMock("@raycast/api");
 
 describe("claudeMessages.ts Comprehensive Tests", () => {
-  let mockReadlineInterface: any;
-  let mockFileStream: any;
-  let mockHasher: any;
+  let mockReadlineInterface: jest.Mocked<readline.Interface>;
+  let mockFileStream: jest.Mocked<fs.ReadStream>;
+  let mockHasher: jest.Mocked<ReturnType<typeof createHash>>;
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -88,7 +89,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
     };
 
     mockReadline.mockReturnValue(mockReadlineInterface);
-    mockFs.createReadStream.mockReturnValue(mockFileStream as any);
+    mockFs.createReadStream.mockReturnValue(mockFileStream);
     mockCreateHash.mockReturnValue(mockHasher);
 
     // Default mocks
@@ -98,14 +99,14 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
     mockFsPromises.stat.mockResolvedValue({
       isDirectory: jest.fn().mockReturnValue(true),
       mtime: new Date("2024-01-01"),
-    } as any);
+    } as unknown as fs.Stats);
   });
 
   describe("parseUserMessagesOnlyStreaming", () => {
     it("should handle file stream creation and setup", async () => {
       // Setup mock readline events to simulate file processing
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "close") {
             // Simulate immediate close
             setTimeout(callback, 0);
@@ -128,15 +129,15 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 2: project1 stat
+        } as unknown as fs.Stats) // Step 2: project1 stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 4: session1.jsonl stat (for project scanning)
+        } as unknown as fs.Stats) // Step 4: session1.jsonl stat (for project scanning)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any); // Step 4: session1.jsonl stat (for file processing)
+        } as unknown as fs.Stats); // Step 4: session1.jsonl stat (for file processing)
 
       const result = await getSentMessages();
 
@@ -155,7 +156,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       });
 
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "line") {
             callback(mockLine);
           } else if (event === "close") {
@@ -175,15 +176,15 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 2: project1 stat
+        } as unknown as fs.Stats) // Step 2: project1 stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 4: session1.jsonl stat (for project scanning)
+        } as unknown as fs.Stats) // Step 4: session1.jsonl stat (for project scanning)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any); // Step 4: session1.jsonl stat (for file processing)
+        } as unknown as fs.Stats); // Step 4: session1.jsonl stat (for file processing)
 
       const result = await getSentMessages();
 
@@ -206,7 +207,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       });
 
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "line") {
             callback(mockLine);
           } else if (event === "close") {
@@ -226,15 +227,15 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 2: project1 stat
+        } as unknown as fs.Stats) // Step 2: project1 stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 4: session1.jsonl stat (for project scanning)
+        } as unknown as fs.Stats) // Step 4: session1.jsonl stat (for project scanning)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any); // Step 4: session1.jsonl stat (for file processing)
+        } as unknown as fs.Stats); // Step 4: session1.jsonl stat (for file processing)
 
       const result = await getSentMessages();
 
@@ -266,7 +267,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
 
       let lineCount = 0;
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "line") {
             const lines = [validMessage, systemMessage, interruptedMessage];
             if (lineCount < lines.length) {
@@ -290,15 +291,15 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 2: project1 stat
+        } as unknown as fs.Stats) // Step 2: project1 stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 4: session1.jsonl stat (for project scanning)
+        } as unknown as fs.Stats) // Step 4: session1.jsonl stat (for project scanning)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any); // Step 4: session1.jsonl stat (for file processing)
+        } as unknown as fs.Stats); // Step 4: session1.jsonl stat (for file processing)
 
       const result = await getSentMessages();
 
@@ -318,11 +319,10 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       });
 
       // Use a proper mock implementation that handles multiple calls
-      const currentLineIndex = 0;
       const lines = [unixTimestamp, jsTimestamp];
 
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "line") {
             // Call the callback for each line
             for (const line of lines) {
@@ -345,15 +345,15 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 2: project1 stat
+        } as unknown as fs.Stats) // Step 2: project1 stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 4: session1.jsonl stat (for project scanning)
+        } as unknown as fs.Stats) // Step 4: session1.jsonl stat (for project scanning)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any); // Step 4: session1.jsonl stat (for file processing)
+        } as unknown as fs.Stats); // Step 4: session1.jsonl stat (for file processing)
 
       const result = await getSentMessages();
 
@@ -372,7 +372,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
 
       let lineCount = 0;
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "line") {
             const lines = [validLine, invalidLine];
             if (lineCount < lines.length) {
@@ -396,15 +396,15 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 2: project1 stat
+        } as unknown as fs.Stats) // Step 2: project1 stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any) // Step 4: session1.jsonl stat (for project scanning)
+        } as unknown as fs.Stats) // Step 4: session1.jsonl stat (for project scanning)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any); // Step 4: session1.jsonl stat (for file processing)
+        } as unknown as fs.Stats); // Step 4: session1.jsonl stat (for file processing)
 
       const result = await getSentMessages();
 
@@ -414,7 +414,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
 
     it("should handle readline errors", async () => {
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "error") {
             setTimeout(() => callback(new Error("Readline error")), 0);
           }
@@ -427,11 +427,11 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any);
+        } as unknown as fs.Stats);
 
       const result = await getSentMessages();
 
@@ -440,7 +440,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
 
     it("should handle file stream errors", async () => {
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "close") {
             setTimeout(callback, 0);
           }
@@ -451,25 +451,27 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       // Simulate file stream error
       mockFileStream.on = jest
         .fn()
-        .mockImplementation((event: string, callback: Function) => {
-          if (event === "error") {
-            setTimeout(() => callback(new Error("File stream error")), 0);
-          }
-          return mockFileStream;
-        });
+        .mockImplementation(
+          (event: string, callback: (...args: unknown[]) => void) => {
+            if (event === "error") {
+              setTimeout(() => callback(new Error("File stream error")), 0);
+            }
+            return mockFileStream;
+          },
+        );
 
-      mockFs.createReadStream.mockReturnValue(mockFileStream as any);
+      mockFs.createReadStream.mockReturnValue(mockFileStream);
 
       mockFsPromises.readdir.mockResolvedValue(["project1"]);
       mockFsPromises.stat
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any);
+        } as unknown as fs.Stats);
 
       const result = await getSentMessages();
 
@@ -483,7 +485,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       });
 
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "close") {
             setTimeout(callback, 0);
           }
@@ -496,11 +498,11 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any);
+        } as unknown as fs.Stats);
 
       const result = await getSentMessages();
 
@@ -519,26 +521,26 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-02"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-02"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: new Date("2024-01-01"),
-        } as any);
+        } as unknown as fs.Stats);
 
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "close") {
             setTimeout(callback, 0);
           }
@@ -560,7 +562,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       mockFsPromises.stat.mockResolvedValueOnce({
         isDirectory: jest.fn().mockReturnValue(true),
         mtime: new Date("2024-01-01"),
-      } as any);
+      } as unknown as fs.Stats);
 
       const result = await getAllClaudeMessages();
 
@@ -576,7 +578,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: new Date("2024-01-01"),
-        } as any)
+        } as unknown as fs.Stats)
         .mockRejectedValueOnce(new Error("Cannot stat file"));
 
       const result = await getAllClaudeMessages();
@@ -599,22 +601,22 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: oldDate,
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(true),
           mtime: oldDate,
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: oldDate,
-        } as any)
+        } as unknown as fs.Stats)
         .mockResolvedValueOnce({
           isDirectory: jest.fn().mockReturnValue(false),
           mtime: newDate,
-        } as any);
+        } as unknown as fs.Stats);
 
       mockReadlineInterface.on.mockImplementation(
-        (event: string, callback: Function) => {
+        (event: string, callback: (...args: unknown[]) => void) => {
           if (event === "close") {
             setTimeout(callback, 0);
           }
@@ -655,7 +657,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       const message: ParsedMessage = {
         id: "test",
         content: "Test message",
-        timestamp: "invalid-date" as any,
+        timestamp: "invalid-date" as unknown as Date,
         role: "user",
         sessionId: "session1",
         preview: "Test...",
@@ -939,22 +941,6 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
 
   describe("getReceivedMessages", () => {
     it("should filter and format assistant messages", async () => {
-      // Mock getAllClaudeMessages to return mixed messages
-      const mockMessages = [
-        {
-          role: "user" as const,
-          content: "User message",
-          timestamp: new Date("2024-01-01"),
-          sessionId: "session1",
-        },
-        {
-          role: "assistant" as const,
-          content: "Assistant message",
-          timestamp: new Date("2024-01-02"),
-          sessionId: "session1",
-        },
-      ];
-
       // Mock the file system operations for getAllClaudeMessages
       mockFsPromises.readdir.mockResolvedValue([]);
 
@@ -963,46 +949,7 @@ describe("claudeMessages.ts Comprehensive Tests", () => {
       // Should return properly formatted assistant messages
       expect(Array.isArray(result)).toBe(true);
     });
-
-    // Skip this test due to complex mock interference from other tests
-    // The functionality is already tested by other tests in this suite
-    it.skip("should handle empty message content", async () => {
-      // Mock empty directories to avoid timeout
-      mockFsPromises.readdir.mockResolvedValue([]);
-      mockFsPromises.stat.mockResolvedValue({
-        isDirectory: jest.fn().mockReturnValue(true),
-        mtime: new Date("2024-01-01"),
-      } as any);
-
-      const result = await getReceivedMessages();
-
-      expect(Array.isArray(result)).toBe(true);
-    }, 15000);
   });
 
-  describe("Error Handling and Edge Cases", () => {
-    // Skip this test due to complex mock interference from other tests
-    // The error handling is already tested by other tests in this suite
-    it.skip("should handle general errors in getSentMessages", async () => {
-      mockFsPromises.readdir.mockRejectedValue(
-        new Error("Directory read error"),
-      );
-
-      const result = await getSentMessages();
-
-      expect(result).toEqual([]);
-    });
-
-    // Skip this test due to complex mock interference from other tests
-    // The error handling is already tested by other tests in this suite
-    it.skip("should handle general errors in getAllClaudeMessages", async () => {
-      mockFsPromises.readdir.mockRejectedValue(
-        new Error("Directory read error"),
-      );
-
-      const result = await getAllClaudeMessages();
-
-      expect(result).toEqual([]);
-    });
-  });
+  describe("Error Handling and Edge Cases", () => {});
 });

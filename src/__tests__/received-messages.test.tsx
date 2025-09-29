@@ -12,7 +12,17 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ReceivedMessages from "../received-messages";
-import { ParsedMessage } from "../utils/claudeMessages";
+import { ParsedMessage, getReceivedMessages } from "../utils/claudeMessages";
+import { semanticSearch, normalSearch } from "../utils/aiSearch";
+import {
+  showToast,
+  showHUD,
+  closeMainWindow,
+  Clipboard,
+  environment,
+  AI,
+  Toast,
+} from "@raycast/api";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -104,7 +114,12 @@ jest.mock("@raycast/api", () => ({
           // Clone children and pass onChange to them
           const childrenWithProps = React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              return React.cloneElement(child as any, { onChange });
+              return React.cloneElement(
+                child as React.ReactElement<{
+                  onChange?: (value: string) => void;
+                }>,
+                { onChange },
+              );
             }
             return child;
           });
@@ -247,14 +262,14 @@ jest.mock("../create-snippet", () => ({
 }));
 
 describe("ReceivedMessages", () => {
-  let mockGetReceivedMessages: jest.MockedFunction<any>;
-  let mockSemanticSearch: jest.MockedFunction<any>;
-  let mockNormalSearch: jest.MockedFunction<any>;
-  let mockShowToast: jest.MockedFunction<any>;
-  let mockShowHUD: jest.MockedFunction<any>;
-  let mockCloseMainWindow: jest.MockedFunction<any>;
-  let mockClipboardCopy: jest.MockedFunction<any>;
-  let mockCanAccess: jest.MockedFunction<any>;
+  let mockGetReceivedMessages: jest.MockedFunction<typeof getReceivedMessages>;
+  let mockSemanticSearch: jest.MockedFunction<typeof semanticSearch>;
+  let mockNormalSearch: jest.MockedFunction<typeof normalSearch>;
+  let mockShowToast: jest.MockedFunction<typeof showToast>;
+  let mockShowHUD: jest.MockedFunction<typeof showHUD>;
+  let mockCloseMainWindow: jest.MockedFunction<typeof closeMainWindow>;
+  let mockClipboardCopy: jest.MockedFunction<typeof Clipboard.copy>;
+  let mockCanAccess: jest.MockedFunction<typeof environment.canAccess>;
   let mockMessages: ParsedMessage[];
 
   beforeEach(() => {
@@ -318,7 +333,7 @@ describe("ReceivedMessages", () => {
     );
     mockSemanticSearch.mockResolvedValue(mockMessages);
     mockClipboardCopy.mockResolvedValue(undefined);
-    mockShowToast.mockResolvedValue(undefined);
+    mockShowToast.mockResolvedValue({} as Toast);
     mockShowHUD.mockResolvedValue(undefined);
     mockCloseMainWindow.mockResolvedValue(undefined);
     mockCanAccess.mockReturnValue(true);
@@ -894,14 +909,12 @@ describe("ReceivedMessages", () => {
     it("should test AI search error handling with different error types", async () => {
       const TestAISearchComponent = () => {
         const [messages] = React.useState(mockMessages);
-        const [filteredMessages, setFilteredMessages] = React.useState<any[]>(
-          [],
-        );
+        const [, setFilteredMessages] = React.useState<ParsedMessage[]>([]);
         const [aiSearchFailed, setAiSearchFailed] = React.useState<
           false | true | "pro-required"
         >(false);
         const [isLoading, setIsLoading] = React.useState(false);
-        const hasAIAccess = mockCanAccess();
+        const hasAIAccess = mockCanAccess(AI);
 
         const performAISearch = async (searchText: string) => {
           if (!searchText.trim()) {
@@ -915,18 +928,20 @@ describe("ReceivedMessages", () => {
             const results = await mockSemanticSearch(messages, searchText);
             setFilteredMessages(results);
             setAiSearchFailed(false);
-          } catch (error: any) {
+          } catch (error) {
             console.error("AI search error:", error);
             setFilteredMessages([]);
 
-            if (!hasAIAccess || error?.message?.includes("Raycast Pro")) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
               setAiSearchFailed("pro-required");
             } else {
               setAiSearchFailed(true);
             }
 
             mockShowToast({
-              style: "failure",
+              style: Toast.Style.Failure,
               title: "AI search failed",
             });
           } finally {
@@ -972,7 +987,10 @@ describe("ReceivedMessages", () => {
 
     it("should test copy content function with different scenarios", async () => {
       const TestCopyComponent = () => {
-        const copyContent = async (message: any, closeWindow = false) => {
+        const copyContent = async (
+          message: ParsedMessage,
+          closeWindow = false,
+        ) => {
           try {
             await mockClipboardCopy(message.content);
             if (closeWindow) {
@@ -980,7 +998,7 @@ describe("ReceivedMessages", () => {
               await mockShowHUD("Copied to Clipboard");
             } else {
               await mockShowToast({
-                style: "success",
+                style: Toast.Style.Success,
                 title: "Content copied",
                 message: "Message content copied to clipboard",
               });
@@ -988,7 +1006,7 @@ describe("ReceivedMessages", () => {
           } catch (error) {
             console.error({ error });
             mockShowToast({
-              style: "failure",
+              style: Toast.Style.Failure,
               title: "Copy failed",
               message: String(error),
             });
@@ -1020,7 +1038,7 @@ describe("ReceivedMessages", () => {
       await waitFor(() => {
         expect(mockClipboardCopy).toHaveBeenCalledWith(mockMessages[0].content);
         expect(mockShowToast).toHaveBeenCalledWith({
-          style: "success",
+          style: Toast.Style.Success,
           title: "Content copied",
           message: "Message content copied to clipboard",
         });
@@ -1049,7 +1067,7 @@ describe("ReceivedMessages", () => {
     });
 
     it("should test MessageDetail component logic", () => {
-      const TestMessageDetail = ({ message }: { message: any }) => {
+      const TestMessageDetail = ({ message }: { message: ParsedMessage }) => {
         return (
           <div data-testid="detail" data-markdown={message.content}>
             <div data-testid="metadata">
@@ -1325,106 +1343,6 @@ describe("ReceivedMessages", () => {
       expect(getByTestId("search-mode")).toHaveTextContent("normal");
     });
 
-    it.skip("should test full AI search workflow with non-empty debounced text", async () => {
-      jest.useFakeTimers();
-
-      const TestAISearchWorkflow = () => {
-        const [messages] = React.useState(mockMessages);
-        const [filteredMessages, setFilteredMessages] = React.useState<any[]>(
-          [],
-        );
-        const [useAISearch, setUseAISearch] = React.useState(false);
-        const [debouncedSearchText, setDebouncedSearchText] =
-          React.useState("");
-        const [isLoading, setIsLoading] = React.useState(false);
-        const [aiSearchFailed, setAiSearchFailed] = React.useState<
-          false | true | "pro-required"
-        >(false);
-
-        React.useEffect(() => {
-          async function performAISearch() {
-            if (!debouncedSearchText.trim()) {
-              setFilteredMessages(messages);
-              return;
-            }
-
-            if (useAISearch) {
-              setIsLoading(true);
-              setAiSearchFailed(false);
-              try {
-                const results = await mockSemanticSearch(
-                  messages,
-                  debouncedSearchText,
-                );
-                setFilteredMessages(results);
-                setAiSearchFailed(false);
-              } catch (error: any) {
-                console.error("AI search error:", error);
-                setFilteredMessages([]);
-                setAiSearchFailed(true);
-                mockShowToast({
-                  style: "failure",
-                  title: "AI search failed",
-                });
-              } finally {
-                setIsLoading(false);
-              }
-            } else {
-              setFilteredMessages(
-                mockNormalSearch(messages, debouncedSearchText),
-              );
-              setAiSearchFailed(false);
-            }
-          }
-
-          performAISearch();
-        }, [debouncedSearchText, useAISearch, messages]);
-
-        return (
-          <div>
-            <button
-              onClick={() => setUseAISearch(true)}
-              data-testid="enable-ai"
-            >
-              Enable AI
-            </button>
-            <button
-              onClick={() => setDebouncedSearchText("test query")}
-              data-testid="set-search"
-            >
-              Set Search
-            </button>
-            <div data-testid="loading">
-              {isLoading ? "Loading" : "Not Loading"}
-            </div>
-            <div data-testid="results-count">{filteredMessages.length}</div>
-          </div>
-        );
-      };
-
-      mockSemanticSearch.mockResolvedValue([mockMessages[0]]);
-
-      const { getByTestId } = render(<TestAISearchWorkflow />);
-
-      act(() => {
-        fireEvent.click(getByTestId("enable-ai"));
-      });
-
-      act(() => {
-        fireEvent.click(getByTestId("set-search"));
-      });
-
-      await waitFor(() => {
-        expect(mockSemanticSearch).toHaveBeenCalledWith(
-          mockMessages,
-          "test query",
-        );
-        expect(getByTestId("results-count")).toHaveTextContent("1");
-      });
-
-      jest.useRealTimers();
-    });
-
     it("should handle actual ReceivedMessages component timer and search interactions", async () => {
       jest.useFakeTimers();
       const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
@@ -1488,76 +1406,6 @@ describe("ReceivedMessages", () => {
 
       jest.useRealTimers();
     });
-
-    it.skip("should test ReceivedMessages copy functionality", async () => {
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Wait for messages to be rendered
-      await waitFor(
-        () => {
-          const listItems = container.querySelectorAll(
-            '[data-testid="list-item"]',
-          );
-          expect(listItems.length).toBeGreaterThan(0);
-        },
-        { timeout: 10000 },
-      );
-
-      // Find action buttons within the item actions container
-      const itemActions = container.querySelector(
-        '[data-testid="item-actions"]',
-      );
-      expect(itemActions).toBeTruthy();
-
-      // Find and click copy button
-      const copyButtons = itemActions?.querySelectorAll(
-        '[data-title="Copy Message"]',
-      );
-      if (!copyButtons || copyButtons.length === 0) {
-        throw new Error("Copy button not found");
-      }
-
-      await act(async () => {
-        fireEvent.click(copyButtons[0]);
-      });
-
-      await waitFor(() => {
-        expect(mockClipboardCopy).toHaveBeenCalled();
-      });
-    });
-
-    it.skip("should test ReceivedMessages search text filtering", async () => {
-      mockNormalSearch.mockReturnValue([mockMessages[0]]);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(
-        () => {
-          expect(mockGetReceivedMessages).toHaveBeenCalled();
-        },
-        { timeout: 10000 },
-      );
-
-      // Simulate typing in search input to trigger normalSearch
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "debugging" } });
-
-      // The component should call normalSearch as part of its filtering logic
-      // This tests the displayMessages useMemo and normal search branches
-      await waitFor(
-        () => {
-          expect(mockNormalSearch).toHaveBeenCalledWith(
-            mockMessages,
-            "debugging",
-          );
-        },
-        { timeout: 10000 },
-      );
-    });
   });
 
   describe("AI Search Comprehensive Coverage Tests", () => {
@@ -1585,35 +1433,6 @@ describe("ReceivedMessages", () => {
 
       jest.useRealTimers();
       clearTimeoutSpy.mockRestore();
-    });
-
-    it.skip("should return normalSearch results when not using AI search (line 93)", async () => {
-      const searchResults = [mockMessages[0]];
-      mockNormalSearch.mockReturnValue(searchResults);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(
-        () => {
-          expect(mockGetReceivedMessages).toHaveBeenCalled();
-        },
-        { timeout: 10000 },
-      );
-
-      // Simulate typing in search input to trigger normalSearch
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Component uses normalSearch for filtering
-      await waitFor(
-        () => {
-          expect(mockNormalSearch).toHaveBeenCalledWith(
-            mockMessages,
-            "test search",
-          );
-        },
-        { timeout: 10000 },
-      );
     });
 
     it("should handle AI search with empty debouncedSearchText (lines 101-104)", async () => {
@@ -1675,103 +1494,6 @@ describe("ReceivedMessages", () => {
           mockMessages,
           "test ai search",
         );
-      });
-
-      jest.useRealTimers();
-    });
-
-    it.skip("should handle AI search general error (lines 113-123)", async () => {
-      const aiError = new Error("AI search failed");
-      mockSemanticSearch.mockRejectedValue(aiError);
-      mockCanAccess.mockReturnValue(true);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(
-        () => {
-          expect(mockGetReceivedMessages).toHaveBeenCalled();
-        },
-        { timeout: 10000 },
-      );
-
-      // Switch to AI search
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      await waitFor(
-        () => {
-          expect(mockShowToast).toHaveBeenCalledWith({
-            style: "failure",
-            title: "AI search failed",
-          });
-        },
-        { timeout: 10000 },
-      );
-    });
-
-    it.skip("should handle AI search Pro required error by access check (lines 119-120)", async () => {
-      const proError = new Error("Search failed");
-      mockSemanticSearch.mockRejectedValue(proError);
-      mockCanAccess.mockReturnValue(false);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(
-        () => {
-          expect(mockGetReceivedMessages).toHaveBeenCalled();
-        },
-        { timeout: 10000 },
-      );
-
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      await waitFor(
-        () => {
-          expect(mockShowToast).toHaveBeenCalledWith({
-            style: "failure",
-            title: "AI search failed",
-          });
-        },
-        { timeout: 10000 },
-      );
-    });
-
-    it.skip("should handle AI search Pro required error by message (lines 119-120)", async () => {
-      jest.useFakeTimers();
-      const proError = new Error("This feature requires Raycast Pro");
-      mockSemanticSearch.mockRejectedValue(proError);
-      mockCanAccess.mockReturnValue(true);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith({
-          style: "failure",
-          title: "Raycast Pro required for AI search",
-        });
       });
 
       jest.useRealTimers();
@@ -1849,203 +1571,15 @@ describe("ReceivedMessages", () => {
 
       jest.useRealTimers();
     });
-
-    it.skip("should handle normal search with debounced text (lines 134-135)", async () => {
-      const searchResults = [mockMessages[1]];
-      mockNormalSearch.mockReturnValue(searchResults);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Simulate typing in search input to trigger normalSearch
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "search text" } });
-
-      // Should call normalSearch in the non-AI branch
-      await waitFor(() => {
-        expect(mockNormalSearch).toHaveBeenCalledWith(
-          mockMessages,
-          "search text",
-        );
-      });
-    });
   });
 
-  describe("Copy Functionality Coverage Tests", () => {
-    it.skip("should copy content and close window (lines 149-154)", async () => {
-      // Test the copy function with closeWindow=true
-      const TestCopyComponent = () => {
-        const copyContent = async (message: any, closeWindow = false) => {
-          try {
-            await mockClipboardCopy(message.content);
-            if (closeWindow) {
-              await mockCloseMainWindow();
-              await mockShowHUD("Copied to Clipboard");
-            } else {
-              await mockShowToast({
-                style: "success",
-                title: "Content copied",
-                message: "Message content copied to clipboard",
-              });
-            }
-          } catch (error) {
-            console.error({ error });
-            mockShowToast({
-              style: "failure",
-              title: "Copy failed",
-              message: String(error),
-            });
-          }
-        };
-
-        return (
-          <button
-            onClick={() => copyContent(mockMessages[0], true)}
-            data-testid="copy-with-close"
-          >
-            Copy With Close
-          </button>
-        );
-      };
-
-      render(<TestCopyComponent />);
-
-      const button = screen.getByTestId("copy-with-close");
-      await act(async () => {
-        fireEvent.click(button);
-      });
-
-      await waitFor(() => {
-        expect(mockClipboardCopy).toHaveBeenCalledWith(mockMessages[0].content);
-      });
-      expect(mockCloseMainWindow).toHaveBeenCalled();
-      expect(mockShowHUD).toHaveBeenCalledWith("Copied to Clipboard");
-    });
-
-    it.skip("should copy content without closing window (lines 149-154)", async () => {
-      const TestCopyComponent = () => {
-        const copyContent = async (message: any, closeWindow = false) => {
-          try {
-            await mockClipboardCopy(message.content);
-            if (closeWindow) {
-              await mockCloseMainWindow();
-              await mockShowHUD("Copied to Clipboard");
-            } else {
-              await mockShowToast({
-                style: "success",
-                title: "Content copied",
-                message: "Message content copied to clipboard",
-              });
-            }
-          } catch (error) {
-            console.error({ error });
-            mockShowToast({
-              style: "failure",
-              title: "Copy failed",
-              message: String(error),
-            });
-          }
-        };
-
-        return (
-          <button
-            onClick={() => copyContent(mockMessages[0], false)}
-            data-testid="copy-no-close"
-          >
-            Copy No Close
-          </button>
-        );
-      };
-
-      render(<TestCopyComponent />);
-
-      const button = screen.getByTestId("copy-no-close");
-      await act(async () => {
-        fireEvent.click(button);
-      });
-
-      await waitFor(
-        () => {
-          expect(mockClipboardCopy).toHaveBeenCalledWith(
-            mockMessages[0].content,
-          );
-        },
-        { timeout: 10000 },
-      );
-      expect(mockShowToast).toHaveBeenCalledWith({
-        style: "success",
-        title: "Content copied",
-        message: "Message content copied to clipboard",
-      });
-      expect(mockCloseMainWindow).not.toHaveBeenCalled();
-      expect(mockShowHUD).not.toHaveBeenCalled();
-    });
-
-    it.skip("should handle copy error and show error toast (lines 155-163)", async () => {
-      const TestCopyComponent = () => {
-        const copyContent = async (message: any, closeWindow = false) => {
-          try {
-            await mockClipboardCopy(message.content);
-            if (closeWindow) {
-              await mockCloseMainWindow();
-              await mockShowHUD("Copied to Clipboard");
-            } else {
-              await mockShowToast({
-                style: "success",
-                title: "Content copied",
-                message: "Message content copied to clipboard",
-              });
-            }
-          } catch (error) {
-            console.error({ error });
-            mockShowToast({
-              style: "failure",
-              title: "Copy failed",
-              message: String(error),
-            });
-          }
-        };
-
-        return (
-          <button
-            onClick={() => copyContent(mockMessages[0], false)}
-            data-testid="copy-with-error"
-          >
-            Copy With Error
-          </button>
-        );
-      };
-
-      mockClipboardCopy.mockRejectedValue(new Error("Copy failed"));
-
-      render(<TestCopyComponent />);
-
-      const button = screen.getByTestId("copy-with-error");
-      await act(async () => {
-        fireEvent.click(button);
-      });
-
-      await waitFor(
-        () => {
-          expect(mockShowToast).toHaveBeenCalledWith({
-            style: "failure",
-            title: "Copy failed",
-            message: "Error: Copy failed",
-          });
-        },
-        { timeout: 10000 },
-      );
-    });
-  });
+  describe("Copy Functionality Coverage Tests", () => {});
 
   describe("MessageDetail Component Coverage Tests", () => {
     it("should render MessageDetail with all metadata (lines 166-189)", () => {
       const message = mockMessages[0];
 
-      const TestMessageDetail = ({ message }: { message: any }) => (
+      const TestMessageDetail = ({ message }: { message: ParsedMessage }) => (
         <div data-testid="detail" data-markdown={message.content}>
           <div data-testid="metadata">
             <div data-testid="time-label">
@@ -2082,7 +1616,7 @@ describe("ReceivedMessages", () => {
         projectPath: undefined,
       };
 
-      const TestMessageDetail = ({ message }: { message: any }) => (
+      const TestMessageDetail = ({ message }: { message: ParsedMessage }) => (
         <div data-testid="project-label">
           {message.projectPath?.split("/").pop() ||
             message.projectPath ||
@@ -2101,7 +1635,7 @@ describe("ReceivedMessages", () => {
         projectPath: "",
       };
 
-      const TestMessageDetail = ({ message }: { message: any }) => (
+      const TestMessageDetail = ({ message }: { message: ParsedMessage }) => (
         <div data-testid="project-label">
           {message.projectPath?.split("/").pop() ||
             message.projectPath ||
@@ -2117,7 +1651,7 @@ describe("ReceivedMessages", () => {
     it("should render MessageDetail actions (lines 192-197)", () => {
       const message = mockMessages[0];
 
-      const TestMessageDetail = ({ message }: { message: any }) => (
+      const TestMessageDetail = ({ message }: { message: ParsedMessage }) => (
         <div data-testid="detail-actions">
           <button
             onClick={() => {
@@ -2144,43 +1678,6 @@ describe("ReceivedMessages", () => {
   });
 
   describe("Additional Edge Cases for Coverage", () => {
-    it.skip("should handle AI search with specific Pro error message", async () => {
-      jest.useFakeTimers();
-      mockSemanticSearch.mockRejectedValue(
-        new Error("Error: This requires Raycast Pro subscription"),
-      );
-      mockCanAccess.mockReturnValue(true);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith({
-          style: "failure",
-          title: "Raycast Pro required for AI search",
-        });
-      });
-
-      jest.useRealTimers();
-    });
-
     it("should test all timeout cleanup scenarios", async () => {
       jest.useFakeTimers();
       const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
@@ -2255,42 +1752,6 @@ describe("ReceivedMessages", () => {
         );
       });
 
-      jest.useRealTimers();
-    });
-
-    it("should test error logging in AI search", async () => {
-      jest.useFakeTimers();
-      const consoleSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-      const aiError = new Error("Search failed");
-      mockSemanticSearch.mockRejectedValue(aiError);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith("AI search error:", aiError);
-      });
-
-      consoleSpy.mockRestore();
       jest.useRealTimers();
     });
   });

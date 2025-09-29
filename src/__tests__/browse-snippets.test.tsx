@@ -10,8 +10,9 @@ import {
   act,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ListSnippets from "../list-snippets";
+import BrowseSnippets from "../browse-snippets";
 import { Snippet } from "../utils/claudeMessages";
+import React from "react";
 
 // Mock timers for debouncing tests
 jest.useFakeTimers();
@@ -25,7 +26,14 @@ jest.mock("@raycast/api", () => ({
       isLoading,
       actions,
       searchBarAccessory,
-    }: any) => (
+    }: {
+      children?: React.ReactNode;
+      searchBarPlaceholder?: string;
+      onSearchTextChange?: (text: string) => void;
+      isLoading?: boolean;
+      actions?: React.ReactNode;
+      searchBarAccessory?: React.ReactNode;
+    }) => (
       <div
         data-testid="list"
         data-placeholder={searchBarPlaceholder}
@@ -44,7 +52,17 @@ jest.mock("@raycast/api", () => ({
       </div>
     ),
     {
-      Item: ({ title, subtitle, accessories, actions }: any) => (
+      Item: ({
+        title,
+        subtitle,
+        accessories,
+        actions,
+      }: {
+        title: string;
+        subtitle?: string;
+        accessories?: Array<{ text?: string; date?: Date }>;
+        actions?: React.ReactNode;
+      }) => (
         <div
           data-testid="list-item"
           data-title={title}
@@ -58,7 +76,17 @@ jest.mock("@raycast/api", () => ({
           <div data-testid="item-actions">{actions}</div>
         </div>
       ),
-      EmptyView: ({ title, description, actions, icon }: any) => (
+      EmptyView: ({
+        title,
+        description,
+        actions,
+        icon,
+      }: {
+        title: string;
+        description?: string;
+        actions?: React.ReactNode;
+        icon?: { source: string; tintColor?: string };
+      }) => (
         <div
           data-testid="empty-view"
           data-title={title}
@@ -69,7 +97,17 @@ jest.mock("@raycast/api", () => ({
         </div>
       ),
       Dropdown: Object.assign(
-        ({ value, onChange, children, tooltip }: any) => (
+        ({
+          value,
+          onChange,
+          children,
+          tooltip,
+        }: {
+          value?: string;
+          onChange?: (value: string) => void;
+          children?: React.ReactNode;
+          tooltip?: string;
+        }) => (
           <div data-testid="dropdown" data-value={value} data-tooltip={tooltip}>
             <select
               data-testid="dropdown-select"
@@ -81,7 +119,7 @@ jest.mock("@raycast/api", () => ({
           </div>
         ),
         {
-          Item: ({ title, value, icon }: any) => (
+          Item: ({ title, value }: { title: string; value: string }) => (
             <option
               data-testid="dropdown-item"
               data-title={title}
@@ -96,7 +134,17 @@ jest.mock("@raycast/api", () => ({
     },
   ),
   Detail: Object.assign(
-    ({ markdown, navigationTitle, metadata, actions }: any) => (
+    ({
+      markdown,
+      navigationTitle,
+      metadata,
+      actions,
+    }: {
+      markdown: string;
+      navigationTitle?: string;
+      metadata?: React.ReactNode;
+      actions?: React.ReactNode;
+    }) => (
       <div
         data-testid="detail"
         data-navigation-title={navigationTitle}
@@ -108,9 +156,11 @@ jest.mock("@raycast/api", () => ({
     ),
     {
       Metadata: Object.assign(
-        ({ children }: any) => <div data-testid="metadata">{children}</div>,
+        ({ children }: { children?: React.ReactNode }) => (
+          <div data-testid="metadata">{children}</div>
+        ),
         {
-          Label: ({ title, text }: any) => (
+          Label: ({ title, text }: { title: string; text?: string }) => (
             <div
               data-testid="metadata-label"
               data-title={title}
@@ -122,11 +172,21 @@ jest.mock("@raycast/api", () => ({
       ),
     },
   ),
-  ActionPanel: ({ children }: any) => (
+  ActionPanel: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="action-panel">{children}</div>
   ),
   Action: Object.assign(
-    ({ title, onAction, icon, style, shortcut }: any) => (
+    ({
+      title,
+      onAction,
+      style,
+      shortcut,
+    }: {
+      title: string;
+      onAction?: () => void;
+      style?: string;
+      shortcut?: { modifiers?: string[]; key: string };
+    }) => (
       <button
         data-testid="action"
         data-title={title}
@@ -138,7 +198,15 @@ jest.mock("@raycast/api", () => ({
       </button>
     ),
     {
-      Push: ({ title, target, icon, shortcut }: any) => (
+      Push: ({
+        title,
+        target,
+        shortcut,
+      }: {
+        title: string;
+        target?: React.ReactNode;
+        shortcut?: { modifiers?: string[]; key: string };
+      }) => (
         <button
           data-testid="action-push"
           data-title={title}
@@ -200,29 +268,29 @@ const {
   confirmAlert,
   Clipboard,
   environment,
-} = require("@raycast/api");
+} = jest.requireMock("@raycast/api");
 
 jest.mock("../utils/claudeMessages");
 jest.mock("../utils/aiSearch");
 
 // Get mocked versions
-const { getSnippets, deleteSnippet } = require("../utils/claudeMessages");
-const {
-  semanticSearchSnippets,
-  normalSearchSnippets,
-} = require("../utils/aiSearch");
+const { getSnippets, deleteSnippet } = jest.requireMock(
+  "../utils/claudeMessages",
+);
+const { semanticSearchSnippets, normalSearchSnippets } =
+  jest.requireMock("../utils/aiSearch");
 
 // Mock CreateSnippet component
 jest.mock("../create-snippet", () => ({
   __esModule: true,
-  default: ({ title, content }: any) => (
+  default: ({ title, content }: { title?: string; content?: string }) => (
     <div data-testid="create-snippet" data-title={title} data-content={content}>
       Create Snippet Form
     </div>
   ),
 }));
 
-describe("ListSnippets", () => {
+describe("BrowseSnippets", () => {
   const mockSnippets: Snippet[] = [
     {
       id: "1",
@@ -251,19 +319,21 @@ describe("ListSnippets", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     getSnippets.mockResolvedValue(mockSnippets);
-    normalSearchSnippets.mockImplementation((snippets, query) =>
-      snippets.filter(
-        (snippet: Snippet) =>
-          snippet.title.toLowerCase().includes(query.toLowerCase()) ||
-          snippet.content.toLowerCase().includes(query.toLowerCase()),
-      ),
+    normalSearchSnippets.mockImplementation(
+      (snippets: Snippet[], query: string) =>
+        snippets.filter(
+          (snippet: Snippet) =>
+            snippet.title.toLowerCase().includes(query.toLowerCase()) ||
+            snippet.content.toLowerCase().includes(query.toLowerCase()),
+        ),
     );
-    semanticSearchSnippets.mockImplementation((snippets, query) =>
-      snippets.filter(
-        (snippet: Snippet) =>
-          snippet.title.toLowerCase().includes(query.toLowerCase()) ||
-          snippet.content.toLowerCase().includes(query.toLowerCase()),
-      ),
+    semanticSearchSnippets.mockImplementation(
+      (snippets: Snippet[], query: string) =>
+        snippets.filter(
+          (snippet: Snippet) =>
+            snippet.title.toLowerCase().includes(query.toLowerCase()) ||
+            snippet.content.toLowerCase().includes(query.toLowerCase()),
+        ),
     );
     environment.canAccess.mockReturnValue(true);
   });
@@ -275,14 +345,14 @@ describe("ListSnippets", () => {
   describe("Initial render and loading", () => {
     it("should render the list component", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       expect(screen.getByTestId("list")).toBeInTheDocument();
     });
 
     it("should show loading state initially", () => {
-      render(<ListSnippets />);
+      render(<BrowseSnippets />);
 
       const list = screen.getByTestId("list");
       expect(list).toHaveAttribute("data-loading", "true");
@@ -290,7 +360,7 @@ describe("ListSnippets", () => {
 
     it("should load snippets on mount", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -300,7 +370,7 @@ describe("ListSnippets", () => {
 
     it("should display snippets after loading", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -316,7 +386,7 @@ describe("ListSnippets", () => {
 
     it("should sort snippets by most recently updated first", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -333,7 +403,7 @@ describe("ListSnippets", () => {
       getSnippets.mockRejectedValueOnce(new Error("Load failed"));
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -349,7 +419,7 @@ describe("ListSnippets", () => {
       getSnippets.mockRejectedValueOnce("String error");
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -367,7 +437,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -384,7 +454,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -396,7 +466,7 @@ describe("ListSnippets", () => {
   describe("Search functionality", () => {
     it("should have correct search placeholder for normal search", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -410,7 +480,7 @@ describe("ListSnippets", () => {
 
     it("should show search dropdown", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -424,7 +494,7 @@ describe("ListSnippets", () => {
 
     it("should filter snippets with normal search", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -447,7 +517,7 @@ describe("ListSnippets", () => {
 
     it("should change search mode via dropdown", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -472,7 +542,7 @@ describe("ListSnippets", () => {
   describe("AI Search functionality", () => {
     it("should change placeholder when AI search is enabled", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -493,7 +563,7 @@ describe("ListSnippets", () => {
       semanticSearchSnippets.mockResolvedValueOnce([mockSnippets[0]]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -527,7 +597,7 @@ describe("ListSnippets", () => {
       );
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -561,7 +631,7 @@ describe("ListSnippets", () => {
       );
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -596,7 +666,7 @@ describe("ListSnippets", () => {
       );
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -628,7 +698,7 @@ describe("ListSnippets", () => {
     it("should clear debounce timer on cleanup", async () => {
       const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 
-      const { unmount } = render(<ListSnippets />);
+      const { unmount } = render(<BrowseSnippets />);
 
       // Enable AI search and type
       await waitFor(() => {
@@ -651,7 +721,7 @@ describe("ListSnippets", () => {
   describe("Snippet display", () => {
     it("should display snippet title and truncated content", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -676,7 +746,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([longContentSnippet]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -689,7 +759,7 @@ describe("ListSnippets", () => {
 
     it("should display formatted date in accessories", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -711,7 +781,7 @@ describe("ListSnippets", () => {
       Clipboard.copy.mockResolvedValueOnce(undefined);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -738,7 +808,7 @@ describe("ListSnippets", () => {
       Clipboard.copy.mockRejectedValueOnce(new Error("Copy failed"));
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -766,7 +836,7 @@ describe("ListSnippets", () => {
       Clipboard.copy.mockResolvedValueOnce(undefined);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -787,7 +857,7 @@ describe("ListSnippets", () => {
       deleteSnippet.mockResolvedValueOnce(undefined);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -825,7 +895,7 @@ describe("ListSnippets", () => {
       confirmAlert.mockResolvedValueOnce(false);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -851,7 +921,7 @@ describe("ListSnippets", () => {
       deleteSnippet.mockRejectedValueOnce(new Error("Delete failed"));
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -879,7 +949,7 @@ describe("ListSnippets", () => {
   describe("SnippetDetail component", () => {
     it("should render snippet detail with metadata", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -904,7 +974,7 @@ describe("ListSnippets", () => {
 
     it("should show 'Untitled' for snippets without title in detail", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -918,7 +988,7 @@ describe("ListSnippets", () => {
 
     it("should format dates correctly in detail metadata", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -943,7 +1013,7 @@ describe("ListSnippets", () => {
       Clipboard.copy.mockResolvedValueOnce(undefined);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -971,7 +1041,7 @@ describe("ListSnippets", () => {
   describe("Action shortcuts", () => {
     it("should have correct keyboard shortcuts", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1001,7 +1071,7 @@ describe("ListSnippets", () => {
 
     it("should have create new snippet shortcut", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1024,7 +1094,7 @@ describe("ListSnippets", () => {
 
     it("should have duplicate snippet shortcut", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1049,7 +1119,7 @@ describe("ListSnippets", () => {
   describe("Duplicate functionality", () => {
     it("should create duplicate with correct title format", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1086,7 +1156,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([titledSnippet]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1112,7 +1182,7 @@ describe("ListSnippets", () => {
   describe("Edge cases", () => {
     it("should handle empty search text", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1138,7 +1208,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([longTitleSnippet]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1159,7 +1229,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([specialCharSnippet]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1179,7 +1249,7 @@ describe("ListSnippets", () => {
       getSnippets.mockResolvedValueOnce([]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -1208,7 +1278,7 @@ describe("ListSnippets", () => {
 
     it("should handle normal search with empty query", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1228,7 +1298,7 @@ describe("ListSnippets", () => {
       semanticSearchSnippets.mockResolvedValue([mockSnippets[0]]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -1269,7 +1339,7 @@ describe("ListSnippets", () => {
 
     it("should not debounce normal search", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1285,7 +1355,7 @@ describe("ListSnippets", () => {
       semanticSearchSnippets.mockResolvedValue([mockSnippets[0]]);
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -1337,7 +1407,7 @@ describe("ListSnippets", () => {
   describe("Additional coverage tests", () => {
     it("should test performAISearch with empty debouncedSearchText", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -1369,7 +1439,7 @@ describe("ListSnippets", () => {
       // We need to test copyContent function directly
       // This is called from SnippetDetail with closeWindow=false
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
@@ -1401,7 +1471,7 @@ describe("ListSnippets", () => {
       );
 
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Enable AI search
@@ -1428,7 +1498,7 @@ describe("ListSnippets", () => {
 
     it("should test normal search in performAISearch when AI is disabled", async () => {
       await act(async () => {
-        render(<ListSnippets />);
+        render(<BrowseSnippets />);
       });
 
       // Start with AI search, then disable it

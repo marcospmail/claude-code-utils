@@ -138,9 +138,12 @@ jest.mock("@raycast/api", () => ({
           // Clone children and pass onChange to them
           const childrenWithProps = React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
-              return React.cloneElement(child as any, {
-                onChange: handleChange,
-              });
+              return React.cloneElement(
+                child as React.ReactElement<{
+                  onChange?: (value: string) => void;
+                }>,
+                { onChange: handleChange },
+              );
             }
             return child;
           });
@@ -902,18 +905,19 @@ describe("SentMessages", () => {
     });
 
     it("should handle missing project path in detail view", () => {
-      const messageWithoutProject = {
+      const messageWithoutProject: ParsedMessage = {
         ...mockMessages[0],
         projectPath: undefined,
       };
 
       const TestMessageDetail = () => {
+        const projectPath = messageWithoutProject.projectPath;
         return (
           <div data-testid="detail">
             <div data-testid="project">
-              {messageWithoutProject.projectPath?.split("/").pop() ||
-                messageWithoutProject.projectPath ||
-                "Unknown"}
+              {projectPath
+                ? projectPath.split("/").pop() || projectPath
+                : "Unknown"}
             </div>
           </div>
         );

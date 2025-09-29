@@ -47,8 +47,6 @@ export default function SentMessages() {
       setMessages(sortedMessages);
       setFilteredMessages(sortedMessages);
     } catch (error) {
-      console.error({ error });
-
       showToast({
         style: Toast.Style.Failure,
         title: "Error loading messages",
@@ -111,12 +109,13 @@ export default function SentMessages() {
           setFilteredMessages(results);
           setAiSearchFailed(false);
         } catch (error) {
-          console.error("AI search error:", error);
           // Clear results and show error state
           setFilteredMessages([]);
 
           // Check if it's a Pro subscription error (either by checking access or error message)
-          if (!hasAIAccess || error?.message?.includes("Raycast Pro")) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
             setAiSearchFailed("pro-required");
           } else {
             setAiSearchFailed(true);
@@ -153,8 +152,6 @@ export default function SentMessages() {
         });
       }
     } catch (error) {
-      console.error({ error });
-
       showToast({
         style: Toast.Style.Failure,
         title: "Copy failed",
