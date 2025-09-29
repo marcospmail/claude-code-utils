@@ -16,6 +16,8 @@ ${
 ${command.usage}
 \`\`\`
 
+---
+
 `
     : ""
 }**Description:** ${command.description}
