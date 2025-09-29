@@ -15,34 +15,34 @@ declare type Preferences = ExtensionPreferences
 declare namespace Preferences {
   /** Preferences accessible in the `create-snippet` command */
   export type CreateSnippet = ExtensionPreferences & {}
-  /** Preferences accessible in the `list-snippets` command */
-  export type ListSnippets = ExtensionPreferences & {}
+  /** Preferences accessible in the `browse-snippets` command */
+  export type BrowseSnippets = ExtensionPreferences & {}
   /** Preferences accessible in the `received-messages` command */
   export type ReceivedMessages = ExtensionPreferences & {}
   /** Preferences accessible in the `sent-messages` command */
   export type SentMessages = ExtensionPreferences & {}
-  /** Preferences accessible in the `list-commands` command */
-  export type ListCommands = ExtensionPreferences & {}
-  /** Preferences accessible in the `list-agents` command */
-  export type ListAgents = ExtensionPreferences & {}
-  /** Preferences accessible in the `list-slash-commands` command */
-  export type ListSlashCommands = ExtensionPreferences & {}
+  /** Preferences accessible in the `browse-commands-cheatsheet` command */
+  export type BrowseCommandsCheatsheet = ExtensionPreferences & {}
+  /** Preferences accessible in the `browse-agents` command */
+  export type BrowseAgents = ExtensionPreferences & {}
+  /** Preferences accessible in the `browse-commands` command */
+  export type BrowseCommands = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
   /** Arguments passed to the `create-snippet` command */
   export type CreateSnippet = {}
-  /** Arguments passed to the `list-snippets` command */
-  export type ListSnippets = {}
+  /** Arguments passed to the `browse-snippets` command */
+  export type BrowseSnippets = {}
   /** Arguments passed to the `received-messages` command */
   export type ReceivedMessages = {}
   /** Arguments passed to the `sent-messages` command */
   export type SentMessages = {}
-  /** Arguments passed to the `list-commands` command */
-  export type ListCommands = {}
-  /** Arguments passed to the `list-agents` command */
-  export type ListAgents = {}
-  /** Arguments passed to the `list-slash-commands` command */
-  export type ListSlashCommands = {}
+  /** Arguments passed to the `browse-commands-cheatsheet` command */
+  export type BrowseCommandsCheatsheet = {}
+  /** Arguments passed to the `browse-agents` command */
+  export type BrowseAgents = {}
+  /** Arguments passed to the `browse-commands` command */
+  export type BrowseCommands = {}
 }
 

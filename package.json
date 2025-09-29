@@ -52,13 +52,13 @@
     },
     {
       "name": "browse-agents",
-      "title": "Browse /agents",
+      "title": "Browse Agents",
       "description": "View and manage your Claude Code agents from ~/.claude/agents",
       "mode": "view"
     },
     {
       "name": "browse-commands",
-      "title": "Browse /commands",
+      "title": "Browse Commands",
       "description": "View and manage your Claude Code slash commands from ~/.claude/commands",
       "mode": "view"
     }

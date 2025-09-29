@@ -39,10 +39,10 @@ A powerful Raycast extension for browsing, searching, and managing your Claude C
 ### Manual Installation
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/claude-code-utils.git
+git clone https://github.com/marcospmail/claude-code-helper-extension.git
 
 # Navigate to the extension directory
-cd claude-code-utils
+cd claude-code-helper-extension
 
 # Install dependencies
 npm install
