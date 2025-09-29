@@ -23,6 +23,8 @@ declare namespace Preferences {
   export type ReceivedMessages = ExtensionPreferences & {}
   /** Preferences accessible in the `sent-messages` command */
   export type SentMessages = ExtensionPreferences & {}
+  /** Preferences accessible in the `list-commands` command */
+  export type ListCommands = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -36,5 +38,7 @@ declare namespace Arguments {
   export type ReceivedMessages = {}
   /** Arguments passed to the `sent-messages` command */
   export type SentMessages = {}
+  /** Arguments passed to the `list-commands` command */
+  export type ListCommands = {}
 }
 
