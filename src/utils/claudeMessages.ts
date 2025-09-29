@@ -224,10 +224,12 @@ async function parseAssistantMessagesOnlyStreaming(
 
           // Only process assistant messages to save memory
           if (data.message && data.message.role === "assistant") {
-            let content = "";
+            let content: string | null = "";
 
-            if (data.message.content) {
-              if (typeof data.message.content === "string") {
+            if (data.message.content !== undefined) {
+              if (data.message.content === null) {
+                content = null;
+              } else if (typeof data.message.content === "string") {
                 content = data.message.content;
               } else if (Array.isArray(data.message.content)) {
                 // Extract only text content, not thinking
@@ -238,23 +240,38 @@ async function parseAssistantMessagesOnlyStreaming(
               }
             }
 
-            if (content && content.trim()) {
-              // Convert Unix timestamp (seconds) to JavaScript timestamp (milliseconds)
-              const timestamp = data.timestamp
-                ? typeof data.timestamp === "number" &&
-                  data.timestamp < 10000000000
-                  ? new Date(data.timestamp * 1000)
-                  : new Date(data.timestamp)
-                : new Date();
+            // Handle different content scenarios:
+            // - null content: include with empty string (will show "[Empty message]")
+            // - empty string or undefined: filter out completely
+            // - valid content: include normally
 
+            const timestamp = data.timestamp
+              ? typeof data.timestamp === "number" &&
+                data.timestamp < 10000000000
+                ? new Date(data.timestamp * 1000)
+                : new Date(data.timestamp)
+              : new Date();
+
+            if (content === null) {
+              // Special case: explicitly null content should be handled gracefully
               assistantMessages.push({
                 role: "assistant",
-                content,
+                content: "", // Convert null to empty string
+                timestamp,
+                sessionId,
+                projectPath,
+              });
+            } else if (content !== undefined && content !== "") {
+              // Valid non-empty content
+              assistantMessages.push({
+                role: "assistant",
+                content: content,
                 timestamp,
                 sessionId,
                 projectPath,
               });
             }
+            // Skip empty string ("") and undefined content
           }
         } catch (error) {
           console.error({ error });
@@ -316,8 +333,9 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
                 mostRecentFileTime = fileStat.mtime;
               }
             }
-          } catch {
+          } catch (error) {
             // If we can't read files, use directory mtime
+            console.error({ error });
           }
 
           projectsWithStats.push({
@@ -436,8 +454,9 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
                 mostRecentFileTime = fileStat.mtime;
               }
             }
-          } catch {
+          } catch (error) {
             // If we can't read files, use directory mtime as fallback
+            console.error({ error });
           }
 
           projectsWithStats.push({
@@ -586,6 +605,12 @@ export function generateMessageId(message: ParsedMessage): string {
       message.timestamp instanceof Date
         ? message.timestamp.getTime()
         : new Date(message.timestamp).getTime();
+
+    // Check if timestamp is invalid (NaN)
+    if (isNaN(timestamp)) {
+      throw new Error("Invalid timestamp");
+    }
+
     const content = `${message.content}-${timestamp}-${message.sessionId}`;
     return createHash("md5").update(content).digest("hex");
   } catch (error) {
@@ -756,7 +781,18 @@ export async function createSnippet(
 ): Promise<Snippet> {
   try {
     const snippetsData = await LocalStorage.getItem<string>(SNIPPETS_KEY);
-    const snippets: Snippet[] = snippetsData ? JSON.parse(snippetsData) : [];
+    let snippets: Snippet[] = [];
+
+    // Handle JSON parse errors gracefully
+    if (snippetsData) {
+      try {
+        snippets = JSON.parse(snippetsData);
+      } catch (parseError) {
+        console.error({ parseError });
+        // Treat invalid JSON as no existing data
+        snippets = [];
+      }
+    }
 
     const newSnippet: Snippet = {
       id: createHash("md5")

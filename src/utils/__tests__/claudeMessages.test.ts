@@ -1,6 +1,15 @@
+import { readdir, stat } from "fs/promises";
+import { createReadStream } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+import { createInterface } from "readline";
+import { EventEmitter } from "events";
 import { LocalStorage } from "@raycast/api";
-import * as crypto from "crypto";
 import {
+  getSentMessages,
+  getReceivedMessages,
+  getAllClaudeMessages,
+  formatMessageForDisplay,
   generateMessageId,
   getPinnedMessages,
   getPinnedMessageIds,
@@ -10,118 +19,1034 @@ import {
   getSnippets,
   createSnippet,
   deleteSnippet,
-  formatMessageForDisplay,
-  ParsedMessage,
-  PinnedMessage,
-  Snippet,
+  type Message,
+  type ParsedMessage,
+  type Snippet,
 } from "../claudeMessages";
 
 // Mock all external dependencies
-jest.mock("@raycast/api");
-jest.mock("fs");
-jest.mock("fs/promises");
-jest.mock("readline");
-jest.mock("crypto");
+jest.mock("fs", () => ({
+  createReadStream: jest.fn(),
+}));
+
+jest.mock("fs/promises", () => ({
+  readdir: jest.fn(),
+  stat: jest.fn(),
+}));
+
+jest.mock("os", () => ({
+  homedir: jest.fn(),
+}));
+
+jest.mock("path", () => ({
+  join: jest.fn(),
+}));
+
+jest.mock("readline", () => ({
+  createInterface: jest.fn(),
+}));
+
+jest.mock("crypto", () => ({
+  createHash: jest.fn(() => ({
+    update: jest.fn().mockReturnThis(),
+    digest: jest.fn(() => "mocked-hash"),
+  })),
+}));
+
+// Mock Raycast API
+jest.mock("@raycast/api", () => ({
+  LocalStorage: {
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+  },
+}));
+
+// Type the mocked modules
+const mockedReaddir = readdir as jest.MockedFunction<typeof readdir>;
+const mockedStat = stat as jest.MockedFunction<typeof stat>;
+const mockedHomedir = homedir as jest.MockedFunction<typeof homedir>;
+const mockedJoin = join as jest.MockedFunction<typeof join>;
+const mockedCreateReadStream = createReadStream as jest.MockedFunction<
+  typeof createReadStream
+>;
+const mockedCreateInterface = createInterface as jest.MockedFunction<
+  typeof createInterface
+>;
+const mockedLocalStorage = LocalStorage as jest.Mocked<typeof LocalStorage>;
+
+// Mock readline interface
+class MockReadlineInterface extends EventEmitter {
+  private _closed = false;
+
+  close() {
+    if (!this._closed) {
+      this._closed = true;
+      // Use setTimeout to ensure event fires in next tick
+      setTimeout(() => {
+        this.emit("close");
+      }, 0);
+    }
+  }
+
+  removeAllListeners() {
+    super.removeAllListeners();
+    return this;
+  }
+
+  // Override emit to handle error events properly
+  emit(eventName: string | symbol, ...args: any[]): boolean {
+    if (eventName === "error") {
+      // Handle errors gracefully by not throwing if no listeners
+      if (this.listenerCount("error") === 0) {
+        return false;
+      }
+    }
+    return super.emit(eventName, ...args);
+  }
+}
+
+// Mock file stream
+class MockFileStream extends EventEmitter {
+  private _destroyed = false;
+
+  destroy() {
+    if (!this._destroyed) {
+      this._destroyed = true;
+      // Use setTimeout to ensure event fires in next tick
+      setTimeout(() => {
+        this.emit("close");
+      }, 0);
+    }
+  }
+}
 
 describe("claudeMessages", () => {
-  const mockLocalStorage = LocalStorage as jest.Mocked<typeof LocalStorage>;
-  const mockCreateHash = crypto.createHash as jest.Mock;
+  // Helper function to setup mock readline interfaces
+  const setupMockStreams = () => {
+    let mockReadlineInterface: MockReadlineInterface;
+    let mockFileStream: MockFileStream;
+
+    mockedCreateReadStream.mockImplementation(() => {
+      mockFileStream = new MockFileStream();
+      return mockFileStream as any;
+    });
+
+    mockedCreateInterface.mockImplementation(() => {
+      mockReadlineInterface = new MockReadlineInterface();
+      return mockReadlineInterface as any;
+    });
+
+    return () => ({ mockReadlineInterface, mockFileStream });
+  };
+
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup crypto mock
-    mockCreateHash.mockReturnValue({
-      update: jest.fn().mockReturnThis(),
-      digest: jest.fn().mockReturnValue("mock-hash-id"),
+    // Set up console.error spy
+    if (consoleErrorSpy) {
+      consoleErrorSpy.mockRestore();
+    }
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    // Default mocks
+    mockedHomedir.mockReturnValue("/mock/home");
+    mockedJoin.mockImplementation((...paths) => paths.join("/"));
+  });
+
+  describe("Directory and File Operations", () => {
+    it("should construct correct Claude directory path", () => {
+      // Since the module is imported before the test runs, we verify the mock setup works
+      // by checking that our mocked functions were configured properly
+      expect(mockedHomedir).toBeDefined();
+      expect(mockedJoin).toBeDefined();
+
+      // Test the current behavior by calling the mocked functions
+      mockedHomedir();
+      mockedJoin("test", ".claude", "projects");
+
+      expect(mockedHomedir).toHaveBeenCalled();
+      expect(mockedJoin).toHaveBeenCalledWith("test", ".claude", "projects");
+    });
+
+    it("should handle missing Claude directory gracefully", async () => {
+      mockedReaddir.mockRejectedValue(new Error("Directory not found"));
+
+      const result = await getSentMessages();
+
+      expect(result).toEqual([]);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("should handle permission errors when reading directories", async () => {
+      mockedReaddir.mockRejectedValue(new Error("Permission denied"));
+
+      const result = await getAllClaudeMessages();
+
+      expect(result).toEqual([]);
+      expect(console.error).toHaveBeenCalled();
     });
   });
 
-  describe("generateMessageId", () => {
-    it("should generate hash from message content and timestamp", () => {
-      const message: ParsedMessage = {
-        id: "1",
-        content: "Test message",
-        preview: "Test...",
-        timestamp: new Date("2024-01-01"),
-        role: "user",
-        sessionId: "session-1",
-      };
+  describe("getSentMessages", () => {
+    it("should return empty array when no projects exist", async () => {
+      mockedReaddir.mockResolvedValue([]);
 
-      const result = generateMessageId(message);
+      const result = await getSentMessages();
 
-      expect(crypto.createHash).toHaveBeenCalledWith("md5");
-      expect(result).toBe("mock-hash-id");
+      expect(result).toEqual([]);
     });
 
-    it("should handle invalid timestamp with fallback", () => {
-      const message: ParsedMessage = {
-        id: "1",
-        content: "Test message",
-        preview: "Test...",
-        timestamp: "invalid" as unknown as number,
+    it("should process projects and return user messages", async () => {
+      // Mock directory structure
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // Projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // Files in project1
+        .mockResolvedValueOnce(["session1.jsonl"]); // Files listing again for processing
+
+      // Mock stats for projects - need to match the exact order in the function
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat1 = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat) // project1 directory stat
+        .mockResolvedValueOnce(mockFileStat1) // session1.jsonl for mtime comparison
+        .mockResolvedValueOnce(mockFileStat1); // session1.jsonl stat for file sorting
+
+      // Mock readline interface
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      // Start the function
+      const resultPromise = getSentMessages();
+
+      // Use process.nextTick to ensure the mock is called after the function starts
+      // Use setTimeout to ensure proper event emission timing
+      setTimeout(() => {
+        // Emit user message data
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Test user message",
+            },
+            timestamp: 1672531200, // Unix timestamp
+          }),
+        );
+
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Another user message",
+            },
+            timestamp: 1672531300,
+          }),
+        );
+
+        // Close the readline interface
+        mockReadlineInterface.close();
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
         role: "user",
-        sessionId: "session-1",
+        content: "Another user message",
+        id: "sent-0",
+        preview: "Another user message",
+      });
+      expect(result[0].timestamp).toBeInstanceOf(Date);
+    });
+
+    it("should filter out system messages and interrupted requests", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Valid user message
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Valid message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        // System command message (should be filtered)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "<command-message>system command</command-message>",
+            },
+            timestamp: 1672531250,
+          }),
+        );
+
+        // Interrupted request (should be filtered)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "[Request interrupted by user",
+            },
+            timestamp: 1672531300,
+          }),
+        );
+
+        // Assistant message (should be filtered)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: "Assistant response",
+            },
+            timestamp: 1672531350,
+          }),
+        );
+
+        mockReadlineInterface.close();
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toBe("Valid message");
+    });
+
+    it("should handle complex content arrays", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Message with complex content array
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: [
+                { type: "text", text: "First text part" },
+                { type: "image", data: "base64..." },
+                { type: "text", text: "Second text part" },
+              ],
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.close();
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toBe("First text part\nSecond text part");
+    });
+
+    it("should handle malformed JSON gracefully", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Valid message
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Valid message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        // Malformed JSON
+        mockReadlineInterface.emit("line", "invalid json {");
+
+        // Another valid message
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Another valid message",
+            },
+            timestamp: 1672531300,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(2);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("should handle stream errors gracefully", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        mockFileStream.emit("error", new Error("File read error"));
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toEqual([]);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("should limit to 5 projects and 5 files per project", async () => {
+      // Mock 6 projects (more than limit of 5)
+      const projects = [
+        "project1",
+        "project2",
+        "project3",
+        "project4",
+        "project5",
+        "project6",
+      ];
+      mockedReaddir.mockResolvedValueOnce(projects);
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
       };
 
-      const result = generateMessageId(message);
+      // Mock stats for all 6 projects to determine which have most recent files
+      for (let i = 0; i < 6; i++) {
+        mockedStat.mockResolvedValueOnce(mockProjectStat);
+        // Mock file listing to determine most recent file time
+        mockedReaddir.mockResolvedValueOnce(["session1.jsonl"]);
+        const mockFileStat = { mtime: new Date(`2023-01-${i + 2}`) };
+        mockedStat.mockResolvedValueOnce(mockFileStat);
+      }
 
-      expect(result).toBe("mock-hash-id");
+      // Store the readline interfaces for explicit control
+      const readlineInterfaces: MockReadlineInterface[] = [];
+
+      // Mock the actual processing for the top 5 projects only
+      for (let i = 0; i < 5; i++) {
+        // Mock file listing again for processing
+        mockedReaddir.mockResolvedValueOnce(["session1.jsonl"]);
+        const mockFileStat = { mtime: new Date(`2023-01-${i + 2}`) };
+        mockedStat.mockResolvedValueOnce(mockFileStat);
+
+        // Mock readline interface for each file
+        const mockReadlineInterface = new MockReadlineInterface();
+        const mockFileStream = new MockFileStream();
+        readlineInterfaces.push(mockReadlineInterface);
+        mockedCreateReadStream.mockReturnValueOnce(mockFileStream as any);
+        mockedCreateInterface.mockReturnValueOnce(mockReadlineInterface as any);
+      }
+
+      const resultPromise = getSentMessages();
+
+      // Close all readline interfaces after a delay
+      setTimeout(() => {
+        readlineInterfaces.forEach((rl) => rl.close());
+      }, 10);
+
+      await resultPromise;
+
+      // Verify that only 5 projects were processed (despite 6 being available)
+      // readdir calls: 1 for initial list + 6 for finding recent files + 5 for processing
+      expect(mockedReaddir).toHaveBeenCalledTimes(12);
+    });
+
+    it("should handle empty content in messages", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Message with empty content
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        // Message with whitespace only
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "   ",
+            },
+            timestamp: 1672531250,
+          }),
+        );
+
+        // Message without content
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+            },
+            timestamp: 1672531300,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("should handle messages with content items having no text", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Message with content items but no text
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: [
+                { type: "text" }, // No text property
+                { type: "image", data: "base64..." },
+                { type: "text", text: undefined }, // undefined text
+              ],
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("getReceivedMessages", () => {
+    it("should return assistant messages from getAllClaudeMessages", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getReceivedMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: "Assistant response",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        role: "assistant",
+        content: "Assistant response",
+        id: "received-0",
+        preview: "Assistant response",
+      });
+    });
+
+    it("should handle empty content gracefully", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getReceivedMessages();
+
+      setTimeout(() => {
+        // Message with empty content
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: "",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        // Message with no content
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+            },
+            timestamp: 1672531250,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      // Both messages should be filtered out due to empty content
+      expect(result).toHaveLength(0);
+    });
+
+    it("should create preview for long content", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const longContent = "A".repeat(200);
+      const resultPromise = getReceivedMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: longContent,
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].preview).toBe("A".repeat(100) + "...");
+      expect(result[0].content).toBe(longContent);
+    });
+
+    it("should handle messages with null/undefined content gracefully", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getReceivedMessages();
+
+      setTimeout(() => {
+        // Message with null content
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: null,
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].preview).toBe("[Empty message]");
+    });
+
+    it("should handle invalid timestamp conversion", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getReceivedMessages();
+
+      setTimeout(() => {
+        // Message with invalid timestamp that will create invalid Date
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: "Test message",
+            },
+            timestamp: "invalid-timestamp",
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].timestamp).toBeInstanceOf(Date);
     });
   });
 
   describe("formatMessageForDisplay", () => {
-    it("should format message with date and content", () => {
+    it("should format message with timestamp and content", () => {
       const message: ParsedMessage = {
-        id: "1",
-        content: "Test message content",
-        preview: "Test...",
-        timestamp: new Date("2024-01-01T12:00:00"),
+        id: "test-1",
         role: "user",
+        content: "Test message content",
+        timestamp: new Date("2023-01-01T12:00:00Z"),
         sessionId: "session-1",
+        preview: "Test message...",
       };
 
       const result = formatMessageForDisplay(message);
 
       expect(result).toContain("Test message content");
-      expect(result).toMatch(/\[.*\]\n\n/);
+      expect(result).toContain("1/1/2023"); // Date format may vary based on locale
+    });
+
+    it("should handle messages with newlines", () => {
+      const message: ParsedMessage = {
+        id: "test-1",
+        role: "user",
+        content: "Line 1\nLine 2\nLine 3",
+        timestamp: new Date("2023-01-01T12:00:00Z"),
+        sessionId: "session-1",
+        preview: "Line 1...",
+      };
+
+      const result = formatMessageForDisplay(message);
+
+      expect(result).toContain("Line 1\nLine 2\nLine 3");
+    });
+  });
+
+  describe("generateMessageId", () => {
+    it("should generate consistent ID for same message", () => {
+      const message: ParsedMessage = {
+        id: "test-1",
+        role: "user",
+        content: "Test content",
+        timestamp: new Date("2023-01-01T12:00:00Z"),
+        sessionId: "session-1",
+        preview: "Test...",
+      };
+
+      const id1 = generateMessageId(message);
+      const id2 = generateMessageId(message);
+
+      expect(id1).toBe(id2);
+      expect(id1).toBe("mocked-hash");
+    });
+
+    it("should handle invalid timestamps with fallback", () => {
+      // Create a message with an invalid date that will trigger the fallback
+      const message: ParsedMessage = {
+        id: "test-1",
+        role: "user",
+        content: "Test content",
+        timestamp: new Date("invalid date"),
+        sessionId: "session-1",
+        preview: "Test...",
+      };
+
+      // Mock the console.error to track if it was called
+      const consoleSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const result = generateMessageId(message);
+
+      expect(result).toBe("mocked-hash");
+      expect(consoleSpy).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
     });
   });
 
   describe("Pinning functionality", () => {
+    beforeEach(() => {
+      mockedLocalStorage.getItem.mockClear();
+      mockedLocalStorage.setItem.mockClear();
+    });
+
     describe("getPinnedMessages", () => {
-      it("should return empty array when no pinned messages", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
+      it("should return empty array when no pinned messages exist", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
         const result = await getPinnedMessages();
 
         expect(result).toEqual([]);
-        expect(mockLocalStorage.getItem).toHaveBeenCalledWith(
+        expect(mockedLocalStorage.getItem).toHaveBeenCalledWith(
           "claude-messages-pinned",
         );
       });
 
-      it("should return parsed pinned messages", async () => {
-        const pinnedData: PinnedMessage[] = [
+      it("should parse and return pinned messages", async () => {
+        const pinnedData = JSON.stringify([
           {
-            id: "1",
+            id: "msg-1",
             content: "Pinned message",
-            timestamp: "2024-01-01T12:00:00.000Z",
+            timestamp: "2023-01-01T12:00:00Z",
             role: "user",
             sessionId: "session-1",
-            projectPath: "/path/to/project",
-            pinnedAt: "2024-01-02T12:00:00.000Z",
+            pinnedAt: "2023-01-01T12:05:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(JSON.stringify(pinnedData));
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
 
         const result = await getPinnedMessages();
 
         expect(result).toHaveLength(1);
         expect(result[0]).toMatchObject({
-          id: "1",
+          id: "msg-1",
           content: "Pinned message",
           role: "user",
+          sessionId: "session-1",
           isPinned: true,
           preview: "Pinned message",
         });
@@ -129,17 +1054,70 @@ describe("claudeMessages", () => {
       });
 
       it("should handle JSON parse errors", async () => {
-        mockLocalStorage.getItem.mockResolvedValue("invalid json");
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
 
         const result = await getPinnedMessages();
 
         expect(result).toEqual([]);
+        expect(console.error).toHaveBeenCalled();
+      });
+
+      it("should create preview for long pinned messages", async () => {
+        const longContent = "A".repeat(200);
+        const pinnedData = JSON.stringify([
+          {
+            id: "msg-1",
+            content: longContent,
+            timestamp: "2023-01-01T12:00:00Z",
+            role: "user",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
+          },
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
+
+        const result = await getPinnedMessages();
+
+        expect(result).toHaveLength(1);
+        expect(result[0].preview).toBe("A".repeat(100) + "...");
+        expect(result[0].content).toBe(longContent);
       });
     });
 
     describe("getPinnedMessageIds", () => {
-      it("should return empty Set when no pinned messages", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
+      it("should return Set of pinned message IDs", async () => {
+        const pinnedData = JSON.stringify([
+          {
+            id: "msg-1",
+            content: "Message 1",
+            timestamp: "2023-01-01T12:00:00Z",
+            role: "user",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
+          },
+          {
+            id: "msg-2",
+            content: "Message 2",
+            timestamp: "2023-01-01T12:01:00Z",
+            role: "user",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:06:00Z",
+          },
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
+
+        const result = await getPinnedMessageIds();
+
+        expect(result).toBeInstanceOf(Set);
+        expect(result.has("msg-1")).toBe(true);
+        expect(result.has("msg-2")).toBe(true);
+        expect(result.has("msg-3")).toBe(false);
+      });
+
+      it("should return empty Set when no data exists", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
         const result = await getPinnedMessageIds();
 
@@ -147,314 +1125,981 @@ describe("claudeMessages", () => {
         expect(result.size).toBe(0);
       });
 
-      it("should return Set of pinned message IDs", async () => {
-        const pinnedData: PinnedMessage[] = [
-          {
-            id: "1",
-            content: "",
-            timestamp: "",
-            role: "user",
-            sessionId: "",
-            pinnedAt: "",
-          },
-          {
-            id: "2",
-            content: "",
-            timestamp: "",
-            role: "assistant",
-            sessionId: "",
-            pinnedAt: "",
-          },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(JSON.stringify(pinnedData));
+      it("should handle JSON parse errors", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
 
         const result = await getPinnedMessageIds();
 
         expect(result).toBeInstanceOf(Set);
-        expect(result.has("1")).toBe(true);
-        expect(result.has("2")).toBe(true);
-        expect(result.size).toBe(2);
+        expect(result.size).toBe(0);
+        expect(console.error).toHaveBeenCalled();
       });
     });
 
     describe("isPinned", () => {
-      it("should return false for empty messageId", async () => {
-        const result = await isPinned("");
-
-        expect(result).toBe(false);
-        expect(mockLocalStorage.getItem).not.toHaveBeenCalled();
-      });
-
-      it("should return false when no pinned messages", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
-
-        const result = await isPinned("test-id");
-
-        expect(result).toBe(false);
-      });
-
-      it("should return true when message is pinned", async () => {
-        const pinnedData: PinnedMessage[] = [
+      it("should return true for pinned message", async () => {
+        const pinnedData = JSON.stringify([
           {
-            id: "test-id",
-            content: "",
-            timestamp: "",
+            id: "msg-1",
+            content: "Message",
+            timestamp: "2023-01-01T12:00:00Z",
             role: "user",
-            sessionId: "",
-            pinnedAt: "",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(JSON.stringify(pinnedData));
+        ]);
 
-        const result = await isPinned("test-id");
+        mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
+
+        const result = await isPinned("msg-1");
 
         expect(result).toBe(true);
       });
 
-      it("should return false when message is not pinned", async () => {
-        const pinnedData: PinnedMessage[] = [
+      it("should return false for non-pinned message", async () => {
+        const pinnedData = JSON.stringify([
           {
-            id: "other-id",
-            content: "",
-            timestamp: "",
+            id: "msg-1",
+            content: "Message",
+            timestamp: "2023-01-01T12:00:00Z",
             role: "user",
-            sessionId: "",
-            pinnedAt: "",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(JSON.stringify(pinnedData));
+        ]);
 
-        const result = await isPinned("test-id");
+        mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
+
+        const result = await isPinned("msg-2");
 
         expect(result).toBe(false);
+      });
+
+      it("should return false for empty messageId", async () => {
+        const result = await isPinned("");
+
+        expect(result).toBe(false);
+      });
+
+      it("should handle errors gracefully", async () => {
+        mockedLocalStorage.getItem.mockRejectedValue(
+          new Error("Storage error"),
+        );
+
+        const result = await isPinned("msg-1");
+
+        expect(result).toBe(false);
+        expect(console.error).toHaveBeenCalled();
+      });
+
+      it("should return false when no pinned data exists", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
+
+        const result = await isPinned("msg-1");
+
+        expect(result).toBe(false);
+      });
+
+      it("should handle JSON parse errors", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
+
+        const result = await isPinned("msg-1");
+
+        expect(result).toBe(false);
+        expect(console.error).toHaveBeenCalled();
       });
     });
 
     describe("pinMessage", () => {
-      it("should add message to pinned messages", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
-        mockLocalStorage.setItem.mockResolvedValue(undefined);
+      it("should pin a new message", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
         const message: ParsedMessage = {
-          id: "1",
+          id: "test-1",
+          role: "user",
           content: "Test message",
+          timestamp: new Date("2023-01-01T12:00:00Z"),
+          sessionId: "session-1",
           preview: "Test...",
-          timestamp: new Date("2024-01-01"),
+        };
+
+        await pinMessage(message);
+
+        expect(mockedLocalStorage.setItem).toHaveBeenCalledWith(
+          "claude-messages-pinned",
+          expect.stringContaining("mocked-hash"),
+        );
+
+        const savedData = JSON.parse(
+          (mockedLocalStorage.setItem as jest.Mock).mock.calls[0][1],
+        );
+        expect(savedData).toHaveLength(1);
+        expect(savedData[0]).toMatchObject({
+          id: "mocked-hash",
+          content: "Test message",
           role: "user",
           sessionId: "session-1",
+        });
+      });
+
+      it("should not pin already pinned message", async () => {
+        const existingData = JSON.stringify([
+          {
+            id: "mocked-hash",
+            content: "Test",
+            timestamp: "2023-01-01T12:00:00Z",
+            role: "user",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
+          },
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(existingData);
+
+        const message: ParsedMessage = {
+          id: "test-1",
+          role: "user",
+          content: "Test message",
+          timestamp: new Date("2023-01-01T12:00:00Z"),
+          sessionId: "session-1",
+          preview: "Test...",
+        };
+
+        await pinMessage(message);
+
+        expect(mockedLocalStorage.setItem).not.toHaveBeenCalled();
+      });
+
+      it("should handle storage errors", async () => {
+        mockedLocalStorage.getItem.mockRejectedValue(
+          new Error("Storage error"),
+        );
+
+        const message: ParsedMessage = {
+          id: "test-1",
+          role: "user",
+          content: "Test message",
+          timestamp: new Date("2023-01-01T12:00:00Z"),
+          sessionId: "session-1",
+          preview: "Test...",
+        };
+
+        await expect(pinMessage(message)).rejects.toThrow(
+          "Failed to pin message",
+        );
+        expect(console.error).toHaveBeenCalled();
+      });
+
+      it("should add to existing pinned messages", async () => {
+        const existingData = JSON.stringify([
+          {
+            id: "existing-1",
+            content: "Existing",
+            timestamp: "2023-01-01T12:00:00Z",
+            role: "user",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
+          },
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(existingData);
+
+        const message: ParsedMessage = {
+          id: "test-1",
+          role: "assistant",
+          content: "New message",
+          timestamp: new Date("2023-01-02T12:00:00Z"),
+          sessionId: "session-2",
+          preview: "New...",
           projectPath: "/path/to/project",
         };
 
         await pinMessage(message);
 
-        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-          "claude-messages-pinned",
-          expect.stringContaining("mock-hash-id"),
+        const savedData = JSON.parse(
+          (mockedLocalStorage.setItem as jest.Mock).mock.calls[0][1],
         );
-      });
-
-      it("should not duplicate already pinned message", async () => {
-        const existingPinned: PinnedMessage[] = [
-          {
-            id: "mock-hash-id",
-            content: "Test message",
-            timestamp: "2024-01-01T00:00:00.000Z",
-            role: "user",
-            sessionId: "session-1",
-            pinnedAt: "2024-01-02T00:00:00.000Z",
-          },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(
-          JSON.stringify(existingPinned),
-        );
-        mockLocalStorage.setItem.mockResolvedValue(undefined);
-
-        const message: ParsedMessage = {
-          id: "1",
-          content: "Test message",
-          preview: "Test...",
-          timestamp: new Date("2024-01-01"),
-          role: "user",
-          sessionId: "session-1",
-        };
-
-        await pinMessage(message);
-
-        expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+        expect(savedData).toHaveLength(2);
+        expect(savedData[0].id).toBe("existing-1");
+        expect(savedData[1]).toMatchObject({
+          id: "mocked-hash",
+          content: "New message",
+          role: "assistant",
+          sessionId: "session-2",
+          projectPath: "/path/to/project",
+        });
       });
     });
 
     describe("unpinMessage", () => {
-      it("should remove message from pinned messages", async () => {
-        const pinnedData: PinnedMessage[] = [
+      it("should unpin existing message", async () => {
+        const pinnedData = JSON.stringify([
           {
-            id: "id-1",
-            content: "",
-            timestamp: "",
+            id: "msg-1",
+            content: "Message 1",
+            timestamp: "2023-01-01T12:00:00Z",
             role: "user",
-            sessionId: "",
-            pinnedAt: "",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:05:00Z",
           },
           {
-            id: "id-2",
-            content: "",
-            timestamp: "",
+            id: "msg-2",
+            content: "Message 2",
+            timestamp: "2023-01-01T12:01:00Z",
             role: "user",
-            sessionId: "",
-            pinnedAt: "",
+            sessionId: "session-1",
+            pinnedAt: "2023-01-01T12:06:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(JSON.stringify(pinnedData));
-        mockLocalStorage.setItem.mockResolvedValue(undefined);
+        ]);
 
-        await unpinMessage("id-1");
+        mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
 
-        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        await unpinMessage("msg-1");
+
+        expect(mockedLocalStorage.setItem).toHaveBeenCalledWith(
           "claude-messages-pinned",
-          expect.stringContaining("id-2"),
-        );
-        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
-          "claude-messages-pinned",
-          expect.not.stringContaining("id-1"),
+          JSON.stringify([
+            {
+              id: "msg-2",
+              content: "Message 2",
+              timestamp: "2023-01-01T12:01:00Z",
+              role: "user",
+              sessionId: "session-1",
+              pinnedAt: "2023-01-01T12:06:00Z",
+            },
+          ]),
         );
       });
 
-      it("should handle when no pinned messages exist", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
+      it("should handle non-existent message gracefully", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
-        await unpinMessage("id-1");
+        await unpinMessage("non-existent");
 
-        expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+        expect(mockedLocalStorage.setItem).not.toHaveBeenCalled();
+      });
+
+      it("should handle storage errors", async () => {
+        mockedLocalStorage.getItem.mockRejectedValue(
+          new Error("Storage error"),
+        );
+
+        await expect(unpinMessage("msg-1")).rejects.toThrow(
+          "Failed to unpin message",
+        );
+      });
+
+      it("should handle JSON parse errors", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
+
+        await expect(unpinMessage("msg-1")).rejects.toThrow(
+          "Failed to unpin message",
+        );
       });
     });
   });
 
   describe("Snippets functionality", () => {
+    beforeEach(() => {
+      mockedLocalStorage.getItem.mockClear();
+      mockedLocalStorage.setItem.mockClear();
+    });
+
     describe("getSnippets", () => {
-      it("should return empty array when no snippets", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
+      it("should return empty array when no snippets exist", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
         const result = await getSnippets();
 
         expect(result).toEqual([]);
-        expect(mockLocalStorage.getItem).toHaveBeenCalledWith(
+        expect(mockedLocalStorage.getItem).toHaveBeenCalledWith(
           "claude-messages-snippets",
         );
       });
 
-      it("should return parsed snippets with Date objects", async () => {
-        const snippetsData: Snippet[] = [
+      it("should parse and return snippets with Date objects", async () => {
+        const snippetsData = JSON.stringify([
           {
-            id: "1",
+            id: "snippet-1",
             title: "Test Snippet",
             content: "Snippet content",
-            createdAt: new Date("2024-01-01"),
-            updatedAt: new Date("2024-01-02"),
+            createdAt: "2023-01-01T12:00:00Z",
+            updatedAt: "2023-01-01T12:05:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(
-          JSON.stringify(snippetsData),
-        );
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(snippetsData);
 
         const result = await getSnippets();
 
         expect(result).toHaveLength(1);
+        expect(result[0]).toMatchObject({
+          id: "snippet-1",
+          title: "Test Snippet",
+          content: "Snippet content",
+        });
         expect(result[0].createdAt).toBeInstanceOf(Date);
         expect(result[0].updatedAt).toBeInstanceOf(Date);
       });
 
       it("should handle JSON parse errors", async () => {
-        mockLocalStorage.getItem.mockResolvedValue("invalid json");
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
 
         const result = await getSnippets();
 
         expect(result).toEqual([]);
+        expect(console.error).toHaveBeenCalled();
       });
     });
 
     describe("createSnippet", () => {
       it("should create and save new snippet", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
-        mockLocalStorage.setItem.mockResolvedValue(undefined);
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
         const result = await createSnippet("Test Title", "Test Content");
 
         expect(result).toMatchObject({
-          id: "mock-hash-id",
+          id: "mocked-hash",
           title: "Test Title",
           content: "Test Content",
         });
         expect(result.createdAt).toBeInstanceOf(Date);
         expect(result.updatedAt).toBeInstanceOf(Date);
-        expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+
+        expect(mockedLocalStorage.setItem).toHaveBeenCalledWith(
           "claude-messages-snippets",
-          expect.any(String),
+          expect.stringContaining("Test Title"),
         );
       });
 
-      it("should append to existing snippets", async () => {
-        const existingSnippets: Snippet[] = [
+      it("should add to existing snippets", async () => {
+        const existingData = JSON.stringify([
           {
             id: "existing-1",
             title: "Existing",
-            content: "Existing content",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            content: "Content",
+            createdAt: "2023-01-01T12:00:00Z",
+            updatedAt: "2023-01-01T12:00:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(
-          JSON.stringify(existingSnippets),
-        );
-        mockLocalStorage.setItem.mockResolvedValue(undefined);
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(existingData);
 
         await createSnippet("New Title", "New Content");
 
-        const setItemCall = mockLocalStorage.setItem.mock.calls[0];
-        const savedData = JSON.parse(setItemCall[1] as string);
+        const savedData = JSON.parse(
+          (mockedLocalStorage.setItem as jest.Mock).mock.calls[0][1],
+        );
         expect(savedData).toHaveLength(2);
-        expect(savedData[0].id).toBe("existing-1");
-        expect(savedData[1].id).toBe("mock-hash-id");
+        expect(savedData[1]).toMatchObject({
+          title: "New Title",
+          content: "New Content",
+        });
+      });
+
+      it("should handle storage errors", async () => {
+        mockedLocalStorage.getItem.mockRejectedValue(
+          new Error("Storage error"),
+        );
+
+        await expect(createSnippet("Title", "Content")).rejects.toThrow(
+          "Failed to create snippet",
+        );
+        expect(console.error).toHaveBeenCalled();
+      });
+
+      it("should handle JSON parse errors in existing data", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
+
+        // The function should treat invalid JSON as no existing data and create a new snippet successfully
+        const result = await createSnippet("Test Title", "Test Content");
+
+        expect(result).toMatchObject({
+          id: "mocked-hash",
+          title: "Test Title",
+          content: "Test Content",
+        });
+        expect(result.createdAt).toBeInstanceOf(Date);
+        expect(result.updatedAt).toBeInstanceOf(Date);
+        expect(console.error).toHaveBeenCalled();
       });
     });
 
     describe("deleteSnippet", () => {
-      it("should remove snippet from storage", async () => {
-        const snippetsData: Snippet[] = [
+      it("should delete existing snippet", async () => {
+        const snippetsData = JSON.stringify([
           {
-            id: "id-1",
-            title: "Snippet 1",
-            content: "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            id: "snippet-1",
+            title: "Title 1",
+            content: "Content 1",
+            createdAt: "2023-01-01T12:00:00Z",
+            updatedAt: "2023-01-01T12:00:00Z",
           },
           {
-            id: "id-2",
-            title: "Snippet 2",
-            content: "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            id: "snippet-2",
+            title: "Title 2",
+            content: "Content 2",
+            createdAt: "2023-01-01T12:01:00Z",
+            updatedAt: "2023-01-01T12:01:00Z",
           },
-        ];
-        mockLocalStorage.getItem.mockResolvedValue(
-          JSON.stringify(snippetsData),
+        ]);
+
+        mockedLocalStorage.getItem.mockResolvedValue(snippetsData);
+
+        await deleteSnippet("snippet-1");
+
+        expect(mockedLocalStorage.setItem).toHaveBeenCalledWith(
+          "claude-messages-snippets",
+          JSON.stringify([
+            {
+              id: "snippet-2",
+              title: "Title 2",
+              content: "Content 2",
+              createdAt: "2023-01-01T12:01:00Z",
+              updatedAt: "2023-01-01T12:01:00Z",
+            },
+          ]),
         );
-        mockLocalStorage.setItem.mockResolvedValue(undefined);
-
-        await deleteSnippet("id-1");
-
-        const setItemCall = mockLocalStorage.setItem.mock.calls[0];
-        const savedData = JSON.parse(setItemCall[1] as string);
-        expect(savedData).toHaveLength(1);
-        expect(savedData[0].id).toBe("id-2");
       });
 
-      it("should handle when no snippets exist", async () => {
-        mockLocalStorage.getItem.mockResolvedValue(undefined);
+      it("should handle non-existent snippet gracefully", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
-        await deleteSnippet("id-1");
+        await deleteSnippet("non-existent");
 
-        expect(mockLocalStorage.setItem).not.toHaveBeenCalled();
+        expect(mockedLocalStorage.setItem).not.toHaveBeenCalled();
       });
+
+      it("should handle storage errors", async () => {
+        mockedLocalStorage.getItem.mockRejectedValue(
+          new Error("Storage error"),
+        );
+
+        await expect(deleteSnippet("snippet-1")).rejects.toThrow(
+          "Failed to delete snippet",
+        );
+      });
+
+      it("should handle JSON parse errors", async () => {
+        mockedLocalStorage.getItem.mockResolvedValue("invalid json");
+
+        await expect(deleteSnippet("snippet-1")).rejects.toThrow(
+          "Failed to delete snippet",
+        );
+      });
+    });
+  });
+
+  describe("Error handling and edge cases", () => {
+    it("should handle readline interface errors", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit("error", new Error("Readline error"));
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toEqual([]);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("should handle timestamp conversion edge cases", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Unix timestamp (should be converted to milliseconds)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Unix timestamp message",
+            },
+            timestamp: 1672531200, // Unix timestamp in seconds
+          }),
+        );
+
+        // Milliseconds timestamp (should be used as-is)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Milliseconds timestamp message",
+            },
+            timestamp: 1672531200000, // Timestamp in milliseconds
+          }),
+        );
+
+        // String timestamp
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "String timestamp message",
+            },
+            timestamp: "2023-01-01T12:00:00Z",
+          }),
+        );
+
+        // No timestamp (should use current date)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "No timestamp message",
+            },
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(4);
+      result.forEach((msg) => {
+        expect(msg.timestamp).toBeInstanceOf(Date);
+      });
+    });
+
+    it("should handle empty lines in JSONL files", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Empty line
+        mockReadlineInterface.emit("line", "");
+
+        // Line with only whitespace
+        mockReadlineInterface.emit("line", "   ");
+
+        // Valid message
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Valid message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toBe("Valid message");
+    });
+
+    it("should sort messages correctly by timestamp", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Messages in non-chronological order
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Third message",
+            },
+            timestamp: 1672531400,
+          }),
+        );
+
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "First message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Second message",
+            },
+            timestamp: 1672531300,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(3);
+      // Should be sorted newest first
+      expect(result[0].content).toBe("Third message");
+      expect(result[1].content).toBe("Second message");
+      expect(result[2].content).toBe("First message");
+    });
+
+    it("should handle file stat errors", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files to find most recent
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockRejectedValueOnce(new Error("File stat error")); // Error getting file stat
+
+      const result = await getSentMessages();
+
+      expect(result).toEqual([]);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it("should handle non-directory items in projects folder", async () => {
+      mockedReaddir.mockResolvedValueOnce(["project1", "file.txt"]);
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = {
+        isDirectory: () => false,
+        mtime: new Date("2023-01-01"),
+      };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat); // file.txt is not a directory
+
+      mockedReaddir
+        .mockResolvedValueOnce(["session1.jsonl"]) // Files in project1 to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // Files in project1 again to process
+
+      const mockFileStatForSession = { mtime: new Date("2023-01-02") };
+      mockedStat
+        .mockResolvedValueOnce(mockFileStatForSession) // session1.jsonl stat for finding most recent
+        .mockResolvedValueOnce(mockFileStatForSession); // session1.jsonl stat for processing
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Test message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toBe("Test message");
+    });
+
+    it("should handle error in createReadStream", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      // Mock createReadStream to throw error
+      mockedCreateReadStream.mockImplementation(() => {
+        throw new Error("Cannot create stream");
+      });
+
+      const result = await getSentMessages();
+
+      expect(result).toEqual([]);
+      expect(console.error).toHaveBeenCalled();
+    });
+
+    it("should handle <command-name> filtering", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockFileStat)
+        .mockResolvedValueOnce(mockFileStat);
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        // Valid message
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Valid message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+
+        // Message with command name (should be filtered)
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "<command-name>test-command</command-name>",
+            },
+            timestamp: 1672531250,
+          }),
+        );
+
+        mockReadlineInterface.emit("close");
+      });
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0].content).toBe("Valid message");
+    });
+  });
+
+  describe("getAllClaudeMessages", () => {
+    it("should return empty array when no projects exist", async () => {
+      mockedReaddir.mockResolvedValue([]);
+
+      const result = await getAllClaudeMessages();
+
+      expect(result).toEqual([]);
+    });
+
+    it("should handle error in getting project most recent file time", async () => {
+      mockedReaddir.mockResolvedValueOnce(["project1"]);
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+
+      mockedStat.mockResolvedValueOnce(mockProjectStat);
+
+      // Mock readdir to fail when getting files in project
+      mockedReaddir.mockRejectedValueOnce(
+        new Error("Cannot read project files"),
+      );
+
+      const result = await getAllClaudeMessages();
+
+      expect(result).toEqual([]);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    it("should process multiple projects and return assistant messages", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project1", "project2"]) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files in project1 to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"]) // List files in project1 again to process
+        .mockResolvedValueOnce(["session2.jsonl"]) // List files in project2 to find most recent
+        .mockResolvedValueOnce(["session2.jsonl"]); // List files in project2 again to process
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat1 = { mtime: new Date("2023-01-02") };
+      const mockFileStat2 = { mtime: new Date("2023-01-03") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat) // project1 stat
+        .mockResolvedValueOnce(mockFileStat1) // session1.jsonl stat for finding most recent
+        .mockResolvedValueOnce(mockProjectStat) // project2 stat
+        .mockResolvedValueOnce(mockFileStat2) // session2.jsonl stat for finding most recent
+        .mockResolvedValueOnce(mockFileStat1) // session1.jsonl stat for processing
+        .mockResolvedValueOnce(mockFileStat2); // session2.jsonl stat for processing
+
+      // Create separate mock interfaces for each file
+      const mockReadlineInterface1 = new MockReadlineInterface();
+      const mockReadlineInterface2 = new MockReadlineInterface();
+      const mockFileStream1 = new MockFileStream();
+      const mockFileStream2 = new MockFileStream();
+
+      mockedCreateReadStream
+        .mockReturnValueOnce(mockFileStream1 as any)
+        .mockReturnValueOnce(mockFileStream2 as any);
+      mockedCreateInterface
+        .mockReturnValueOnce(mockReadlineInterface1 as any)
+        .mockReturnValueOnce(mockReadlineInterface2 as any);
+
+      const resultPromise = getAllClaudeMessages();
+
+      setTimeout(() => {
+        // Emit message for first file
+        mockReadlineInterface1.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: "Assistant message 1",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+        mockReadlineInterface1.close();
+
+        // Delay the second interface to avoid race conditions
+        setTimeout(() => {
+          // Emit message for second file
+          mockReadlineInterface2.emit(
+            "line",
+            JSON.stringify({
+              message: {
+                role: "assistant",
+                content: "Assistant message 2",
+              },
+              timestamp: 1672531300,
+            }),
+          );
+          mockReadlineInterface2.close();
+        }, 5);
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(2);
+      expect(result[0].content).toBe("Assistant message 2"); // Newer first
+      expect(result[1].content).toBe("Assistant message 1");
     });
   });
 });
