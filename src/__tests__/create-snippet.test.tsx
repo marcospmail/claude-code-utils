@@ -379,7 +379,7 @@ describe("CreateSnippet", () => {
       });
 
       expect(mockLaunchCommand).toHaveBeenCalledWith({
-        name: "list-snippets",
+        name: "browse-snippets",
         type: "userInitiated",
       });
     });
@@ -414,7 +414,7 @@ describe("CreateSnippet", () => {
       });
 
       expect(mockLaunchCommand).toHaveBeenCalledWith({
-        name: "list-snippets",
+        name: "browse-snippets",
         type: "userInitiated",
       });
     });

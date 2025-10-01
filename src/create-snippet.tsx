@@ -52,9 +52,9 @@ export default function CreateSnippet(
           ? `"${snippetTitle}" has been saved`
           : "Snippet has been saved",
       });
-      // Navigate to list-snippets command
+      // Navigate to browse-snippets command
       await launchCommand({
-        name: "list-snippets",
+        name: "browse-snippets",
         type: LaunchType.UserInitiated,
       });
     } catch (error) {
