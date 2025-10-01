@@ -7,6 +7,7 @@ import {
   Color,
   Detail,
   environment,
+  getFrontmostApplication,
   List,
   showHUD,
   showToast,
@@ -31,9 +32,24 @@ export default function BrowseSnippets() {
     false | true | "pro-required"
   >(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
+  const [appIcon, setAppIcon] = useState<Icon>(Icon.Window);
 
   // Check if user has AI access
   const hasAIAccess = environment.canAccess(AI);
+
+  // Get frontmost application for list items
+  useEffect(() => {
+    getFrontmostApplication()
+      .then((app) => {
+        setFrontmostApp(app.name);
+        setAppIcon({ fileIcon: app.path });
+      })
+      .catch(() => {
+        setFrontmostApp("Active App");
+        setAppIcon(Icon.Window);
+      });
+  }, []);
 
   const loadSnippets = useCallback(async () => {
     setIsLoading(true);
@@ -193,6 +209,21 @@ export default function BrowseSnippets() {
   }
 
   function SnippetDetail({ snippet }: { snippet: Snippet }) {
+    const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
+    const [appIcon, setAppIcon] = useState<Icon>(Icon.Window);
+
+    useEffect(() => {
+      getFrontmostApplication()
+        .then((app) => {
+          setFrontmostApp(app.name);
+          setAppIcon({ fileIcon: app.path });
+        })
+        .catch(() => {
+          setFrontmostApp("Active App");
+          setAppIcon(Icon.Window);
+        });
+    }, []);
+
     return (
       <Detail
         markdown={snippet.content}
@@ -216,10 +247,15 @@ export default function BrowseSnippets() {
         }
         actions={
           <ActionPanel>
-            <Action
-              title="Copy Snippet"
-              icon={Icon.Clipboard}
-              onAction={() => copyContent(snippet, true)}
+            <Action.Paste
+              title={`Paste to ${frontmostApp}`}
+              content={snippet.content}
+              icon={appIcon}
+            />
+            <Action.CopyToClipboard
+              title="Copy to Clipboard"
+              content={snippet.content}
+              shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
             />
             <Action.Push
               title="Duplicate Snippet"
@@ -337,10 +373,16 @@ export default function BrowseSnippets() {
                 icon={Icon.Eye}
                 target={<SnippetDetail snippet={snippet} />}
               />
+              <Action.Paste
+                title={`Paste to ${frontmostApp}`}
+                content={snippet.content}
+                icon={appIcon}
+                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+              />
               <Action
                 title="Copy Snippet"
                 icon={Icon.Clipboard}
-                shortcut={{ modifiers: ["cmd"], key: "c" }}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
                 onAction={() => copyContent(snippet, true)}
               />
               <Action.Push
