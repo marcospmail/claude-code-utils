@@ -249,14 +249,43 @@ jest.mock("@raycast/api", () => ({
       CopyToClipboard: ({
         title,
         content,
+        shortcut,
       }: {
         title: string;
         content: string;
+        shortcut?: { modifiers: string[]; key: string };
       }) => (
         <button
           data-testid="action-copy"
           data-title={title}
           data-content={content}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
+        >
+          {title}
+        </button>
+      ),
+      Paste: ({
+        title,
+        content,
+        shortcut,
+      }: {
+        title: string;
+        content: string;
+        shortcut?: { modifiers: string[]; key: string };
+      }) => (
+        <button
+          data-testid="action-paste"
+          data-title={title}
+          data-content={content}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
         >
           {title}
         </button>
@@ -272,6 +301,11 @@ jest.mock("@raycast/api", () => ({
   closeMainWindow: jest.fn(),
   showHUD: jest.fn(),
   showToast: jest.fn(),
+  getFrontmostApplication: jest.fn().mockResolvedValue({
+    name: "TestApp",
+    path: "/Applications/TestApp.app",
+    bundleId: "com.test.app",
+  }),
   Toast: Object.assign(jest.fn(), {
     Style: {
       Success: "success",
@@ -287,6 +321,7 @@ jest.mock("@raycast/api", () => ({
     Stars: "stars-icon",
     Lock: "lock-icon",
     ExclamationMark: "exclamation-icon",
+    Window: "window-icon",
   },
   Color: {
     Orange: "orange",
@@ -735,7 +770,7 @@ describe("SentMessages", () => {
       const copyActions = screen.getAllByTestId("action-copy-message");
       expect(copyActions.length).toBeGreaterThan(0);
       expect(copyActions[0]).toBeInTheDocument();
-      expect(copyActions[0]).toHaveAttribute("data-shortcut", "cmd-c");
+      expect(copyActions[0]).toHaveAttribute("data-shortcut", "cmd+shift-c");
     });
 
     it("should have Create Snippet action with shortcut", async () => {

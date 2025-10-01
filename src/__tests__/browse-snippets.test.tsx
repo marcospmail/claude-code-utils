@@ -216,6 +216,50 @@ jest.mock("@raycast/api", () => ({
           <div data-testid="push-target">{target}</div>
         </button>
       ),
+      CopyToClipboard: ({
+        title,
+        content,
+        shortcut,
+      }: {
+        title: string;
+        content: string;
+        shortcut?: { modifiers: string[]; key: string };
+      }) => (
+        <button
+          data-testid="action-copy"
+          data-title={title}
+          data-content={content}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
+        >
+          {title}
+        </button>
+      ),
+      Paste: ({
+        title,
+        content,
+        shortcut,
+      }: {
+        title: string;
+        content: string;
+        shortcut?: { modifiers: string[]; key: string };
+      }) => (
+        <button
+          data-testid="action-paste"
+          data-title={title}
+          data-content={content}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
+        >
+          {title}
+        </button>
+      ),
       Style: {
         Destructive: "destructive",
       },
@@ -225,6 +269,11 @@ jest.mock("@raycast/api", () => ({
   showHUD: jest.fn(),
   closeMainWindow: jest.fn(),
   confirmAlert: jest.fn(),
+  getFrontmostApplication: jest.fn().mockResolvedValue({
+    name: "TestApp",
+    path: "/Applications/TestApp.app",
+    bundleId: "com.test.app",
+  }),
   Clipboard: {
     copy: jest.fn(),
   },
@@ -253,6 +302,7 @@ jest.mock("@raycast/api", () => ({
     Stars: "stars-icon",
     Lock: "lock-icon",
     ExclamationMark: "exclamation-mark-icon",
+    Window: "window-icon",
   },
   Color: {
     Orange: "orange",
@@ -1010,30 +1060,26 @@ describe("BrowseSnippets", () => {
     });
 
     it("should test SnippetDetail copy action", async () => {
-      Clipboard.copy.mockResolvedValueOnce(undefined);
-
+      // This test verifies that the detail view has a copy action with the correct shortcut
       await act(async () => {
         render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
-        // Find copy action in detail component (not main list)
+        // Find copy action in detail component
         const detailCopyActions = screen
-          .getAllByTestId("action")
+          .getAllByTestId("action-copy")
           .filter((action) => {
             const parent = action.closest("[data-testid='detail-actions']");
-            return (
-              parent && action.getAttribute("data-title") === "Copy Snippet"
-            );
+            return parent !== null;
           });
 
-        if (detailCopyActions.length > 0) {
-          fireEvent.click(detailCopyActions[0]);
-        }
-      });
-
-      await waitFor(() => {
-        expect(Clipboard.copy).toHaveBeenCalled();
+        // Verify the copy action exists in detail view with correct shortcut
+        expect(detailCopyActions.length).toBeGreaterThan(0);
+        expect(detailCopyActions[0]).toHaveAttribute(
+          "data-shortcut",
+          "cmd+shift-c",
+        );
       });
     });
   });
@@ -1052,7 +1098,8 @@ describe("BrowseSnippets", () => {
           const shortcut = action.getAttribute("data-shortcut");
           return (
             title === "Copy Snippet" &&
-            shortcut === JSON.stringify({ modifiers: ["cmd"], key: "c" })
+            shortcut ===
+              JSON.stringify({ modifiers: ["cmd", "shift"], key: "c" })
           );
         });
         const deleteActionsWithShortcut = allActions.filter((action) => {
@@ -1434,33 +1481,30 @@ describe("BrowseSnippets", () => {
     });
 
     it("should test copyContent with closeWindow false", async () => {
-      Clipboard.copy.mockResolvedValueOnce(undefined);
-
-      // We need to test copyContent function directly
-      // This is called from SnippetDetail with closeWindow=false
+      // This test verifies the copy to clipboard behavior in detail view
       await act(async () => {
         render(<BrowseSnippets />);
       });
 
       await waitFor(() => {
-        // Find copy action in detail (which calls copyContent with closeWindow=false)
+        // Verify copy action exists in detail view with correct props
         const detailCopyActions = screen
-          .getAllByTestId("action")
+          .getAllByTestId("action-copy")
           .filter((action) => {
             const isInDetail = action.closest("[data-testid='detail-actions']");
-            return (
-              isInDetail && action.getAttribute("data-title") === "Copy Snippet"
-            );
+            return isInDetail !== null;
           });
 
-        if (detailCopyActions.length > 0) {
-          fireEvent.click(detailCopyActions[0]);
-        }
-      });
-
-      await waitFor(() => {
-        expect(Clipboard.copy).toHaveBeenCalled();
-        expect(closeMainWindow).toHaveBeenCalled(); // Still closes window in detail view
+        // Verify the action exists and has correct attributes
+        expect(detailCopyActions.length).toBeGreaterThan(0);
+        expect(detailCopyActions[0]).toHaveAttribute(
+          "data-title",
+          "Copy to Clipboard",
+        );
+        expect(detailCopyActions[0]).toHaveAttribute(
+          "data-shortcut",
+          "cmd+shift-c",
+        );
       });
     });
 

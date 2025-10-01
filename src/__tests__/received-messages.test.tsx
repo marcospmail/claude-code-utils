@@ -171,6 +171,50 @@ jest.mock("@raycast/api", () => ({
           {title}
         </button>
       ),
+      CopyToClipboard: ({
+        title,
+        content,
+        shortcut,
+      }: {
+        title: string;
+        content: string;
+        shortcut?: { modifiers: string[]; key: string };
+      }) => (
+        <button
+          data-testid="action-copy"
+          data-title={title}
+          data-content={content}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
+        >
+          {title}
+        </button>
+      ),
+      Paste: ({
+        title,
+        content,
+        shortcut,
+      }: {
+        title: string;
+        content: string;
+        shortcut?: { modifiers: string[]; key: string };
+      }) => (
+        <button
+          data-testid="action-paste"
+          data-title={title}
+          data-content={content}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
+        >
+          {title}
+        </button>
+      ),
     },
   ),
   Detail: Object.assign(
@@ -212,6 +256,11 @@ jest.mock("@raycast/api", () => ({
   showToast: jest.fn(),
   showHUD: jest.fn(),
   closeMainWindow: jest.fn(),
+  getFrontmostApplication: jest.fn().mockResolvedValue({
+    name: "TestApp",
+    path: "/Applications/TestApp.app",
+    bundleId: "com.test.app",
+  }),
   Clipboard: {
     copy: jest.fn(),
   },
@@ -230,6 +279,7 @@ jest.mock("@raycast/api", () => ({
     Lock: "lock-icon",
     MagnifyingGlass: "magnifying-glass-icon",
     Stars: "stars-icon",
+    Window: "window-icon",
   },
   Color: {
     Red: "red",
