@@ -4,30 +4,26 @@ A powerful Raycast extension for browsing, searching, and managing your Claude C
 
 ## Features
 
-### 📨 **Message History**
-- **Claude's Responses** - Browse all messages received from Claude
-- **Your Messages** - Review messages you sent to Claude
-- **AI-Powered Search** - Use semantic search to find relevant messages (Raycast Pro required)
-- **Quick Copy** - Copy any message instantly to clipboard
-- **Time-based Filtering** - Messages sorted by most recent first
+### 📨 **Received Messages**
+Browse all messages received from Claude Code. Supports normal keyword search and AI-powered semantic search (Raycast Pro required).
 
-### ✂️ **Snippet Management**
-- **Create Snippets** - Save frequently used code or text as reusable snippets
-- **Browse & Search** - Quickly find snippets with intelligent search
-- **Organize** - Tag and categorize your snippets for easy access
-- **Export** - Copy snippets to use in any application
+### ✉️ **Sent Messages**
+Review and search through messages you sent to Claude Code. Supports normal keyword search and AI-powered semantic search (Raycast Pro required).
+
+### ✂️ **Create Snippet**
+Save frequently used code or text as reusable snippets for quick access.
+
+### 📋 **Browse Snippets**
+View, search, and manage all your saved code snippets.
 
 ### 📚 **Commands Cheat Sheet**
-- **Slash Commands** - Quick reference for all `/` commands
-- **Keyboard Shortcuts** - Master Claude Code keyboard navigation
-- **CLI Flags** - Reference for command-line options
-- **Special Keywords** - Learn about `@file`, `@docs` and other special features
+Quick reference for all Claude Code slash commands, keyboard shortcuts, CLI flags, and special keywords like `@file` and `@docs`.
 
-### 🔍 **Smart Search Features**
-- **Normal Search** - Fast keyword-based search across all content
-- **AI Search** - Semantic search that understands context and meaning (Pro)
-- **Real-time Filtering** - Results update as you type
-- **Category Filters** - Filter by message type, command category, or snippet tags
+### 🤖 **Browse Agents**
+View and manage your Claude Code agents from `~/.claude/agents`.
+
+### ⚡ **Browse Commands**
+View and manage your Claude Code slash commands from `~/.claude/commands`.
 
 ## Installation
 
@@ -39,10 +35,10 @@ A powerful Raycast extension for browsing, searching, and managing your Claude C
 ### Manual Installation
 ```bash
 # Clone the repository
-git clone https://github.com/marcospmail/claude-code-helper-extension.git
+git clone https://github.com/marcospmail/claude-code-utils.git
 
 # Navigate to the extension directory
-cd claude-code-helper-extension
+cd claude-code-utils
 
 # Install dependencies
 npm install
@@ -57,18 +53,12 @@ npm run build && npm run publish
 1. Open Raycast (`⌘ + Space`)
 2. Type "Claude" to see all available commands
 3. Select the feature you want to use:
-   - **Claude Code Utils** - Main menu with all features
-   - **Claude's Responses** - View received messages
-   - **Your Messages** - View sent messages
+   - **Received Messages** - View received messages
+   - **Sent Messages** - View sent messages
    - **Browse Snippets** - Manage your snippets
    - **Commands Cheat Sheet** - Reference guide
-
-### Keyboard Shortcuts
-- `⌘ + C` - Copy selected message or snippet
-- `⌘ + K` - Quick search
-- `⌘ + ⇧ + S` - Create snippet from message
-- `⌘ + R` - Refresh message list
-- `⌘ + Enter` - View details
+   - **Browse Agents** - View Claude Code agents
+   - **Browse Commands** - View Claude Code commands
 
 ### Search Modes
 Toggle between search modes using the dropdown:
@@ -78,10 +68,9 @@ Toggle between search modes using the dropdown:
 ## Technical Details
 
 ### Performance Optimizations
-- **Smart Caching** - Messages cached for instant access
-- **Lazy Loading** - Only loads data when needed
-- **Stream Processing** - Handles large conversation files efficiently
-- **Debounced Search** - Optimized search performance
+- **Stream Processing** - Handles large conversation files efficiently using line-by-line reading
+- **Debounced Search** - AI search queries are debounced by 500ms for optimal performance
+- **Smart Scanning** - Only processes the 5 most recent projects and 5 most recent files per project
 
 ### Data Source
 - Reads from `~/.claude/projects/` where Claude Code stores conversations
@@ -90,7 +79,7 @@ Toggle between search modes using the dropdown:
 - No data is sent to external servers (except for AI search with Raycast Pro)
 
 ### Limitations
-- Maximum 50 most recent messages per view (for performance)
+- Scans 5 most recent projects with 5 most recent conversation files per project
 - AI Search requires Raycast Pro subscription
 - Large conversation files may take a moment to load initially
 
@@ -114,8 +103,8 @@ Toggle between search modes using the dropdown:
 - Clear search and try again
 
 ### Performance issues
-- The extension limits to 50 most recent messages
-- Large conversation histories are automatically optimized
+- The extension scans the 5 most recent projects and 5 most recent files per project
+- Large conversation files are processed efficiently using streaming
 - Try closing and reopening if performance degrades
 
 ## Privacy & Security
@@ -128,12 +117,6 @@ Toggle between search modes using the dropdown:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues, feature requests, or questions:
-- [GitHub Issues](https://github.com/yourusername/claude-code-utils/issues)
-- [Raycast Community](https://raycast.com/community)
 
 ## License
 
