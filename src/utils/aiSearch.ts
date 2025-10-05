@@ -1,6 +1,24 @@
 import { AI } from "@raycast/api";
 import { ParsedMessage, Snippet } from "./claudeMessages";
 
+/**
+ * Parse AI response to extract JSON array of indices
+ * Handles both direct JSON responses and responses with JSON embedded in text
+ */
+function parseAIResponseIndices(response: string): number[] {
+  try {
+    // First try direct parsing
+    return JSON.parse(response) as number[];
+  } catch {
+    // If that fails, try to find a JSON array in the response
+    const arrayMatch = response.match(/\[[\d,\s]*\]/);
+    if (arrayMatch) {
+      return JSON.parse(arrayMatch[0]) as number[];
+    }
+    throw new Error("No valid JSON array found in response");
+  }
+}
+
 export async function semanticSearch(
   messages: ParsedMessage[],
   query: string,
@@ -51,21 +69,7 @@ Examples of valid responses:
       model: AI.Model.Anthropic_Claude_Haiku,
     });
 
-    // Try to extract JSON from the response
-    let matchedIndices: number[];
-
-    // First try direct parsing
-    try {
-      matchedIndices = JSON.parse(response) as number[];
-    } catch {
-      // If that fails, try to find a JSON array in the response
-      const arrayMatch = response.match(/\[[\d,\s]*\]/);
-      if (arrayMatch) {
-        matchedIndices = JSON.parse(arrayMatch[0]) as number[];
-      } else {
-        throw new Error("No valid JSON array found in response");
-      }
-    }
+    const matchedIndices = parseAIResponseIndices(response);
 
     // Filter and return matched messages
     return messages.filter((_, index) => matchedIndices.includes(index));
@@ -149,21 +153,7 @@ Examples of valid responses:
       model: AI.Model.Anthropic_Claude_Haiku,
     });
 
-    // Try to extract JSON from the response
-    let matchedIndices: number[];
-
-    // First try direct parsing
-    try {
-      matchedIndices = JSON.parse(response) as number[];
-    } catch {
-      // If that fails, try to find a JSON array in the response
-      const arrayMatch = response.match(/\[[\d,\s]*\]/);
-      if (arrayMatch) {
-        matchedIndices = JSON.parse(arrayMatch[0]) as number[];
-      } else {
-        throw new Error("No valid JSON array found in response");
-      }
-    }
+    const matchedIndices = parseAIResponseIndices(response);
 
     // Filter and return matched snippets
     return snippets.filter((_, index) => matchedIndices.includes(index));

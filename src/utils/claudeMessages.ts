@@ -46,6 +46,28 @@ export interface PinnedMessage {
 
 const CLAUDE_DIR = join(homedir(), ".claude", "projects");
 
+// Configuration constants
+const MAX_PROJECTS_TO_SCAN = 5;
+const MAX_FILES_PER_PROJECT = 5;
+const MAX_MESSAGES_PER_FILE = 10;
+const UNIX_TIMESTAMP_THRESHOLD = 10000000000; // Timestamps below this are in seconds, not milliseconds
+
+/**
+ * Convert Unix timestamp (seconds) to JavaScript Date object
+ * Handles both seconds and milliseconds timestamps
+ */
+function parseTimestamp(timestamp: string | number | undefined): Date {
+  if (!timestamp) return new Date();
+
+  if (typeof timestamp === "number") {
+    // If timestamp is in seconds (< threshold), convert to milliseconds
+    return new Date(timestamp < UNIX_TIMESTAMP_THRESHOLD ? timestamp * 1000 : timestamp);
+  }
+
+  // String timestamp - let Date constructor handle it
+  return new Date(timestamp);
+}
+
 /**
  * Memory-efficient streaming parser for user messages only
  * Reads JSONL files line-by-line instead of loading entire file into memory
@@ -129,13 +151,7 @@ async function parseUserMessagesOnlyStreaming(
             ) {
               // Interrupted/cancelled messages
 
-              // Convert Unix timestamp (seconds) to JavaScript timestamp (milliseconds)
-              const timestamp = data.timestamp
-                ? typeof data.timestamp === "number" &&
-                  data.timestamp < 10000000000
-                  ? new Date(data.timestamp * 1000)
-                  : new Date(data.timestamp)
-                : new Date();
+              const timestamp = parseTimestamp(data.timestamp);
 
               userMessages.push({
                 role: "user",
@@ -157,7 +173,7 @@ async function parseUserMessagesOnlyStreaming(
         // Sort by timestamp and take only the most recent messages
         const recentMessages = userMessages
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, 10);
+          .slice(0, MAX_MESSAGES_PER_FILE);
         resolve(recentMessages);
       });
 
@@ -245,12 +261,7 @@ async function parseAssistantMessagesOnlyStreaming(
             // - empty string or undefined: filter out completely
             // - valid content: include normally
 
-            const timestamp = data.timestamp
-              ? typeof data.timestamp === "number" &&
-                data.timestamp < 10000000000
-                ? new Date(data.timestamp * 1000)
-                : new Date(data.timestamp)
-              : new Date();
+            const timestamp = parseTimestamp(data.timestamp);
 
             if (content === null) {
               // Special case: explicitly null content should be handled gracefully
@@ -284,7 +295,7 @@ async function parseAssistantMessagesOnlyStreaming(
         // Sort by timestamp (newest first) and limit to prevent memory issues
         const recentMessages = assistantMessages
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, 10);
+          .slice(0, MAX_MESSAGES_PER_FILE);
         resolve(recentMessages);
       });
 
@@ -309,9 +320,6 @@ async function parseAssistantMessagesOnlyStreaming(
 
 export async function getAllClaudeMessages(): Promise<Message[]> {
   try {
-    const MAX_PROJECTS_TO_SCAN = 5; // Limit how many projects we scan
-    const MAX_FILES_PER_PROJECT = 5; // Limit files per project
-
     // Get projects and sort by most recent file activity (not directory mtime)
     const projects = await readdir(CLAUDE_DIR);
     const projectsWithStats = [];
@@ -428,10 +436,6 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
  */
 export async function getSentMessages(): Promise<ParsedMessage[]> {
   try {
-    // Configuration: Control how many messages/projects/files we process
-    const MAX_PROJECTS_TO_SCAN = 5; // Only scan the 15 most recently active projects
-    const MAX_FILES_PER_PROJECT = 5; // Only process the 5 most recent conversation files per project
-
     // STEP 1: Find all Claude Code projects and get their actual file activity times
     const projects = await readdir(CLAUDE_DIR); // Read ~/.claude/projects/ directory
     const projectsWithStats = [];

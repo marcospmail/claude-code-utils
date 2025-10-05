@@ -28,6 +28,12 @@ import {
 import CreateSnippet from "../create-snippet/list";
 import SnippetDetail from "./detail";
 
+// Constants
+const AI_SEARCH_DEBOUNCE_MS = 500;
+
+// Types
+type AISearchError = false | "failed" | "pro-required";
+
 export default function BrowseSnippets() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([]);
@@ -35,9 +41,7 @@ export default function BrowseSnippets() {
   const [useAISearch, setUseAISearch] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [debouncedSearchText, setDebouncedSearchText] = useState("");
-  const [aiSearchFailed, setAiSearchFailed] = useState<
-    false | true | "pro-required"
-  >(false);
+  const [aiSearchFailed, setAiSearchFailed] = useState<AISearchError>(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
   const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
@@ -92,10 +96,10 @@ export default function BrowseSnippets() {
     }
 
     if (useAISearch) {
-      // Debounce AI search by 500ms
+      // Debounce AI search
       debounceTimerRef.current = setTimeout(() => {
         setDebouncedSearchText(searchText);
-      }, 500);
+      }, AI_SEARCH_DEBOUNCE_MS);
     } else {
       // No debounce for normal search
       setDebouncedSearchText(searchText);
@@ -144,7 +148,7 @@ export default function BrowseSnippets() {
           if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
             setAiSearchFailed("pro-required");
           } else {
-            setAiSearchFailed(true);
+            setAiSearchFailed("failed");
           }
 
           // Show error toast
