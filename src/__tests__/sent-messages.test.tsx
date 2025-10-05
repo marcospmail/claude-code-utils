@@ -10,7 +10,7 @@ import {
   fireEvent,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import SentMessages from "../sent-messages";
+import SentMessages from "../commands/sent-messages/list";
 import { ParsedMessage } from "../utils/claudeMessages";
 import React from "react";
 
@@ -343,7 +343,7 @@ jest.mock("../utils/aiSearch", () => ({
 }));
 
 // Mock CreateSnippet component
-jest.mock("../create-snippet", () => ({
+jest.mock("../commands/create-snippet/list", () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => (
     <div data-testid="create-snippet" data-content={content}>

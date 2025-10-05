@@ -4,7 +4,7 @@
 
 import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import BrowseCommandsCheatsheet from "../browse-commands-cheatsheet";
+import BrowseCommandsCheatsheet from "../commands/cheatsheet/list";
 import React from "react";
 
 // Mock Raycast API
@@ -97,7 +97,7 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Mock commands data
-jest.mock("../commands-data", () => ({
+jest.mock("../constants/commands-data", () => ({
   getCommandsByCategory: jest.fn(() => [
     {
       category: "Slash Commands",
@@ -148,7 +148,7 @@ jest.mock("../commands-data", () => ({
 }));
 
 // Mock CommandDetail component
-jest.mock("../command-detail", () => ({
+jest.mock("../commands/cheatsheet/detail", () => ({
   __esModule: true,
   default: ({ command }: { command: { name: string } }) => (
     <div data-testid="command-detail" data-command={command.name}>
@@ -179,7 +179,7 @@ describe("BrowseCommandsCheatsheet", () => {
 
     it("should return Flag icon for CLI Flags", () => {
       const getCommandsByCategory = jest.mocked(
-        jest.requireMock("../commands-data").getCommandsByCategory,
+        jest.requireMock("../constants/commands-data").getCommandsByCategory,
       );
       getCommandsByCategory.mockReturnValueOnce([
         {
@@ -202,7 +202,7 @@ describe("BrowseCommandsCheatsheet", () => {
 
     it("should return Stars icon for Special Keywords", () => {
       const getCommandsByCategory = jest.mocked(
-        jest.requireMock("../commands-data").getCommandsByCategory,
+        jest.requireMock("../constants/commands-data").getCommandsByCategory,
       );
       getCommandsByCategory.mockReturnValueOnce([
         {
@@ -225,7 +225,7 @@ describe("BrowseCommandsCheatsheet", () => {
 
     it("should return Code icon for other categories", () => {
       const getCommandsByCategory = jest.mocked(
-        jest.requireMock("../commands-data").getCommandsByCategory,
+        jest.requireMock("../constants/commands-data").getCommandsByCategory,
       );
       getCommandsByCategory.mockReturnValueOnce([
         {
@@ -286,7 +286,7 @@ describe("BrowseCommandsCheatsheet", () => {
 
   it("should group commands by category when no search text", () => {
     const getCommandsByCategory = jest.mocked(
-      jest.requireMock("../commands-data").getCommandsByCategory,
+      jest.requireMock("../constants/commands-data").getCommandsByCategory,
     );
     render(<BrowseCommandsCheatsheet />);
     expect(getCommandsByCategory).toHaveBeenCalled();
@@ -321,7 +321,7 @@ describe("BrowseCommandsCheatsheet", () => {
 
   it("should test command with accessories in category view", () => {
     const getCommandsByCategory = jest.mocked(
-      jest.requireMock("../commands-data").getCommandsByCategory,
+      jest.requireMock("../constants/commands-data").getCommandsByCategory,
     );
     getCommandsByCategory.mockReturnValueOnce([
       {

@@ -10,7 +10,7 @@ import {
   act,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import BrowseSnippets from "../browse-snippets";
+import BrowseSnippets from "../commands/browse-snippets/list";
 import { Snippet } from "../utils/claudeMessages";
 import React from "react";
 
@@ -331,7 +331,7 @@ const { semanticSearchSnippets, normalSearchSnippets } =
   jest.requireMock("../utils/aiSearch");
 
 // Mock CreateSnippet component
-jest.mock("../create-snippet", () => ({
+jest.mock("../commands/create-snippet/list", () => ({
   __esModule: true,
   default: ({ title, content }: { title?: string; content?: string }) => (
     <div data-testid="create-snippet" data-title={title} data-content={content}>

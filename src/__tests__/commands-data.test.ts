@@ -2,7 +2,7 @@ import {
   claudeCodeCommands,
   getCommandsByCategory,
   searchCommands,
-} from "../commands-data";
+} from "../constants/commands-data";
 
 describe("commands-data", () => {
   describe("claudeCodeCommands", () => {

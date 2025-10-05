@@ -11,7 +11,7 @@ import {
   act,
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ReceivedMessages from "../received-messages";
+import ReceivedMessages from "../commands/received-messages/list";
 import { ParsedMessage, getReceivedMessages } from "../utils/claudeMessages";
 import { semanticSearch, normalSearch } from "../utils/aiSearch";
 import {
@@ -302,7 +302,7 @@ jest.mock("../utils/aiSearch", () => ({
 }));
 
 // Mock CreateSnippet component
-jest.mock("../create-snippet", () => ({
+jest.mock("../commands/create-snippet/list", () => ({
   __esModule: true,
   default: ({ content }: { content: string }) => (
     <div data-testid="create-snippet" data-content={content}>

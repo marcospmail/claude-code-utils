@@ -4,7 +4,7 @@
 
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import SlashCommandDetail from "../slash-command-detail";
+import SlashCommandDetail from "../commands/browse-commands/detail";
 import { SlashCommand } from "../utils/slashCommands";
 
 // Mock Raycast API

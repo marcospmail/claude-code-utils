@@ -4,7 +4,7 @@
 
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import AgentDetail from "../agent-detail";
+import AgentDetail from "../commands/browse-agents/detail";
 import { Agent } from "../utils/agents";
 
 // Mock Raycast API

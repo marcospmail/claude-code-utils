@@ -4,7 +4,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import BrowseAgents from "../browse-agents";
+import BrowseAgents from "../commands/browse-agents/list";
 import * as agentsUtils from "../utils/agents";
 
 // Mock Raycast API
@@ -88,7 +88,7 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Mock agent-detail component
-jest.mock("../agent-detail", () => ({
+jest.mock("../commands/browse-agents/detail", () => ({
   __esModule: true,
   default: () => <div data-testid="agent-detail">Agent Detail</div>,
 }));

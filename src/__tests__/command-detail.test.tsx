@@ -4,7 +4,7 @@
 
 import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import CommandDetail from "../command-detail";
+import CommandDetail from "../commands/cheatsheet/detail";
 import { CommandItem } from "../commands-data";
 
 // Mock Raycast API

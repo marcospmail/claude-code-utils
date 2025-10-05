@@ -88,7 +88,7 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Mock slash-command-detail component
-jest.mock("../slash-command-detail", () => ({
+jest.mock("../commands/browse-commands/detail", () => ({
   __esModule: true,
   default: () => (
     <div data-testid="slash-command-detail">Slash Command Detail</div>

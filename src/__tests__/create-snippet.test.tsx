@@ -4,7 +4,9 @@
 
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import CreateSnippet, { CreateSnippetProps } from "../create-snippet";
+import CreateSnippet, {
+  CreateSnippetProps,
+} from "../commands/create-snippet/list";
 import { createSnippet, type Snippet } from "../utils/claudeMessages";
 import * as RaycastAPI from "@raycast/api";
 import { LaunchType } from "@raycast/api";
