@@ -21,8 +21,8 @@ declare namespace Preferences {
   export type ReceivedMessages = ExtensionPreferences & {}
   /** Preferences accessible in the `sent-messages` command */
   export type SentMessages = ExtensionPreferences & {}
-  /** Preferences accessible in the `browse-commands-cheatsheet` command */
-  export type BrowseCommandsCheatsheet = ExtensionPreferences & {}
+  /** Preferences accessible in the `cheatsheet` command */
+  export type Cheatsheet = ExtensionPreferences & {}
   /** Preferences accessible in the `browse-agents` command */
   export type BrowseAgents = ExtensionPreferences & {}
   /** Preferences accessible in the `browse-commands` command */
@@ -38,8 +38,8 @@ declare namespace Arguments {
   export type ReceivedMessages = {}
   /** Arguments passed to the `sent-messages` command */
   export type SentMessages = {}
-  /** Arguments passed to the `browse-commands-cheatsheet` command */
-  export type BrowseCommandsCheatsheet = {}
+  /** Arguments passed to the `cheatsheet` command */
+  export type Cheatsheet = {}
   /** Arguments passed to the `browse-agents` command */
   export type BrowseAgents = {}
   /** Arguments passed to the `browse-commands` command */

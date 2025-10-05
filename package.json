@@ -45,7 +45,7 @@
       "mode": "view"
     },
     {
-      "name": "browse-commands-cheatsheet",
+      "name": "cheatsheet",
       "title": "Commands Cheat Sheet",
       "description": "Quick reference for all Claude Code commands and keyboard shortcuts",
       "mode": "view"
