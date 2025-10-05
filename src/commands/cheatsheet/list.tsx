@@ -4,8 +4,8 @@ import {
   getCommandsByCategory,
   searchCommands,
   CommandItem,
-} from "./commands-data";
-import CommandDetail from "./command-detail";
+} from "../../constants/commands-data";
+import CommandDetail from "./detail";
 
 export default function BrowseCommandsCheatsheet() {
   const [searchText, setSearchText] = useState("");

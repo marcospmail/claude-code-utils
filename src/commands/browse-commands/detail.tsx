@@ -1,5 +1,5 @@
 import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
-import { SlashCommand } from "./utils/slashCommands";
+import { SlashCommand } from "../../utils/slashCommands";
 
 interface SlashCommandDetailProps {
   command: SlashCommand;

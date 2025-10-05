@@ -1,5 +1,5 @@
 import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
-import { CommandItem } from "./commands-data";
+import { CommandItem } from "../../constants/commands-data";
 
 interface CommandDetailProps {
   command: CommandItem;

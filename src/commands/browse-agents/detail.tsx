@@ -1,5 +1,5 @@
 import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
-import { Agent } from "./utils/agents";
+import { Agent } from "../../utils/agents";
 
 interface AgentDetailProps {
   agent: Agent;
