@@ -59,7 +59,7 @@
     {
       "name": "browse-commands",
       "title": "Browse Commands",
-      "description": "View and manage your Claude Code slash commands from ~/.claude/commands",
+      "description": "View and manage your Claude Code commands from ~/.claude/commands",
       "mode": "view"
     }
   ],

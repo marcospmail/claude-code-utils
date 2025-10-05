@@ -17,13 +17,13 @@ Save frequently used code or text as reusable snippets for quick access.
 View, search, and manage all your saved code snippets.
 
 ### 📚 **Commands Cheat Sheet**
-Quick reference for all Claude Code slash commands, keyboard shortcuts, CLI flags, and special keywords like `@file` and `@docs`.
+Quick reference for all Claude Code commands, keyboard shortcuts, CLI flags, and special keywords like `@file` and `@docs`.
 
 ### 🤖 **Browse Agents**
 View and manage your Claude Code agents from `~/.claude/agents`.
 
 ### ⚡ **Browse Commands**
-View and manage your Claude Code slash commands from `~/.claude/commands`.
+View and manage your Claude Code commands from `~/.claude/commands`.
 
 ## Installation
 
@@ -86,7 +86,7 @@ Toggle between search modes using the dropdown:
 ## Requirements
 
 - **Raycast** 1.26.0 or higher
-- **Node.js** 20.0+
+- **Node.js** 22.14 or higher
 - **Claude Code** installed and configured
 - **Raycast Pro** (optional, for AI search features)
 

@@ -38,11 +38,11 @@ export default function BrowseCommands() {
   }
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Search slash commands...">
+    <List isLoading={isLoading} searchBarPlaceholder="Search commands...">
       {commands.length === 0 && !isLoading ? (
         <List.EmptyView
           icon={Icon.Document}
-          title="No Slash Commands Found"
+          title="No Commands Found"
           description="No command files found in ~/.claude/commands"
         />
       ) : (

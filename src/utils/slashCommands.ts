@@ -12,7 +12,7 @@ export interface SlashCommand {
 const COMMANDS_DIR = join(homedir(), ".claude", "commands");
 
 /**
- * Get all slash command files from ~/.claude/commands
+ * Get all command files from ~/.claude/commands
  */
 export async function getSlashCommands(): Promise<SlashCommand[]> {
   try {
@@ -55,7 +55,7 @@ function formatCommandName(filename: string): string {
 }
 
 /**
- * Get a single slash command by ID
+ * Get a single command by ID
  */
 export async function getSlashCommand(
   id: string,

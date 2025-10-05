@@ -119,7 +119,7 @@ describe("BrowseCommands", () => {
     expect(list).toHaveAttribute("data-loading", "true");
   });
 
-  it("should render slash commands list", async () => {
+  it("should render commands list", async () => {
     const mockCommands = [
       {
         id: "test-command",
@@ -160,7 +160,7 @@ describe("BrowseCommands", () => {
     });
 
     expect(screen.getByTestId("empty-title")).toHaveTextContent(
-      "No Slash Commands Found",
+      "No Commands Found",
     );
     expect(screen.getByTestId("empty-description")).toHaveTextContent(
       "No command files found in ~/.claude/commands",

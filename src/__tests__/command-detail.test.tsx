@@ -52,7 +52,7 @@ describe("CommandDetail", () => {
     id: "help",
     name: "/help",
     description: "Get usage help and list available commands",
-    category: "Slash Commands",
+    category: "Commands",
     usage: "/help",
     examples: ["/help", "/help commands"],
   };
@@ -61,7 +61,7 @@ describe("CommandDetail", () => {
     id: "clear",
     name: "/clear",
     description: "Clear conversation history",
-    category: "Slash Commands",
+    category: "Commands",
   };
 
   it("should render the detail component", () => {

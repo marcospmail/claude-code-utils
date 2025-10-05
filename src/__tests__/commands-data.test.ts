@@ -10,7 +10,7 @@ describe("commands-data", () => {
       const categories = [
         ...new Set(claudeCodeCommands.map((cmd) => cmd.category)),
       ];
-      expect(categories).toContain("Slash Commands");
+      expect(categories).toContain("Commands");
       expect(categories).toContain("Keyboard Shortcuts");
       expect(categories).toContain("Multiline Input");
       expect(categories).toContain("Quick Prefixes");
@@ -39,25 +39,25 @@ describe("commands-data", () => {
       expect(uniqueIds.size).toBe(ids.length);
     });
 
-    it("should contain at least 26 slash commands", () => {
-      const slashCommands = claudeCodeCommands.filter(
-        (cmd) => cmd.category === "Slash Commands",
+    it("should contain at least 26 commands", () => {
+      const commands = claudeCodeCommands.filter(
+        (cmd) => cmd.category === "Commands",
       );
-      expect(slashCommands.length).toBeGreaterThanOrEqual(26);
+      expect(commands.length).toBeGreaterThanOrEqual(26);
     });
 
-    it("should include key slash commands", () => {
-      const slashCommandNames = claudeCodeCommands
-        .filter((cmd) => cmd.category === "Slash Commands")
+    it("should include key commands", () => {
+      const commandNames = claudeCodeCommands
+        .filter((cmd) => cmd.category === "Commands")
         .map((cmd) => cmd.name);
 
-      expect(slashCommandNames).toContain("/help");
-      expect(slashCommandNames).toContain("/clear");
-      expect(slashCommandNames).toContain("/config");
-      expect(slashCommandNames).toContain("/status");
-      expect(slashCommandNames).toContain("/model");
-      expect(slashCommandNames).toContain("/pr-comments");
-      expect(slashCommandNames).toContain("/vim");
+      expect(commandNames).toContain("/help");
+      expect(commandNames).toContain("/clear");
+      expect(commandNames).toContain("/config");
+      expect(commandNames).toContain("/status");
+      expect(commandNames).toContain("/model");
+      expect(commandNames).toContain("/pr-comments");
+      expect(commandNames).toContain("/vim");
     });
 
     it("should include key keyboard shortcuts", () => {

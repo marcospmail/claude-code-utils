@@ -13,7 +13,7 @@ export default function BrowseCommandsCheatsheet() {
   const filteredCommands = searchText ? searchCommands(searchText) : [];
 
   const getIconForCommand = (command: CommandItem): Icon => {
-    if (command.category === "Slash Commands") {
+    if (command.category === "Commands") {
       return Icon.Terminal;
     } else if (command.category === "Keyboard Shortcuts") {
       return Icon.Keyboard;

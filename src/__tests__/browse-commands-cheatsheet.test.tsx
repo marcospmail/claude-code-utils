@@ -100,20 +100,20 @@ jest.mock("@raycast/api", () => ({
 jest.mock("../constants/commands-data", () => ({
   getCommandsByCategory: jest.fn(() => [
     {
-      category: "Slash Commands",
+      category: "Commands",
       commands: [
         {
           id: "help",
           name: "/help",
           description: "Get usage help and list available commands",
-          category: "Slash Commands",
+          category: "Commands",
           usage: "/help",
         },
         {
           id: "clear",
           name: "/clear",
           description: "Clear conversation history and start fresh",
-          category: "Slash Commands",
+          category: "Commands",
           usage: "/clear",
         },
       ],
@@ -138,7 +138,7 @@ jest.mock("../constants/commands-data", () => ({
           id: "help",
           name: "/help",
           description: "Get usage help and list available commands",
-          category: "Slash Commands",
+          category: "Commands",
           usage: "/help",
         },
       ];
@@ -163,9 +163,9 @@ describe("BrowseCommandsCheatsheet", () => {
   });
 
   describe("getIconForCommand function", () => {
-    it("should return Terminal icon for Slash Commands", () => {
+    it("should return Terminal icon for Commands", () => {
       const { getByTestId } = render(<BrowseCommandsCheatsheet />);
-      // Check if Terminal icon is used for Slash Commands by verifying icon attribute
+      // Check if Terminal icon is used for Commands by verifying icon attribute
       const list = getByTestId("list");
       expect(list).toBeInTheDocument();
     });
@@ -271,7 +271,7 @@ describe("BrowseCommandsCheatsheet", () => {
   it("should render List.Section components for categories", () => {
     const { container } = render(<BrowseCommandsCheatsheet />);
     const sections = container.querySelectorAll(
-      '[title*="Slash Commands"], [title*="Keyboard Shortcuts"]',
+      '[title*="Commands"], [title*="Keyboard Shortcuts"]',
     );
     expect(sections.length).toBeGreaterThan(0);
   });
