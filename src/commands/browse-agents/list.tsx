@@ -61,7 +61,7 @@ export default function BrowseAgents() {
                   title="Copy Agent Content"
                   content={agent.content}
                   icon={Icon.Clipboard}
-                  shortcut={{ modifiers: ["cmd"], key: "c" }}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
                 />
                 <Action.ShowInFinder
                   path={agent.filePath}

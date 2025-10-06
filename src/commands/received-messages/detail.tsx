@@ -45,7 +45,7 @@ export default function MessageDetail({ message }: MessageDetailProps) {
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={message.content}
-            shortcut={{ modifiers: ["cmd"], key: "c" }}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
           />
           <Action.Push
             title="Create Snippet"

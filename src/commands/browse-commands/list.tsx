@@ -63,7 +63,7 @@ export default function BrowseCommands() {
                   title="Copy Command Content"
                   content={command.content}
                   icon={Icon.Clipboard}
-                  shortcut={{ modifiers: ["cmd"], key: "c" }}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
                 />
                 <Action.ShowInFinder
                   path={command.filePath}

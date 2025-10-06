@@ -61,7 +61,9 @@ function parseTimestamp(timestamp: string | number | undefined): Date {
 
   if (typeof timestamp === "number") {
     // If timestamp is in seconds (< threshold), convert to milliseconds
-    return new Date(timestamp < UNIX_TIMESTAMP_THRESHOLD ? timestamp * 1000 : timestamp);
+    return new Date(
+      timestamp < UNIX_TIMESTAMP_THRESHOLD ? timestamp * 1000 : timestamp,
+    );
   }
 
   // String timestamp - let Date constructor handle it
