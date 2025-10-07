@@ -178,6 +178,17 @@ jest.mock("@raycast/api", () => ({
           ),
         },
       ),
+      Section: ({
+        title,
+        children,
+      }: {
+        title: string;
+        children: React.ReactNode;
+      }) => (
+        <div data-testid="list-section" data-title={title}>
+          {children}
+        </div>
+      ),
     },
   ),
   Detail: ({
@@ -443,7 +454,7 @@ describe("SentMessages", () => {
       await waitFor(() => {
         expect(screen.getByTestId("list")).toHaveAttribute(
           "data-placeholder",
-          "Search your messages to Claude...",
+          "Search sent messages...",
         );
       });
     });
@@ -732,7 +743,7 @@ describe("SentMessages", () => {
 
       // Check for specific action buttons using new test IDs
       expect(screen.getAllByTestId("action-push-view-message")).toHaveLength(3);
-      expect(screen.getAllByTestId("action-copy-message")).toHaveLength(3);
+      expect(screen.getAllByTestId("action-copy-to-clipboard")).toHaveLength(3);
       expect(
         screen.getAllByTestId("action-push-create-snippet-from-message"),
       ).toHaveLength(3);
@@ -756,7 +767,7 @@ describe("SentMessages", () => {
       expect(viewActions[0]).toBeInTheDocument();
     });
 
-    it("should have Copy Message action with shortcut", async () => {
+    it("should have Copy to Clipboard action with shortcut", async () => {
       render(<SentMessages />);
 
       // Wait for loading to complete
@@ -767,7 +778,7 @@ describe("SentMessages", () => {
         );
       });
 
-      const copyActions = screen.getAllByTestId("action-copy-message");
+      const copyActions = screen.getAllByTestId("action-copy-to-clipboard");
       expect(copyActions.length).toBeGreaterThan(0);
       expect(copyActions[0]).toBeInTheDocument();
       expect(copyActions[0]).toHaveAttribute("data-shortcut", "cmd+shift-c");
@@ -788,7 +799,7 @@ describe("SentMessages", () => {
       );
       expect(snippetActions.length).toBeGreaterThan(0);
       expect(snippetActions[0]).toBeInTheDocument();
-      expect(snippetActions[0]).toHaveAttribute("data-shortcut", "cmd+shift-s");
+      expect(snippetActions[0]).toHaveAttribute("data-shortcut", "cmd-s");
     });
 
     it("should have Refresh action with shortcut", async () => {
@@ -814,7 +825,7 @@ describe("SentMessages", () => {
         );
       });
 
-      const copyAction = screen.getAllByTestId("action-copy-message")[0];
+      const copyAction = screen.getAllByTestId("action-copy-to-clipboard")[0];
       fireEvent.click(copyAction);
 
       await waitFor(() => {
@@ -837,7 +848,7 @@ describe("SentMessages", () => {
         );
       });
 
-      const copyAction = screen.getAllByTestId("action-copy-message")[0];
+      const copyAction = screen.getAllByTestId("action-copy-to-clipboard")[0];
       fireEvent.click(copyAction);
 
       await waitFor(() => {
@@ -1393,7 +1404,7 @@ describe("SentMessages", () => {
 
       expect(getSentMessages).toHaveBeenCalled();
 
-      const copyAction = screen.getAllByTestId("action-copy-message")[0];
+      const copyAction = screen.getAllByTestId("action-copy-to-clipboard")[0];
       fireEvent.click(copyAction);
 
       await waitFor(() => {
@@ -1474,7 +1485,7 @@ describe("SentMessages", () => {
 
       expect(getSentMessages).toHaveBeenCalled();
 
-      const copyAction = screen.getAllByTestId("action-copy-message")[0];
+      const copyAction = screen.getAllByTestId("action-copy-to-clipboard")[0];
       fireEvent.click(copyAction);
 
       await waitFor(() => {
@@ -1582,7 +1593,7 @@ describe("SentMessages", () => {
             }}
             data-testid="copy-message-detail"
           >
-            Copy Message
+            Copy to Clipboard
           </button>
         </div>
       );
@@ -1632,7 +1643,7 @@ describe("SentMessages", () => {
       expect(getSentMessages).toHaveBeenCalled();
 
       // Get the copy action from list item actions
-      const copyActions = screen.getAllByTestId("action-copy-message");
+      const copyActions = screen.getAllByTestId("action-copy-to-clipboard");
       expect(copyActions.length).toBeGreaterThan(0);
 
       fireEvent.click(copyActions[0]);

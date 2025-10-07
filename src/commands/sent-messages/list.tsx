@@ -16,6 +16,10 @@ import {
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { getSentMessages, ParsedMessage } from "../../utils/claudeMessages";
 import { semanticSearch, normalSearch } from "../../utils/aiSearch";
+import {
+  groupMessagesByDate,
+  formatSectionTitle,
+} from "../../utils/dateGrouping";
 import CreateSnippet from "../create-snippet/list";
 import MessageDetail from "./detail";
 
@@ -115,6 +119,11 @@ export default function SentMessages() {
     return filteredMessages;
   }, [messages, searchText, useAISearch, filteredMessages]);
 
+  // Group messages by date for section display
+  const messageGroups = useMemo(() => {
+    return groupMessagesByDate(displayMessages);
+  }, [displayMessages]);
+
   // Perform AI search only on debounced text
   useEffect(() => {
     async function performAISearch() {
@@ -186,9 +195,7 @@ export default function SentMessages() {
     <List
       isLoading={isLoading}
       searchBarPlaceholder={
-        useAISearch
-          ? "Search with AI (semantic)..."
-          : "Search your messages to Claude..."
+        useAISearch ? "Search with AI (semantic)..." : "Search sent messages..."
       }
       onSearchTextChange={setSearchText}
       searchBarAccessory={
@@ -256,52 +263,61 @@ export default function SentMessages() {
           }
         />
       )}
-      {displayMessages.map((message) => (
-        <List.Item
-          key={message.id}
-          title={message.preview}
-          accessories={[
-            {
-              text: message.timestamp.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            },
-          ]}
-          actions={
-            <ActionPanel>
-              <Action.Push
-                title="View Message"
-                icon={Icon.Eye}
-                target={<MessageDetail message={message} />}
-              />
-              <Action.Paste
-                title={`Paste to ${frontmostApp}`}
-                content={message.content}
-                icon={appIcon}
-                shortcut={{ modifiers: ["cmd"], key: "enter" }}
-              />
-              <Action
-                title="Copy Message"
-                icon={Icon.Clipboard}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
-                onAction={() => copyContent(message, true)}
-              />
-              <Action.Push
-                title="Create Snippet from Message"
-                icon={Icon.Document}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "s" }}
-                target={<CreateSnippet content={message.content} />}
-              />
-              <Action
-                title="Refresh Messages"
-                icon={Icon.ArrowClockwise}
-                shortcut={{ modifiers: ["cmd"], key: "r" }}
-                onAction={loadMessages}
-              />
-            </ActionPanel>
-          }
-        />
+      {messageGroups.map((group) => (
+        <List.Section
+          key={group.category}
+          title={formatSectionTitle(group.category, group.messages.length)}
+        >
+          {group.messages.map((message) => (
+            <List.Item
+              key={message.id}
+              title={message.preview}
+              accessories={[
+                {
+                  text: message.timestamp.toLocaleString([], {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                },
+              ]}
+              actions={
+                <ActionPanel>
+                  <Action.Push
+                    title="View Message"
+                    icon={Icon.Eye}
+                    target={<MessageDetail message={message} />}
+                  />
+                  <Action.Paste
+                    title={`Paste to ${frontmostApp}`}
+                    content={message.content}
+                    icon={appIcon}
+                    shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                  />
+                  <Action
+                    title="Copy to Clipboard"
+                    icon={Icon.Clipboard}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                    onAction={() => copyContent(message, true)}
+                  />
+                  <Action.Push
+                    title="Create Snippet from Message"
+                    icon={Icon.Document}
+                    shortcut={{ modifiers: ["cmd"], key: "s" }}
+                    target={<CreateSnippet content={message.content} />}
+                  />
+                  <Action
+                    title="Refresh Messages"
+                    icon={Icon.ArrowClockwise}
+                    shortcut={{ modifiers: ["cmd"], key: "r" }}
+                    onAction={loadMessages}
+                  />
+                </ActionPanel>
+              }
+            />
+          ))}
+        </List.Section>
       ))}
     </List>
   );
