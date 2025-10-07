@@ -154,6 +154,17 @@ jest.mock("@raycast/api", () => ({
           ),
         },
       ),
+      Section: ({
+        title,
+        children,
+      }: {
+        title: string;
+        children: React.ReactNode;
+      }) => (
+        <div data-testid="list-section" data-title={title}>
+          {children}
+        </div>
+      ),
     },
   ),
   ActionPanel: ({ children }: { children: React.ReactNode }) => (
@@ -486,7 +497,7 @@ describe("ReceivedMessages", () => {
 
       expect(getByTestId("list")).toHaveAttribute(
         "data-placeholder",
-        "Search Claude's responses...",
+        "Search received messages...",
       );
     });
 
@@ -582,7 +593,9 @@ describe("ReceivedMessages", () => {
       });
 
       // Verify copy action button exists
-      const copyButton = container.querySelector('[data-title="Copy Message"]');
+      const copyButton = container.querySelector(
+        '[data-title="Copy to Clipboard"]',
+      );
       expect(copyButton).toBeInTheDocument();
     });
 
@@ -594,7 +607,9 @@ describe("ReceivedMessages", () => {
       });
 
       // Verify error handling is implemented
-      const copyButton = container.querySelector('[data-title="Copy Message"]');
+      const copyButton = container.querySelector(
+        '[data-title="Copy to Clipboard"]',
+      );
       expect(copyButton).toBeInTheDocument();
     });
 
@@ -804,7 +819,9 @@ describe("ReceivedMessages", () => {
       });
 
       // Test copy action
-      const copyButton = container.querySelector('[data-title="Copy Message"]');
+      const copyButton = container.querySelector(
+        '[data-title="Copy to Clipboard"]',
+      );
       if (copyButton) {
         fireEvent.click(copyButton);
       }
@@ -1141,7 +1158,7 @@ describe("ReceivedMessages", () => {
                 }}
                 data-testid="copy-message"
               >
-                Copy Message
+                Copy to Clipboard
               </button>
             </div>
           </div>
@@ -1188,7 +1205,9 @@ describe("ReceivedMessages", () => {
       });
 
       // Get copy button and verify it exists
-      const copyButton = container.querySelector('[data-title="Copy Message"]');
+      const copyButton = container.querySelector(
+        '[data-title="Copy to Clipboard"]',
+      );
       expect(copyButton).toBeInTheDocument();
     });
 
