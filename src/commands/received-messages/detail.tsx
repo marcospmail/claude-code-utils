@@ -40,7 +40,7 @@ export default function MessageDetail({ message }: MessageDetailProps) {
             title={`Paste to ${frontmostApp}`}
             content={message.content}
             icon={appIcon}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
           />
           <Action.CopyToClipboard
             title="Copy to Clipboard"

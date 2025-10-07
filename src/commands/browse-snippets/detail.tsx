@@ -62,6 +62,7 @@ export default function SnippetDetail({
             title={`Paste to ${frontmostApp}`}
             content={snippet.content}
             icon={appIcon}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
           />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
