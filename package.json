@@ -18,7 +18,9 @@
     "productivity"
   ],
   "license": "MIT",
-  "platforms": ["macOS"],
+  "platforms": [
+    "macOS"
+  ],
   "commands": [
     {
       "name": "create-snippet",
@@ -61,10 +63,17 @@
       "title": "Browse Commands",
       "description": "View and manage your Claude Code commands from ~/.claude/commands",
       "mode": "view"
+    },
+    {
+      "name": "changelog",
+      "title": "Changelog",
+      "description": "View Claude Code changelog with latest updates and releases",
+      "mode": "view"
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.103.1"
+    "@raycast/api": "^1.103.1",
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.0.4",
@@ -78,6 +87,7 @@
     "jest": "^30.1.3",
     "jest-environment-jsdom": "^30.1.2",
     "prettier": "^3.5.3",
+    "react-devtools": "^6.1.1",
     "ts-jest": "^29.4.4",
     "typescript": "^5.8.2"
   },

@@ -27,6 +27,8 @@ declare namespace Preferences {
   export type BrowseAgents = ExtensionPreferences & {}
   /** Preferences accessible in the `browse-commands` command */
   export type BrowseCommands = ExtensionPreferences & {}
+  /** Preferences accessible in the `changelog` command */
+  export type Changelog = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -44,5 +46,7 @@ declare namespace Arguments {
   export type BrowseAgents = {}
   /** Arguments passed to the `browse-commands` command */
   export type BrowseCommands = {}
+  /** Arguments passed to the `changelog` command */
+  export type Changelog = {}
 }
 
