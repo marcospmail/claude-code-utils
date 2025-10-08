@@ -23,10 +23,6 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
-# Local env files
-.env
-.env*.local
-
 # IDE
 .vscode/
 .idea/
@@ -59,6 +55,8 @@ raycast-env.d.ts
 .yarn-integrity
 
 # dotenv environment variable files
+.env
+.env*.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -69,3 +67,5 @@ raycast-env.d.ts
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+.agents/
