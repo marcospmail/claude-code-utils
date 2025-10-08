@@ -97,6 +97,9 @@ jest.mock("@raycast/api", () => ({
       Failure: "failure",
     },
   },
+  environment: {
+    isDevelopment: false,
+  },
 }));
 
 // Mock changelog-detail component

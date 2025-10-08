@@ -56,6 +56,7 @@ export const LocalStorage = {
 
 export const environment = {
   canAccess: jest.fn(() => true),
+  isDevelopment: false,
 };
 
 export const AI = {
