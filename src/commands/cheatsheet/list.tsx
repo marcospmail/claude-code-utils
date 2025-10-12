@@ -1,9 +1,9 @@
-import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useState } from "react";
 import {
+  CommandItem,
   getCommandsByCategory,
   searchCommands,
-  CommandItem,
 } from "../../constants/commands-data";
 import CommandDetail from "./detail";
 
@@ -30,7 +30,7 @@ export default function BrowseCommandsCheatsheet() {
     <List
       searchText={searchText}
       onSearchTextChange={setSearchText}
-      searchBarPlaceholder="Search Claude Code commands..."
+      searchBarPlaceholder="Browse Claude Code cheat sheet..."
       filtering={false}
     >
       {searchText ? (
