@@ -5,10 +5,16 @@ import { ParsedMessage } from "../utils/claudeMessages";
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
   ...jest.requireActual("@raycast/api"),
-  Detail: ({ markdown, actions }: { markdown: string; actions: unknown }) => (
+  Detail: ({
+    markdown,
+    actions,
+  }: {
+    markdown: string;
+    actions: React.ReactNode;
+  }) => (
     <div data-testid="detail">
       <div data-testid="markdown">{markdown}</div>
-      <div data-testid="actions">{actions}</div>
+      <div data-testid="actions">{actions as React.ReactNode}</div>
     </div>
   ),
   ActionPanel: ({ children }: { children: React.ReactNode }) => (
@@ -50,11 +56,11 @@ jest.mock("@raycast/api", () => ({
     }: {
       title: string;
       icon: unknown;
-      target: unknown;
+      target: React.ReactNode;
       shortcut: unknown;
     }) => (
       <div data-testid="push-action" data-title={title}>
-        {target}
+        {target as React.ReactNode}
       </div>
     ),
   },
@@ -80,6 +86,8 @@ const mockMessage: ParsedMessage = {
   content: "This is a sent message content",
   preview: "This is a sent message...",
   timestamp: new Date("2025-01-01T12:00:00Z"),
+  role: "user",
+  sessionId: "test-session-1",
 };
 
 describe("MessageDetail (Sent Messages)", () => {
