@@ -1,6 +1,7 @@
 import {
   Action,
   ActionPanel,
+  Application,
   Detail,
   getFrontmostApplication,
   Icon,
@@ -18,27 +19,18 @@ export default function SnippetDetail({
   snippet,
   onDelete,
 }: SnippetDetailProps) {
-  const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
-  const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
-    Icon.Window,
-  );
+  const [frontmostApp, setFrontmostApp] = useState<Application>();
 
   useEffect(() => {
-    getFrontmostApplication()
-      .then((app) => {
-        setFrontmostApp(app.name);
-        setAppIcon({ fileIcon: app.path });
-      })
-      .catch(() => {
-        setFrontmostApp("Active App");
-        setAppIcon(Icon.Window);
-      });
+    getFrontmostApplication().then((app) => {
+      setFrontmostApp(app);
+    });
   }, []);
 
   return (
     <Detail
       markdown={snippet.content}
-      navigationTitle="Snippet Detail"
+      navigationTitle={snippet.title || "Untitled Snippet"}
       metadata={
         <Detail.Metadata>
           <Detail.Metadata.Label
@@ -58,16 +50,17 @@ export default function SnippetDetail({
       }
       actions={
         <ActionPanel>
-          <Action.Paste
-            title={`Paste to ${frontmostApp}`}
-            content={snippet.content}
-            icon={appIcon}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
+          {frontmostApp && (
+            <Action.Paste
+              title={`Paste to ${frontmostApp.name}`}
+              content={snippet.content}
+              icon={frontmostApp.path}
+            />
+          )}
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={snippet.content}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
           />
           <Action.Push
             title="Duplicate Snippet"
