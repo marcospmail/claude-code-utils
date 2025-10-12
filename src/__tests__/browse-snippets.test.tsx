@@ -602,7 +602,8 @@ describe("BrowseSnippets", () => {
         const copyButton = screen
           .getAllByTestId("action")
           .find(
-            (button) => button.getAttribute("data-title") === "Copy Snippet",
+            (button) =>
+              button.getAttribute("data-title") === "Copy to Clipboard",
           );
         expect(copyButton).toBeInTheDocument();
 
@@ -629,7 +630,8 @@ describe("BrowseSnippets", () => {
         const copyButton = screen
           .getAllByTestId("action")
           .find(
-            (button) => button.getAttribute("data-title") === "Copy Snippet",
+            (button) =>
+              button.getAttribute("data-title") === "Copy to Clipboard",
           );
 
         if (copyButton) {
@@ -781,7 +783,7 @@ describe("BrowseSnippets", () => {
         expect(targetDetail).toBeInTheDocument();
         expect(targetDetail).toHaveAttribute(
           "data-navigation-title",
-          "Snippet Detail",
+          "Untitled Snippet",
         );
       });
     });
@@ -842,7 +844,7 @@ describe("BrowseSnippets", () => {
         expect(detailCopyActions.length).toBeGreaterThan(0);
         expect(detailCopyActions[0]).toHaveAttribute(
           "data-shortcut",
-          "cmd+shift-c",
+          "cmd-enter",
         );
       });
     });
@@ -861,9 +863,8 @@ describe("BrowseSnippets", () => {
           const title = action.getAttribute("data-title");
           const shortcut = action.getAttribute("data-shortcut");
           return (
-            title === "Copy Snippet" &&
-            shortcut ===
-              JSON.stringify({ modifiers: ["cmd", "shift"], key: "c" })
+            title === "Copy to Clipboard" &&
+            shortcut === JSON.stringify({ modifiers: ["cmd"], key: "enter" })
           );
         });
         const deleteActionsWithShortcut = allActions.filter((action) => {
