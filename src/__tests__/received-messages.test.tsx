@@ -3,24 +3,16 @@
  */
 
 import React from "react";
-import {
-  render,
-  fireEvent,
-  waitFor,
-  screen,
-  act,
-} from "@testing-library/react";
+import { render, fireEvent, waitFor, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import ReceivedMessages from "../commands/received-messages/list";
 import { ParsedMessage, getReceivedMessages } from "../utils/claudeMessages";
-import { semanticSearch, normalSearch } from "../utils/aiSearch";
+import { normalSearch } from "../utils/ai-search";
 import {
   showToast,
   showHUD,
   closeMainWindow,
   Clipboard,
-  environment,
-  AI,
   Toast,
 } from "@raycast/api";
 
@@ -37,15 +29,15 @@ jest.mock("@raycast/api", () => ({
     }: {
       children: React.ReactNode;
       searchBarPlaceholder: string;
-      searchBarAccessory: React.ReactNode;
-      actions: React.ReactNode;
+      searchBarAccessory?: React.ReactNode;
+      actions?: React.ReactNode;
       isLoading: boolean;
       onSearchTextChange?: (text: string) => void;
     }) => (
       <div
         data-testid="list"
         data-placeholder={searchBarPlaceholder}
-        data-loading={isLoading}
+        data-loading={String(isLoading)}
       >
         <input
           data-testid="search-input"
@@ -53,8 +45,10 @@ jest.mock("@raycast/api", () => ({
           placeholder={searchBarPlaceholder}
           onChange={(e) => onSearchTextChange?.(e.target.value)}
         />
-        <div data-testid="search-bar-accessory">{searchBarAccessory}</div>
-        <div data-testid="list-actions">{actions}</div>
+        {searchBarAccessory && (
+          <div data-testid="search-bar-accessory">{searchBarAccessory}</div>
+        )}
+        {actions && <div data-testid="list-actions">{actions}</div>}
         {children}
       </div>
     ),
@@ -68,19 +62,21 @@ jest.mock("@raycast/api", () => ({
         title: string;
         description: string;
         icon?: { source: string; tintColor: string };
-        actions: React.ReactNode;
+        actions?: React.ReactNode;
       }) => (
         <div
           data-testid="empty-view"
           data-title={title}
           data-description={description}
         >
-          <div
-            data-testid="empty-view-icon"
-            data-icon={icon?.source}
-            data-tint={icon?.tintColor}
-          ></div>
-          <div data-testid="empty-view-actions">{actions}</div>
+          {icon && (
+            <div
+              data-testid="empty-view-icon"
+              data-icon={icon.source}
+              data-tint={icon.tintColor}
+            />
+          )}
+          {actions && <div data-testid="empty-view-actions">{actions}</div>}
         </div>
       ),
       Item: ({
@@ -89,14 +85,16 @@ jest.mock("@raycast/api", () => ({
         actions,
       }: {
         title: string;
-        accessories: unknown[];
-        actions: React.ReactNode;
+        accessories?: unknown[];
+        actions?: React.ReactNode;
       }) => (
         <div data-testid="list-item" data-title={title}>
-          <div data-testid="item-accessories">
-            {JSON.stringify(accessories)}
-          </div>
-          <div data-testid="item-actions">{actions}</div>
+          {accessories && (
+            <div data-testid="item-accessories">
+              {JSON.stringify(accessories)}
+            </div>
+          )}
+          {actions && <div data-testid="item-actions">{actions}</div>}
         </div>
       ),
       Dropdown: Object.assign(
@@ -111,7 +109,6 @@ jest.mock("@raycast/api", () => ({
           onChange?: (value: string) => void;
           children: React.ReactNode;
         }) => {
-          // Clone children and pass onChange to them
           const childrenWithProps = React.Children.map(children, (child) => {
             if (React.isValidElement(child)) {
               return React.cloneElement(
@@ -171,14 +168,45 @@ jest.mock("@raycast/api", () => ({
     <div data-testid="action-panel">{children}</div>
   ),
   Action: Object.assign(
-    ({ title, onAction }: { title: string; onAction: () => void }) => (
-      <button data-testid="action" data-title={title} onClick={onAction}>
+    ({
+      title,
+      onAction,
+      shortcut,
+    }: {
+      title: string;
+      onAction?: () => void;
+      shortcut?: { modifiers: string[]; key: string };
+    }) => (
+      <button
+        data-testid="action"
+        data-title={title}
+        onClick={onAction}
+        data-shortcut={
+          shortcut
+            ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+            : undefined
+        }
+      >
         {title}
       </button>
     ),
     {
-      Push: ({ title }: { title: string }) => (
-        <button data-testid="action-push" data-title={title}>
+      Push: ({
+        title,
+        shortcut,
+      }: {
+        title: string;
+        shortcut?: { modifiers: string[]; key: string };
+      }) => (
+        <button
+          data-testid="action-push"
+          data-title={title}
+          data-shortcut={
+            shortcut
+              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
+              : undefined
+          }
+        >
           {title}
         </button>
       ),
@@ -204,6 +232,7 @@ jest.mock("@raycast/api", () => ({
           {title}
         </button>
       ),
+
       Paste: ({
         title,
         content,
@@ -236,14 +265,14 @@ jest.mock("@raycast/api", () => ({
       actions,
     }: {
       markdown: string;
-      navigationTitle: string;
-      metadata: React.ReactNode;
-      actions: React.ReactNode;
+      navigationTitle?: string;
+      metadata?: React.ReactNode;
+      actions?: React.ReactNode;
     }) => (
       <div data-testid="detail" data-title={navigationTitle}>
         <div data-testid="detail-markdown">{markdown}</div>
-        <div data-testid="detail-metadata">{metadata}</div>
-        <div data-testid="detail-actions">{actions}</div>
+        {metadata && <div data-testid="detail-metadata">{metadata}</div>}
+        {actions && <div data-testid="detail-actions">{actions}</div>}
       </div>
     ),
     {
@@ -296,19 +325,14 @@ jest.mock("@raycast/api", () => ({
     Red: "red",
     Orange: "orange",
   },
-  environment: {
-    canAccess: jest.fn(() => true),
-  },
-  AI: {},
 }));
 
 jest.mock("../utils/claudeMessages", () => ({
   getReceivedMessages: jest.fn(),
 }));
 
-// Mock utils/aiSearch
-jest.mock("../utils/aiSearch", () => ({
-  semanticSearch: jest.fn(),
+// Mock utils/ai-search
+jest.mock("../utils/ai-search", () => ({
   normalSearch: jest.fn(),
 }));
 
@@ -324,13 +348,11 @@ jest.mock("../commands/create-snippet/list", () => ({
 
 describe("ReceivedMessages", () => {
   let mockGetReceivedMessages: jest.MockedFunction<typeof getReceivedMessages>;
-  let mockSemanticSearch: jest.MockedFunction<typeof semanticSearch>;
   let mockNormalSearch: jest.MockedFunction<typeof normalSearch>;
   let mockShowToast: jest.MockedFunction<typeof showToast>;
   let mockShowHUD: jest.MockedFunction<typeof showHUD>;
   let mockCloseMainWindow: jest.MockedFunction<typeof closeMainWindow>;
   let mockClipboardCopy: jest.MockedFunction<typeof Clipboard.copy>;
-  let mockCanAccess: jest.MockedFunction<typeof environment.canAccess>;
   let mockMessages: ParsedMessage[];
 
   beforeEach(() => {
@@ -374,13 +396,11 @@ describe("ReceivedMessages", () => {
     mockGetReceivedMessages = jest.requireMock(
       "../utils/claudeMessages",
     ).getReceivedMessages;
-    mockSemanticSearch = jest.requireMock("../utils/aiSearch").semanticSearch;
-    mockNormalSearch = jest.requireMock("../utils/aiSearch").normalSearch;
+    mockNormalSearch = jest.requireMock("../utils/ai-search").normalSearch;
     mockShowToast = jest.requireMock("@raycast/api").showToast;
     mockShowHUD = jest.requireMock("@raycast/api").showHUD;
     mockCloseMainWindow = jest.requireMock("@raycast/api").closeMainWindow;
     mockClipboardCopy = jest.requireMock("@raycast/api").Clipboard.copy;
-    mockCanAccess = jest.requireMock("@raycast/api").environment.canAccess;
 
     // Default mocks
     mockGetReceivedMessages.mockResolvedValue(mockMessages);
@@ -392,12 +412,10 @@ describe("ReceivedMessages", () => {
             m.preview.toLowerCase().includes(query.toLowerCase()),
         ),
     );
-    mockSemanticSearch.mockResolvedValue(mockMessages);
     mockClipboardCopy.mockResolvedValue(undefined);
     mockShowToast.mockResolvedValue({} as Toast);
     mockShowHUD.mockResolvedValue(undefined);
     mockCloseMainWindow.mockResolvedValue(undefined);
-    mockCanAccess.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -422,9 +440,8 @@ describe("ReceivedMessages", () => {
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
-
-      expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
 
       // Should display messages sorted by timestamp (newest first)
       const listItems = container.querySelectorAll('[data-testid="list-item"]');
@@ -436,10 +453,11 @@ describe("ReceivedMessages", () => {
     });
 
     it("should sort messages by timestamp (newest first)", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       const listItems = container.querySelectorAll('[data-testid="list-item"]');
@@ -458,10 +476,11 @@ describe("ReceivedMessages", () => {
     });
 
     it("should display message accessories with formatted time", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       const listItems = container.querySelectorAll('[data-testid="list-item"]');
@@ -501,27 +520,6 @@ describe("ReceivedMessages", () => {
       );
     });
 
-    it("should update search placeholder when switching to AI search", async () => {
-      const { getByTestId, container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Click AI search option
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      await waitFor(() => {
-        expect(getByTestId("list")).toHaveAttribute(
-          "data-placeholder",
-          "Search with AI (semantic)...",
-        );
-      });
-    });
-
     it("should perform normal search immediately", async () => {
       render(<ReceivedMessages />);
 
@@ -533,63 +531,15 @@ describe("ReceivedMessages", () => {
       const listItems = document.querySelectorAll('[data-testid="list-item"]');
       expect(listItems).toHaveLength(3);
     });
-
-    it("should debounce AI search", async () => {
-      jest.useFakeTimers();
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Fast forward timers
-      jest.advanceTimersByTime(600);
-
-      jest.useRealTimers();
-    });
-
-    it("should handle AI search error", async () => {
-      // This test verifies AI search error handling is implemented
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Verify dropdown exists with AI option
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      expect(aiDropdownItem).toBeInTheDocument();
-    });
-
-    it("should handle Pro required error for AI search", async () => {
-      mockCanAccess.mockReturnValue(false);
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Verify AI dropdown exists but user has no access
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      expect(aiDropdownItem).toBeInTheDocument();
-      expect(mockCanAccess).toHaveReturnedWith(false);
-    });
   });
 
   describe("Action Handlers", () => {
     it("should copy message content", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       // Verify copy action button exists
@@ -600,10 +550,11 @@ describe("ReceivedMessages", () => {
     });
 
     it("should handle copy error", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       // Verify error handling is implemented
@@ -652,10 +603,11 @@ describe("ReceivedMessages", () => {
 
   describe("Message Detail View", () => {
     it("should render message detail with metadata", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       const viewButton = container.querySelector('[data-title="View Message"]');
@@ -663,10 +615,11 @@ describe("ReceivedMessages", () => {
     });
 
     it("should show project name from path", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       // The message detail should show project path
@@ -683,10 +636,11 @@ describe("ReceivedMessages", () => {
       ];
       mockGetReceivedMessages.mockResolvedValue(messagesWithoutPath);
 
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       const viewButton = container.querySelector('[data-title="View Message"]');
@@ -702,6 +656,7 @@ describe("ReceivedMessages", () => {
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       const emptyView = getByTestId("empty-view");
@@ -711,67 +666,10 @@ describe("ReceivedMessages", () => {
         "No received messages found in your Claude history",
       );
     });
-
-    it("should show AI search failure state", async () => {
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Verify AI search component exists for failure handling
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      expect(aiDropdownItem).toBeInTheDocument();
-    });
-  });
-
-  describe("Search Dropdown", () => {
-    it("should render search dropdown with correct options", async () => {
-      const { getByTestId, container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      const dropdown = getByTestId("dropdown");
-      expect(dropdown).toHaveAttribute("data-tooltip", "Search Mode");
-      expect(dropdown).toHaveAttribute("data-value", "normal");
-
-      const normalOption = container.querySelector(
-        '[data-title="Normal Search"]',
-      );
-      const aiOption = container.querySelector(
-        '[data-title="AI Search (Semantic)"]',
-      );
-
-      expect(normalOption).toBeInTheDocument();
-      expect(aiOption).toBeInTheDocument();
-    });
-
-    it("should switch between search modes", async () => {
-      const { container, getByTestId } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Initially normal search
-      expect(getByTestId("dropdown")).toHaveAttribute("data-value", "normal");
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      await waitFor(() => {
-        expect(getByTestId("dropdown")).toHaveAttribute("data-value", "ai");
-      });
-    });
   });
 
   describe("Cleanup and Effects", () => {
-    it("should cleanup debounce timer on unmount", () => {
+    it("should cleanup on unmount", () => {
       const { unmount } = render(<ReceivedMessages />);
 
       // Verify component can be unmounted without errors
@@ -803,20 +701,6 @@ describe("ReceivedMessages", () => {
       // Verify messages are displayed
       const listItems = container.querySelectorAll('[data-testid="list-item"]');
       expect(listItems).toHaveLength(3);
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Verify search mode changed
-      await waitFor(() => {
-        expect(getByTestId("list")).toHaveAttribute(
-          "data-placeholder",
-          "Search with AI (semantic)...",
-        );
-      });
 
       // Test copy action
       const copyButton = container.querySelector(
@@ -858,30 +742,6 @@ describe("ReceivedMessages", () => {
   });
 
   describe("Advanced Coverage Tests", () => {
-    it("should handle AI search with empty search text", async () => {
-      jest.useFakeTimers();
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Fast forward timers for empty search
-      jest.advanceTimersByTime(600);
-
-      // Should not perform search with empty text
-      expect(mockSemanticSearch).not.toHaveBeenCalled();
-
-      jest.useRealTimers();
-    });
-
     it("should test normal search filtering logic", async () => {
       const searchQuery = "React";
       mockNormalSearch.mockReturnValue([mockMessages[0]]);
@@ -894,162 +754,22 @@ describe("ReceivedMessages", () => {
 
       // Mock state to trigger normal search
       const MockedReceivedMessages = () => {
-        const [useAISearch] = React.useState(false);
         const [searchText] = React.useState(searchQuery);
         const [messages] = React.useState(mockMessages);
 
         // This will trigger the normalSearch in displayMessages useMemo
         React.useMemo(() => {
-          if (!useAISearch && searchText.trim()) {
+          if (searchText.trim()) {
             return mockNormalSearch(messages, searchText);
           }
           return messages;
-        }, [messages, searchText, useAISearch]);
+        }, [messages, searchText]);
 
         return <div data-testid="mocked-component">Mocked</div>;
       };
 
       rerender(<MockedReceivedMessages />);
       expect(mockNormalSearch).toHaveBeenCalledWith(mockMessages, searchQuery);
-    });
-
-    it("should test debounce timer cleanup", async () => {
-      jest.useFakeTimers();
-      const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
-
-      const TestComponent = () => {
-        const [searchText, setSearchText] = React.useState("");
-        const [useAISearch, setUseAISearch] = React.useState(true);
-        const debounceTimerRef = React.useRef<NodeJS.Timeout | undefined>(
-          undefined,
-        );
-
-        React.useEffect(() => {
-          if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-          }
-
-          if (useAISearch) {
-            debounceTimerRef.current = setTimeout(() => {
-              // setDebouncedSearchText would be called here
-            }, 500);
-          }
-
-          return () => {
-            if (debounceTimerRef.current) {
-              clearTimeout(debounceTimerRef.current);
-            }
-          };
-        }, [searchText, useAISearch]);
-
-        return (
-          <div>
-            <button
-              onClick={() => setSearchText("test")}
-              data-testid="change-search"
-            >
-              Change Search
-            </button>
-            <button
-              onClick={() => setUseAISearch(!useAISearch)}
-              data-testid="toggle-ai"
-            >
-              Toggle AI
-            </button>
-          </div>
-        );
-      };
-
-      const { getByTestId } = render(<TestComponent />);
-
-      // Trigger multiple search changes to test clearTimeout
-      fireEvent.click(getByTestId("change-search"));
-      fireEvent.click(getByTestId("toggle-ai"));
-      fireEvent.click(getByTestId("change-search"));
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      clearTimeoutSpy.mockRestore();
-    });
-
-    it("should test AI search error handling with different error types", async () => {
-      const TestAISearchComponent = () => {
-        const [messages] = React.useState(mockMessages);
-        const [, setFilteredMessages] = React.useState<ParsedMessage[]>([]);
-        const [aiSearchFailed, setAiSearchFailed] = React.useState<
-          false | true | "pro-required"
-        >(false);
-        const [isLoading, setIsLoading] = React.useState(false);
-        const hasAIAccess = mockCanAccess(AI);
-
-        const performAISearch = async (searchText: string) => {
-          if (!searchText.trim()) {
-            setFilteredMessages(messages);
-            return;
-          }
-
-          setIsLoading(true);
-          setAiSearchFailed(false);
-          try {
-            const results = await mockSemanticSearch(messages, searchText);
-            setFilteredMessages(results);
-            setAiSearchFailed(false);
-          } catch (error) {
-            console.error("AI search error:", error);
-            setFilteredMessages([]);
-
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
-              setAiSearchFailed("pro-required");
-            } else {
-              setAiSearchFailed(true);
-            }
-
-            mockShowToast({
-              style: Toast.Style.Failure,
-              title: "AI search failed",
-            });
-          } finally {
-            setIsLoading(false);
-          }
-        };
-
-        React.useEffect(() => {
-          performAISearch("test query");
-        }, []);
-
-        return (
-          <div data-testid="ai-search-test">
-            {aiSearchFailed === "pro-required" && <span>Pro required</span>}
-            {aiSearchFailed === true && <span>Search failed</span>}
-            {isLoading && <span>Loading</span>}
-          </div>
-        );
-      };
-
-      // Test general AI search error
-      mockSemanticSearch.mockRejectedValueOnce(new Error("Search failed"));
-      const { rerender } = render(<TestAISearchComponent />);
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith({
-          style: "failure",
-          title: "AI search failed",
-        });
-      });
-
-      // Test Pro required error
-      mockCanAccess.mockReturnValueOnce(false);
-      mockSemanticSearch.mockRejectedValueOnce(
-        new Error("Raycast Pro subscription required"),
-      );
-      rerender(<TestAISearchComponent />);
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalled();
-      });
     });
 
     it("should test copy content function with different scenarios", async () => {
@@ -1198,10 +918,11 @@ describe("ReceivedMessages", () => {
     });
 
     it("should test copy message without closing window", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       // Get copy button and verify it exists
@@ -1212,10 +933,11 @@ describe("ReceivedMessages", () => {
     });
 
     it("should test message detail component props", async () => {
-      const { container } = render(<ReceivedMessages />);
+      const { container, getByTestId } = render(<ReceivedMessages />);
 
       await waitFor(() => {
         expect(mockGetReceivedMessages).toHaveBeenCalled();
+        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
       });
 
       // Check for Create Snippet action
@@ -1224,425 +946,7 @@ describe("ReceivedMessages", () => {
       );
       expect(createSnippetButton).toBeInTheDocument();
     });
-
-    it("should handle search text debouncing", async () => {
-      jest.useFakeTimers();
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate rapid search changes (should debounce)
-      jest.advanceTimersByTime(100);
-      jest.advanceTimersByTime(100);
-      jest.advanceTimersByTime(100);
-
-      // Should not have called search yet
-      expect(mockSemanticSearch).not.toHaveBeenCalled();
-
-      // Complete debounce period
-      jest.advanceTimersByTime(500);
-
-      jest.useRealTimers();
-    });
-
-    it("should test environment AI access", async () => {
-      mockCanAccess.mockReturnValue(true);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Verify environment.canAccess was called for AI
-      expect(mockCanAccess).toHaveBeenCalled();
-    });
-
-    it("should handle normal search with different search text", async () => {
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Verify component handles normal search mode by default
-      const dropdown = container.querySelector('[data-testid="dropdown"]');
-      expect(dropdown).toHaveAttribute("data-value", "normal");
-    });
-
-    it("should handle AI search with search text", async () => {
-      jest.useFakeTimers();
-
-      mockSemanticSearch.mockResolvedValue([mockMessages[0]]);
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Add actual search text by triggering the search effect with a value
-      jest.advanceTimersByTime(600);
-
-      jest.useRealTimers();
-    });
-
-    it("should handle Pro subscription error in AI search", async () => {
-      jest.useFakeTimers();
-
-      // Mock error with Raycast Pro message
-      mockSemanticSearch.mockRejectedValue(
-        new Error("Error: Raycast Pro subscription required"),
-      );
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      jest.advanceTimersByTime(600);
-
-      jest.useRealTimers();
-    });
-
-    it("should handle AI search when not using AI", async () => {
-      jest.useFakeTimers();
-
-      mockNormalSearch.mockReturnValue([mockMessages[1]]);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Stay in normal search mode and advance timers
-      jest.advanceTimersByTime(600);
-
-      jest.useRealTimers();
-    });
-
-    it("should clear timeout on search text change", async () => {
-      jest.useFakeTimers();
-
-      const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
-
-      const { container } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search to trigger timeout setup
-      const aiDropdownItem = container.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Trigger multiple search changes to test clearTimeout
-      jest.advanceTimersByTime(100);
-      jest.advanceTimersByTime(100);
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      clearTimeoutSpy.mockRestore();
-    });
-
-    it("should test dropdown onChange handler", async () => {
-      const TestDropdown = () => {
-        const [useAISearch, setUseAISearch] = React.useState(false);
-
-        return (
-          <div>
-            <div
-              data-testid="dropdown"
-              data-value={useAISearch ? "ai" : "normal"}
-            >
-              <div
-                data-testid="dropdown-item-normal"
-                data-value="normal"
-                onClick={() => setUseAISearch(false)}
-              >
-                Normal Search
-              </div>
-              <div
-                data-testid="dropdown-item-ai"
-                data-value="ai"
-                onClick={() => setUseAISearch(true)}
-              >
-                AI Search
-              </div>
-            </div>
-            <div data-testid="search-mode">{useAISearch ? "ai" : "normal"}</div>
-          </div>
-        );
-      };
-
-      const { getByTestId } = render(<TestDropdown />);
-
-      expect(getByTestId("search-mode")).toHaveTextContent("normal");
-
-      fireEvent.click(getByTestId("dropdown-item-ai"));
-      expect(getByTestId("search-mode")).toHaveTextContent("ai");
-
-      fireEvent.click(getByTestId("dropdown-item-normal"));
-      expect(getByTestId("search-mode")).toHaveTextContent("normal");
-    });
-
-    it("should handle actual ReceivedMessages component timer and search interactions", async () => {
-      jest.useFakeTimers();
-      const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
-      const setTimeoutSpy = jest.spyOn(global, "setTimeout");
-
-      const { unmount } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Component should set up timers during its lifecycle
-      expect(setTimeoutSpy).toHaveBeenCalled();
-
-      // Fast forward to trigger useEffect cleanup and timer behavior
-      act(() => {
-        jest.advanceTimersByTime(600);
-      });
-
-      // Cleanup on unmount should clear timers
-      unmount();
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      clearTimeoutSpy.mockRestore();
-      setTimeoutSpy.mockRestore();
-    });
-
-    it("should test ReceivedMessages AI search with Pro subscription error", async () => {
-      jest.useFakeTimers();
-      mockCanAccess.mockReturnValue(false);
-      mockSemanticSearch.mockRejectedValue(
-        new Error("Raycast Pro subscription required"),
-      );
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        // Component should handle Pro subscription checks
-        expect(mockCanAccess).toHaveBeenCalled();
-      });
-
-      jest.useRealTimers();
-    });
   });
-
-  describe("AI Search Comprehensive Coverage Tests", () => {
-    it("should clear timeout on search text change (line 70)", async () => {
-      jest.useFakeTimers();
-      const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search to trigger timeout logic
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      clearTimeoutSpy.mockRestore();
-    });
-
-    it("should handle AI search with empty debouncedSearchText (lines 101-104)", async () => {
-      jest.useFakeTimers();
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search mode
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Fast-forward time but with empty search text
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      // With empty search text, should show all messages
-      await waitFor(() => {
-        expect(
-          document.querySelectorAll('[data-testid="list-item"]'),
-        ).toHaveLength(3);
-      });
-
-      jest.useRealTimers();
-    });
-
-    it("should perform AI search with success (lines 106-112)", async () => {
-      jest.useFakeTimers();
-      mockSemanticSearch.mockResolvedValue([mockMessages[0]]);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test ai search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(mockSemanticSearch).toHaveBeenCalledWith(
-          mockMessages,
-          "test ai search",
-        );
-      });
-
-      jest.useRealTimers();
-    });
-
-    it("should show AI search error toast (lines 125-129)", async () => {
-      jest.useFakeTimers();
-      const aiError = new Error("Search failed");
-      mockSemanticSearch.mockRejectedValue(aiError);
-      mockCanAccess.mockReturnValue(true);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(mockShowToast).toHaveBeenCalledWith({
-          style: "failure",
-          title: "AI search failed",
-        });
-      });
-
-      jest.useRealTimers();
-    });
-
-    it("should set loading to false in finally block (lines 130-132)", async () => {
-      jest.useFakeTimers();
-      const aiError = new Error("Search failed");
-      mockSemanticSearch.mockRejectedValue(aiError);
-      mockCanAccess.mockReturnValue(true);
-
-      render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Simulate typing in search input
-      const searchInput = screen.getByTestId("search-input");
-      fireEvent.change(searchInput, { target: { value: "test search" } });
-
-      // Fast-forward time to trigger debounce
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      // After error, loading should be false
-      await waitFor(() => {
-        expect(document.querySelector('[data-testid="list"]')).toHaveAttribute(
-          "data-loading",
-          "false",
-        );
-      });
-
-      jest.useRealTimers();
-    });
-  });
-
-  describe("Copy Functionality Coverage Tests", () => {});
 
   describe("MessageDetail Component Coverage Tests", () => {
     it("should render MessageDetail with all metadata (lines 166-189)", () => {
@@ -1743,85 +1047,6 @@ describe("ReceivedMessages", () => {
       expect(mockClipboardCopy).toHaveBeenCalledWith(message.content);
       expect(mockCloseMainWindow).toHaveBeenCalled();
       expect(mockShowHUD).toHaveBeenCalledWith("Copied to Clipboard");
-    });
-  });
-
-  describe("Additional Edge Cases for Coverage", () => {
-    it("should test all timeout cleanup scenarios", async () => {
-      jest.useFakeTimers();
-      const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
-
-      const { unmount } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-      });
-
-      // Switch to AI search to create timeout
-      const aiDropdownItem = document.querySelector('[data-value="ai"]');
-      if (aiDropdownItem) {
-        fireEvent.click(aiDropdownItem);
-      }
-
-      // Trigger multiple changes to test cleanup
-      act(() => {
-        jest.advanceTimersByTime(100);
-      });
-
-      unmount();
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-
-      jest.useRealTimers();
-      clearTimeoutSpy.mockRestore();
-    });
-
-    it("should handle AI search with non-empty debounced text", async () => {
-      jest.useFakeTimers();
-      mockSemanticSearch.mockResolvedValue([mockMessages[0]]);
-
-      const TestAISearchComponent = () => {
-        const [useAISearch, setUseAISearch] = React.useState(false);
-        const [debouncedSearchText, setDebouncedSearchText] =
-          React.useState("");
-
-        React.useEffect(() => {
-          if (useAISearch && debouncedSearchText.trim()) {
-            mockSemanticSearch(mockMessages, debouncedSearchText);
-          }
-        }, [useAISearch, debouncedSearchText]);
-
-        return (
-          <div>
-            <button
-              onClick={() => setUseAISearch(true)}
-              data-testid="enable-ai"
-            >
-              Enable AI
-            </button>
-            <button
-              onClick={() => setDebouncedSearchText("test query")}
-              data-testid="set-search"
-            >
-              Set Search
-            </button>
-          </div>
-        );
-      };
-
-      render(<TestAISearchComponent />);
-
-      fireEvent.click(screen.getByTestId("enable-ai"));
-      fireEvent.click(screen.getByTestId("set-search"));
-
-      await waitFor(() => {
-        expect(mockSemanticSearch).toHaveBeenCalledWith(
-          mockMessages,
-          "test query",
-        );
-      });
-
-      jest.useRealTimers();
     });
   });
 });

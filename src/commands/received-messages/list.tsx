@@ -1,11 +1,8 @@
 import {
   Action,
   ActionPanel,
-  AI,
   Clipboard,
   closeMainWindow,
-  Color,
-  environment,
   getFrontmostApplication,
   Icon,
   List,
@@ -15,7 +12,7 @@ import {
 } from "@raycast/api";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { getReceivedMessages, ParsedMessage } from "../../utils/claudeMessages";
-import { semanticSearch, normalSearch } from "../../utils/aiSearch";
+import { normalSearch } from "../../utils/ai-search";
 import {
   groupMessagesByDate,
   formatSectionTitle,
@@ -23,29 +20,15 @@ import {
 import CreateSnippet from "../create-snippet/list";
 import MessageDetail from "./detail";
 
-// Constants
-const AI_SEARCH_DEBOUNCE_MS = 500;
-
-// Types
-type AISearchError = false | "failed" | "pro-required";
-
 export default function ReceivedMessages() {
   const [messages, setMessages] = useState<ParsedMessage[]>([]);
-  const [filteredMessages, setFilteredMessages] = useState<ParsedMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [useAISearch, setUseAISearch] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [debouncedSearchText, setDebouncedSearchText] = useState("");
-  const [aiSearchFailed, setAiSearchFailed] = useState<AISearchError>(false);
   const loadingRef = useRef(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
   const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
     Icon.Window,
   );
-
-  // Check if user has AI access
-  const hasAIAccess = environment.canAccess(AI);
 
   // Get frontmost application for list items
   useEffect(() => {
@@ -71,7 +54,6 @@ export default function ReceivedMessages() {
         (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
       );
       setMessages(sortedMessages);
-      setFilteredMessages(sortedMessages);
     } catch (error) {
       showToast({
         style: Toast.Style.Failure,
@@ -88,86 +70,18 @@ export default function ReceivedMessages() {
     loadMessages();
   }, []);
 
-  // Handle search text changes with debouncing for AI search
-  useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    if (useAISearch) {
-      // Debounce AI search
-      debounceTimerRef.current = setTimeout(() => {
-        setDebouncedSearchText(searchText);
-      }, AI_SEARCH_DEBOUNCE_MS);
-    } else {
-      // No debounce for normal search
-      setDebouncedSearchText(searchText);
-    }
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchText, useAISearch]);
-
-  // Filter messages immediately for normal search
+  // Filter messages with normal search
   const displayMessages = useMemo(() => {
-    if (!useAISearch && searchText.trim()) {
+    if (searchText.trim()) {
       return normalSearch(messages, searchText);
     }
-    return filteredMessages;
-  }, [messages, searchText, useAISearch, filteredMessages]);
+    return messages;
+  }, [messages, searchText]);
 
   // Group messages by date for section display
   const messageGroups = useMemo(() => {
     return groupMessagesByDate(displayMessages);
   }, [displayMessages]);
-
-  // Perform AI search only on debounced text
-  useEffect(() => {
-    async function performAISearch() {
-      if (!debouncedSearchText.trim()) {
-        setFilteredMessages(messages);
-        return;
-      }
-
-      if (useAISearch) {
-        setIsLoading(true);
-        setAiSearchFailed(false);
-        try {
-          const results = await semanticSearch(messages, debouncedSearchText);
-          setFilteredMessages(results);
-          setAiSearchFailed(false);
-        } catch (error) {
-          // Clear results and show error state
-          setFilteredMessages([]);
-
-          // Check if it's a Pro subscription error (either by checking access or error message)
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
-            setAiSearchFailed("pro-required");
-          } else {
-            setAiSearchFailed("failed");
-          }
-
-          // Show error toast
-          showToast({
-            style: Toast.Style.Failure,
-            title: "AI search failed",
-          });
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setFilteredMessages(normalSearch(messages, debouncedSearchText));
-        setAiSearchFailed(false);
-      }
-    }
-
-    performAISearch();
-  }, [debouncedSearchText, useAISearch, messages]);
 
   async function copyContent(message: ParsedMessage, closeWindow = false) {
     try {
@@ -194,30 +108,8 @@ export default function ReceivedMessages() {
   return (
     <List
       isLoading={isLoading}
-      searchBarPlaceholder={
-        useAISearch
-          ? "Search with AI (semantic)..."
-          : "Search received messages..."
-      }
+      searchBarPlaceholder="Search received messages..."
       onSearchTextChange={setSearchText}
-      searchBarAccessory={
-        <List.Dropdown
-          tooltip="Search Mode"
-          value={useAISearch ? "ai" : "normal"}
-          onChange={(value) => setUseAISearch(value === "ai")}
-        >
-          <List.Dropdown.Item
-            title="Normal Search"
-            value="normal"
-            icon={Icon.MagnifyingGlass}
-          />
-          <List.Dropdown.Item
-            title="AI Search (Semantic)"
-            value="ai"
-            icon={Icon.Stars}
-          />
-        </List.Dropdown>
-      }
       actions={
         <ActionPanel>
           <Action
@@ -240,28 +132,6 @@ export default function ReceivedMessages() {
                 onAction={loadMessages}
               />
             </ActionPanel>
-          }
-        />
-      )}
-      {aiSearchFailed && displayMessages.length === 0 && !isLoading && (
-        <List.EmptyView
-          icon={{
-            source:
-              aiSearchFailed === "pro-required"
-                ? Icon.Lock
-                : Icon.ExclamationMark,
-            tintColor:
-              aiSearchFailed === "pro-required" ? Color.Orange : Color.Red,
-          }}
-          title={
-            aiSearchFailed === "pro-required"
-              ? "Raycast Pro Required"
-              : "AI Search Failed"
-          }
-          description={
-            aiSearchFailed === "pro-required"
-              ? "AI search requires a Raycast Pro subscription"
-              : "Could not perform semantic search."
           }
         />
       )}
