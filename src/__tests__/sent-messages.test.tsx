@@ -551,7 +551,7 @@ describe("SentMessages", () => {
       const copyActions = screen.getAllByTestId("action-copy-to-clipboard");
       expect(copyActions.length).toBeGreaterThan(0);
       expect(copyActions[0]).toBeInTheDocument();
-      expect(copyActions[0]).toHaveAttribute("data-shortcut", "cmd+shift-c");
+      expect(copyActions[0]).toHaveAttribute("data-shortcut", "cmd-enter");
     });
 
     it("should have Create Snippet action with shortcut", async () => {
