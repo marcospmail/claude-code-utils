@@ -3,17 +3,25 @@
  */
 
 /**
- * Formats content with a title and wraps it in a markdown code block
+ * Formats content with a title header
  * @param title - The title to display as an h1 heading
- * @param content - The content to display in a markdown code block
+ * @param content - The formatted markdown content to display
  * @returns Formatted markdown string
  */
 export function formatContentMarkdown(title: string, content: string): string {
-  return `
-# ${title}
+  return `# ${title}
+---
+${content}`;
+}
 
-\`\`\`markdown
-${content}
-\`\`\`
-  `;
+/**
+ * Wraps code in a markdown code block with syntax highlighting
+ * @param code - The code to wrap
+ * @param language - The language for syntax highlighting (default: "bash")
+ * @returns Formatted code block string
+ */
+export function formatCodeBlock(code: string, language = "bash"): string {
+  return `\`\`\`${language}
+${code}
+\`\`\``;
 }
