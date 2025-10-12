@@ -1,5 +1,5 @@
 import { AI } from "@raycast/api";
-import { ParsedMessage, Snippet } from "./claudeMessages";
+import { ParsedMessage, Snippet } from "./claude-messages";
 
 /**
  * Parse AI response to extract JSON array of indices
