@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { getSlashCommands, SlashCommand } from "../../utils/slash-commands";
+import { getSlashCommands, SlashCommand } from "../../utils/commands";
 import SlashCommandDetail from "./detail";
 
 export default function BrowseCommands() {

@@ -1,5 +1,5 @@
-import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
-import { SlashCommand } from "../../utils/slash-commands";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import { SlashCommand } from "../../utils/commands";
 import { formatContentMarkdown } from "../../utils/markdown-formatters";
 
 interface SlashCommandDetailProps {

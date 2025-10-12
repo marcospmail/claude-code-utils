@@ -2,10 +2,10 @@
  * @jest-environment jsdom
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { render, screen, waitFor } from "@testing-library/react";
 import BrowseCommands from "../browse-commands";
-import * as slashCommandsUtils from "../utils/slash-commands";
+import * as slashCommandsUtils from "../utils/commands";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -77,6 +77,7 @@ jest.mock("@raycast/api", () => ({
       </button>
     ),
     ShowInFinder: () => <button data-testid="action-show-finder" />,
+    OpenWith: () => <button data-testid="action-open-with" />,
   },
   Icon: {
     Terminal: "terminal-icon",
@@ -96,7 +97,7 @@ jest.mock("../commands/browse-commands/detail", () => ({
 }));
 
 // Mock slashCommands utils
-jest.mock("../utils/slash-commands");
+jest.mock("../utils/commands");
 
 const mockGetSlashCommands =
   slashCommandsUtils.getSlashCommands as jest.MockedFunction<
