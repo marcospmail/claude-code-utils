@@ -277,10 +277,6 @@ jest.mock("@raycast/api", () => ({
   Clipboard: {
     copy: jest.fn(),
   },
-  environment: {
-    canAccess: jest.fn(),
-  },
-  AI: {},
   Toast: {
     Style: {
       Success: "success",
@@ -311,24 +307,17 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Get access to the mocked functions
-const {
-  showToast,
-  showHUD,
-  closeMainWindow,
-  confirmAlert,
-  Clipboard,
-  environment,
-} = jest.requireMock("@raycast/api");
+const { showToast, showHUD, closeMainWindow, confirmAlert, Clipboard } =
+  jest.requireMock("@raycast/api");
 
 jest.mock("../utils/claudeMessages");
-jest.mock("../utils/aiSearch");
+jest.mock("../utils/ai-search");
 
 // Get mocked versions
 const { getSnippets, deleteSnippet } = jest.requireMock(
   "../utils/claudeMessages",
 );
-const { semanticSearchSnippets, normalSearchSnippets } =
-  jest.requireMock("../utils/aiSearch");
+const { normalSearchSnippets } = jest.requireMock("../utils/ai-search");
 
 // Mock CreateSnippet component
 jest.mock("../commands/create-snippet/list", () => ({
@@ -377,15 +366,6 @@ describe("BrowseSnippets", () => {
             snippet.content.toLowerCase().includes(query.toLowerCase()),
         ),
     );
-    semanticSearchSnippets.mockImplementation(
-      (snippets: Snippet[], query: string) =>
-        snippets.filter(
-          (snippet: Snippet) =>
-            snippet.title.toLowerCase().includes(query.toLowerCase()) ||
-            snippet.content.toLowerCase().includes(query.toLowerCase()),
-        ),
-    );
-    environment.canAccess.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -528,20 +508,6 @@ describe("BrowseSnippets", () => {
       });
     });
 
-    it("should show search dropdown", async () => {
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("dropdown")).toBeInTheDocument();
-        expect(screen.getByTestId("dropdown")).toHaveAttribute(
-          "data-value",
-          "normal",
-        );
-      });
-    });
-
     it("should filter snippets with normal search", async () => {
       await act(async () => {
         render(<BrowseSnippets />);
@@ -563,208 +529,6 @@ describe("BrowseSnippets", () => {
           "snippet 1",
         );
       });
-    });
-
-    it("should change search mode via dropdown", async () => {
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("dropdown-select")).toBeInTheDocument();
-      });
-
-      const dropdown = screen.getByTestId("dropdown-select");
-      await act(async () => {
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      await waitFor(() => {
-        const list = screen.getByTestId("list");
-        expect(list).toHaveAttribute(
-          "data-placeholder",
-          "Search with AI (semantic)...",
-        );
-      });
-    });
-  });
-
-  describe("AI Search functionality", () => {
-    it("should change placeholder when AI search is enabled", async () => {
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      await waitFor(() => {
-        const list = screen.getByTestId("list");
-        expect(list).toHaveAttribute(
-          "data-placeholder",
-          "Search with AI (semantic)...",
-        );
-      });
-    });
-
-    it("should perform AI search with debouncing", async () => {
-      semanticSearchSnippets.mockResolvedValueOnce([mockSnippets[0]]);
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test query" } });
-      });
-
-      // Fast-forward debounce timer
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(semanticSearchSnippets).toHaveBeenCalledWith(
-          mockSnippets,
-          "test query",
-        );
-      });
-    });
-
-    it("should handle AI search failure", async () => {
-      semanticSearchSnippets.mockRejectedValueOnce(
-        new Error("AI search failed"),
-      );
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(showToast).toHaveBeenCalledWith({
-          style: "failure",
-          title: "AI search failed",
-        });
-      });
-    });
-
-    it("should show Pro required error when user has no AI access", async () => {
-      environment.canAccess.mockReturnValue(false);
-      semanticSearchSnippets.mockRejectedValueOnce(
-        new Error("Raycast Pro required"),
-      );
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        const emptyView = screen.getByTestId("empty-view");
-        expect(emptyView).toHaveAttribute("data-title", "Raycast Pro Required");
-        expect(emptyView).toHaveAttribute(
-          "data-description",
-          "AI search requires a Raycast Pro subscription",
-        );
-      });
-    });
-
-    it("should show AI search failed error view", async () => {
-      semanticSearchSnippets.mockRejectedValueOnce(
-        new Error("AI search failed"),
-      );
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        const emptyView = screen.getByTestId("empty-view");
-        expect(emptyView).toHaveAttribute("data-title", "AI Search Failed");
-        expect(emptyView).toHaveAttribute(
-          "data-description",
-          "Could not perform semantic search.",
-        );
-      });
-    });
-
-    it("should clear debounce timer on cleanup", async () => {
-      const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
-
-      const { unmount } = render(<BrowseSnippets />);
-
-      // Enable AI search and type
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      unmount();
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-      clearTimeoutSpy.mockRestore();
     });
   });
 
@@ -1292,37 +1056,6 @@ describe("BrowseSnippets", () => {
       });
     });
 
-    it("should handle search with AI when no snippets are loaded", async () => {
-      getSnippets.mockResolvedValueOnce([]);
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      // Should show empty view instead of calling search
-      await waitFor(() => {
-        const emptyView = screen.getByTestId("empty-view");
-        expect(emptyView).toBeInTheDocument();
-        expect(emptyView).toHaveAttribute("data-title", "No snippets yet");
-      });
-    });
-
     it("should handle normal search with empty query", async () => {
       await act(async () => {
         render(<BrowseSnippets />);
@@ -1336,239 +1069,6 @@ describe("BrowseSnippets", () => {
       // Should show all snippets for empty/whitespace query
       await waitFor(() => {
         expect(screen.getAllByTestId("list-item")).toHaveLength(3);
-      });
-    });
-  });
-
-  describe("Debouncing behavior", () => {
-    it("should debounce AI search properly", async () => {
-      semanticSearchSnippets.mockResolvedValue([mockSnippets[0]]);
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      // Should not call AI search immediately
-      expect(semanticSearchSnippets).not.toHaveBeenCalled();
-
-      // Fast-forward less than debounce time
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-
-      expect(semanticSearchSnippets).not.toHaveBeenCalled();
-
-      // Fast-forward past debounce time
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-
-      // Now AI search should be called
-      await waitFor(() => {
-        expect(semanticSearchSnippets).toHaveBeenCalledWith(
-          mockSnippets,
-          "test",
-        );
-      });
-    });
-
-    it("should not debounce normal search", async () => {
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      await waitFor(() => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      // Normal search should be called immediately
-      expect(normalSearchSnippets).toHaveBeenCalledWith(mockSnippets, "test");
-    });
-
-    it("should reset debounce timer on new input", async () => {
-      semanticSearchSnippets.mockResolvedValue([mockSnippets[0]]);
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type first query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test1" } });
-      });
-
-      // Fast-forward part way
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-
-      // Type second query (should reset timer)
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test2" } });
-      });
-
-      // Fast-forward same amount
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-
-      // Should not have been called yet
-      expect(semanticSearchSnippets).not.toHaveBeenCalled();
-
-      // Fast-forward rest of debounce
-      act(() => {
-        jest.advanceTimersByTime(300);
-      });
-
-      // Should be called with latest query
-      await waitFor(() => {
-        expect(semanticSearchSnippets).toHaveBeenCalledWith(
-          mockSnippets,
-          "test2",
-        );
-      });
-    });
-  });
-
-  describe("Additional coverage tests", () => {
-    it("should test performAISearch with empty debouncedSearchText", async () => {
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type and clear search
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-        fireEvent.change(searchInput, { target: { value: "" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      // Should reset to all snippets
-      await waitFor(() => {
-        expect(screen.getAllByTestId("list-item")).toHaveLength(3);
-      });
-    });
-
-    it("should test copyContent with closeWindow false", async () => {
-      // This test verifies the copy to clipboard behavior in detail view
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      await waitFor(() => {
-        // Verify copy action exists in detail view with correct props
-        const detailCopyActions = screen
-          .getAllByTestId("action-copy")
-          .filter((action) => {
-            const isInDetail = action.closest("[data-testid='detail-actions']");
-            return isInDetail !== null;
-          });
-
-        // Verify the action exists and has correct attributes
-        expect(detailCopyActions.length).toBeGreaterThan(0);
-        expect(detailCopyActions[0]).toHaveAttribute(
-          "data-title",
-          "Copy to Clipboard",
-        );
-        expect(detailCopyActions[0]).toHaveAttribute(
-          "data-shortcut",
-          "cmd+shift-c",
-        );
-      });
-    });
-
-    it("should test AI search with error containing Raycast Pro message", async () => {
-      environment.canAccess.mockReturnValue(true); // User has access
-      semanticSearchSnippets.mockRejectedValueOnce(
-        new Error("Some error mentioning Raycast Pro subscription required"),
-      );
-
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Enable AI search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      // Type search query
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        const emptyView = screen.getByTestId("empty-view");
-        expect(emptyView).toHaveAttribute("data-title", "Raycast Pro Required");
-      });
-    });
-
-    it("should test normal search in performAISearch when AI is disabled", async () => {
-      await act(async () => {
-        render(<BrowseSnippets />);
-      });
-
-      // Start with AI search, then disable it
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "ai" } });
-      });
-
-      await act(async () => {
-        const searchInput = screen.getByTestId("search-input");
-        fireEvent.change(searchInput, { target: { value: "test" } });
-      });
-
-      // Switch back to normal search
-      await waitFor(() => {
-        const dropdown = screen.getByTestId("dropdown-select");
-        fireEvent.change(dropdown, { target: { value: "normal" } });
-      });
-
-      act(() => {
-        jest.advanceTimersByTime(500);
-      });
-
-      // Should use normal search in performAISearch
-      await waitFor(() => {
-        expect(normalSearchSnippets).toHaveBeenCalledWith(mockSnippets, "test");
       });
     });
   });
