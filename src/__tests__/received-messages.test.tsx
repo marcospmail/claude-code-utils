@@ -2,19 +2,19 @@
  * @jest-environment jsdom
  */
 
-import React from "react";
-import { render, fireEvent, waitFor, screen } from "@testing-library/react";
-import "@testing-library/jest-dom";
-import ReceivedMessages from "../commands/received-messages/list";
-import { ParsedMessage, getReceivedMessages } from "../utils/claude-messages";
-import { normalSearch } from "../utils/ai-search";
 import {
-  showToast,
-  showHUD,
-  closeMainWindow,
   Clipboard,
   Toast,
+  closeMainWindow,
+  showHUD,
+  showToast,
 } from "@raycast/api";
+import "@testing-library/jest-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import React from "react";
+import ReceivedMessages from "../commands/received-messages/list";
+import { normalSearch } from "../utils/ai-search";
+import { ParsedMessage, getReceivedMessages } from "../utils/claude-messages";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -516,7 +516,7 @@ describe("ReceivedMessages", () => {
 
       expect(getByTestId("list")).toHaveAttribute(
         "data-placeholder",
-        "Search received messages...",
+        "Browse received messages...",
       );
     });
 

@@ -2,17 +2,17 @@
  * @jest-environment jsdom
  */
 
+import "@testing-library/jest-dom";
 import {
+  act,
+  fireEvent,
   render,
   screen,
   waitFor,
-  act,
-  fireEvent,
 } from "@testing-library/react";
-import "@testing-library/jest-dom";
+import React from "react";
 import SentMessages from "../commands/sent-messages/list";
 import { ParsedMessage } from "../utils/claude-messages";
-import React from "react";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -358,7 +358,7 @@ describe("SentMessages", () => {
       await waitFor(() => {
         expect(screen.getByTestId("list")).toHaveAttribute(
           "data-placeholder",
-          "Search sent messages...",
+          "Browse sent messages...",
         );
       });
     });

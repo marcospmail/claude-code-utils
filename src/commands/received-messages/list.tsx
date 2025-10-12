@@ -10,15 +10,15 @@ import {
   showToast,
   Toast,
 } from "@raycast/api";
-import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { normalSearch } from "../../utils/ai-search";
 import {
   getReceivedMessages,
   ParsedMessage,
 } from "../../utils/claude-messages";
-import { normalSearch } from "../../utils/ai-search";
 import {
-  groupMessagesByDate,
   formatSectionTitle,
+  groupMessagesByDate,
 } from "../../utils/date-grouping";
 import CreateSnippet from "../create-snippet/list";
 import MessageDetail from "./detail";
@@ -111,7 +111,7 @@ export default function ReceivedMessages() {
   return (
     <List
       isLoading={isLoading}
-      searchBarPlaceholder="Search received messages..."
+      searchBarPlaceholder="Browse received messages..."
       onSearchTextChange={setSearchText}
       actions={
         <ActionPanel>
