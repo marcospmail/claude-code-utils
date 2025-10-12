@@ -2,10 +2,10 @@
  * @jest-environment jsdom
  */
 
-import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import BrowseCommandsCheatsheet from "../commands/cheatsheet/list";
+import { render } from "@testing-library/react";
 import React from "react";
+import BrowseCommandsCheatsheet from "../commands/cheatsheet/list";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -258,7 +258,7 @@ describe("BrowseCommandsCheatsheet", () => {
     const list = getByTestId("list");
     expect(list).toHaveAttribute(
       "data-placeholder",
-      "Search Claude Code commands...",
+      "Browse Claude Code cheat sheet...",
     );
   });
 

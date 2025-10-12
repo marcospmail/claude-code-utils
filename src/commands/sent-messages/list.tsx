@@ -161,17 +161,17 @@ export default function SentMessages() {
                     icon={Icon.Eye}
                     target={<MessageDetail message={message} />}
                   />
+                  <Action
+                    title="Copy to Clipboard"
+                    icon={Icon.Clipboard}
+                    shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                    onAction={() => copyContent(message, true)}
+                  />
                   <Action.Paste
                     title={`Paste to ${frontmostApp}`}
                     content={message.content}
                     icon={appIcon}
-                    shortcut={{ modifiers: ["cmd"], key: "enter" }}
-                  />
-                  <Action
-                    title="Copy to Clipboard"
-                    icon={Icon.Clipboard}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
-                    onAction={() => copyContent(message, true)}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
                   />
                   <Action.Push
                     title="Create Snippet from Message"

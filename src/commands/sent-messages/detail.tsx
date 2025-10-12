@@ -36,16 +36,16 @@ export default function MessageDetail({ message }: MessageDetailProps) {
       markdown={message.content}
       actions={
         <ActionPanel>
+          <Action.CopyToClipboard
+            title="Copy to Clipboard"
+            content={message.content}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+          />
           <Action.Paste
             title={`Paste to ${frontmostApp}`}
             content={message.content}
             icon={appIcon}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
-          <Action.CopyToClipboard
-            title="Copy to Clipboard"
-            content={message.content}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
           />
           <Action.Push
             title="Create Snippet"

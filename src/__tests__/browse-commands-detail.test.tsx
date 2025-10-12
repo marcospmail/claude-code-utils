@@ -2,10 +2,10 @@
  * @jest-environment jsdom
  */
 
-import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { render, screen } from "@testing-library/react";
 import SlashCommandDetail from "../commands/browse-commands/detail";
-import { SlashCommand } from "../utils/slash-commands";
+import { SlashCommand } from "../utils/commands";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({

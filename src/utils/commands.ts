@@ -32,7 +32,7 @@ export async function getSlashCommands(): Promise<SlashCommand[]> {
         content,
         filePath,
       };
-    })
+    }),
   );
 
   return commands.sort((a, b) => a.name.localeCompare(b.name));
