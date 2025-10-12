@@ -1,6 +1,7 @@
 import {
   Action,
   ActionPanel,
+  Application,
   Detail,
   getFrontmostApplication,
   Icon,
@@ -14,38 +15,38 @@ interface MessageDetailProps {
 }
 
 export default function MessageDetail({ message }: MessageDetailProps) {
-  const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
-  const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
-    Icon.Window,
-  );
+  const [frontmostApp, setFrontmostApp] = useState<Application>();
 
   useEffect(() => {
     getFrontmostApplication()
       .then((app) => {
-        setFrontmostApp(app.name);
-        setAppIcon({ fileIcon: app.path });
+        setFrontmostApp(app);
       })
       .catch(() => {
-        setFrontmostApp("Active App");
-        setAppIcon(Icon.Window);
+        // Silently fail - no paste action will be shown
       });
   }, []);
+
+  // Extract first line or first 50 characters for title
+  const title = message.preview || "Sent Message";
 
   return (
     <Detail
       markdown={message.content}
+      navigationTitle={title}
       actions={
         <ActionPanel>
+          {frontmostApp && (
+            <Action.Paste
+              title={`Paste to ${frontmostApp.name}`}
+              content={message.content}
+              icon={frontmostApp.path}
+            />
+          )}
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={message.content}
             shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
-          <Action.Paste
-            title={`Paste to ${frontmostApp}`}
-            content={message.content}
-            icon={appIcon}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
           />
           <Action.Push
             title="Create Snippet"

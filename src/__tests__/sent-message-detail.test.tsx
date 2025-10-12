@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import MessageDetail from "../commands/sent-messages/detail";
 import { ParsedMessage } from "../utils/claude-messages";
 
@@ -108,7 +108,7 @@ describe("MessageDetail (Sent Messages)", () => {
     expect(markdown.textContent).toBe(mockMessage.content);
   });
 
-  it("should render action panel with all actions", () => {
+  it("should render action panel with all actions", async () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockResolvedValue({
       name: "Terminal",
@@ -117,12 +117,15 @@ describe("MessageDetail (Sent Messages)", () => {
 
     const { getByTestId } = render(<MessageDetail message={mockMessage} />);
 
+    // Wait for getFrontmostApplication to resolve
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     expect(getByTestId("paste-action")).toBeTruthy();
     expect(getByTestId("copy-action")).toBeTruthy();
     expect(getByTestId("push-action")).toBeTruthy();
   });
 
-  it("should pass correct content to actions", () => {
+  it("should pass correct content to actions", async () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockResolvedValue({
       name: "VSCode",
@@ -130,6 +133,11 @@ describe("MessageDetail (Sent Messages)", () => {
     });
 
     const { getByTestId } = render(<MessageDetail message={mockMessage} />);
+
+    // Wait for getFrontmostApplication to resolve
+    await waitFor(() => {
+      expect(getByTestId("paste-action")).toBeTruthy();
+    });
 
     const pasteAction = getByTestId("paste-action");
     expect(pasteAction.getAttribute("data-content")).toBe(mockMessage.content);
@@ -152,21 +160,23 @@ describe("MessageDetail (Sent Messages)", () => {
 
     const { getByTestId } = render(<MessageDetail message={mockMessage} />);
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => {
+      expect(getByTestId("paste-action")).toBeTruthy();
+    });
 
     const pasteAction = getByTestId("paste-action");
     expect(pasteAction.getAttribute("data-title")).toContain("Finder");
   });
 
-  it("should use fallback app name on error", async () => {
+  it("should not render paste action when getFrontmostApplication fails", async () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockRejectedValue(new Error("No app found"));
 
-    const { getByTestId } = render(<MessageDetail message={mockMessage} />);
+    const { queryByTestId } = render(<MessageDetail message={mockMessage} />);
 
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const pasteAction = getByTestId("paste-action");
-    expect(pasteAction.getAttribute("data-title")).toContain("Active App");
+    const pasteAction = queryByTestId("paste-action");
+    expect(pasteAction).toBeNull();
   });
 });
