@@ -1,6 +1,6 @@
+import { readdir, readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
 
 export interface Agent {
   id: string;
@@ -9,6 +9,7 @@ export interface Agent {
   filePath: string;
 }
 
+// TEMPORARY: Using mock agents-raycast folder for screenshots
 const AGENTS_DIR = join(homedir(), ".claude", "agents");
 
 /**

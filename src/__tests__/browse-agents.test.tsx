@@ -77,6 +77,7 @@ jest.mock("@raycast/api", () => ({
       </button>
     ),
     ShowInFinder: () => <button data-testid="action-show-finder" />,
+    OpenWith: () => <button data-testid="action-open-with" />,
   },
   Icon: {
     CodeBlock: "codeblock-icon",
