@@ -1,37 +1,40 @@
+import { LocalStorage } from "@raycast/api";
+import { createHash } from "crypto";
 import { createReadStream } from "fs";
 import { readdir, stat } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { createInterface } from "readline";
+const SNIPPETS_KEY = "claude-messages-snippets";
 
 // Type definitions for JSONL file content
-interface ContentItem {
+type ContentItem = {
   type: string;
   text?: string;
-}
+};
 
-interface JSONLMessage {
+type JSONLMessage = {
   role: "user" | "assistant" | "system";
   content: string | ContentItem[];
-}
+};
 
-interface JSONLData {
+type JSONLData = {
   message?: JSONLMessage;
   timestamp?: string | number;
-}
+};
 
-export interface Message {
+export type Message = {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
   sessionId: string;
   projectPath?: string;
-}
+};
 
-export interface ParsedMessage extends Message {
+export type ParsedMessage = Message & {
   id: string;
   preview: string;
-}
+};
 
 const CLAUDE_DIR = join(homedir(), ".claude", "projects");
 
@@ -527,18 +530,13 @@ export async function getReceivedMessages(): Promise<ParsedMessage[]> {
   return parsedMessages;
 }
 
-// Snippets functionality
-import { createHash } from "crypto";
-import { LocalStorage } from "@raycast/api";
-const SNIPPETS_KEY = "claude-messages-snippets";
-
-export interface Snippet {
+export type Snippet = {
   id: string;
   title: string;
   content: string;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
 /**
  * Get all snippets from LocalStorage
