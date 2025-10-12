@@ -292,31 +292,15 @@ describe("BrowseCommandsCheatsheet", () => {
     expect(getCommandsByCategory).toHaveBeenCalled();
   });
 
-  it("should test command usage copy functionality", () => {
-    // Commands with usage property should have Copy Usage button
+  it("should render View Details action for each command", () => {
     const { container } = render(<BrowseCommandsCheatsheet />);
 
-    // Mocked commands from commands-data have usage property
-    const copyUsageButtons = container.querySelectorAll(
-      '[data-title="Copy Usage"]',
+    const viewDetailsButtons = container.querySelectorAll(
+      '[data-title="View Details"]',
     );
 
-    // Should have Copy Usage buttons for commands with usage
-    expect(copyUsageButtons.length).toBeGreaterThan(0);
-  });
-
-  it("should test command without usage property", () => {
-    // This test ensures commands without usage property don't show Copy Usage button
-    const { container } = render(<BrowseCommandsCheatsheet />);
-
-    // Default commands from mock don't have usage property
-    // So Copy Usage button should not appear for them
-    const copyUsageButtons = container.querySelectorAll(
-      '[data-title="Copy Usage"]',
-    );
-
-    // Check that all default commands have Copy Usage buttons (they have usage)
-    expect(copyUsageButtons.length).toBeGreaterThan(0);
+    // Should have View Details buttons for all commands
+    expect(viewDetailsButtons.length).toBeGreaterThan(0);
   });
 
   it("should test command with accessories in category view", () => {
@@ -342,10 +326,10 @@ describe("BrowseCommandsCheatsheet", () => {
     const listItems = container.querySelectorAll('[data-testid="list-item"]');
     expect(listItems.length).toBeGreaterThan(0);
 
-    // Test that usage copy action is available when usage exists
-    const copyUsageButton = container.querySelector(
-      '[data-title="Copy Usage"]',
+    // Test that View Details action is available
+    const viewDetailsButton = container.querySelector(
+      '[data-title="View Details"]',
     );
-    expect(copyUsageButton).toBeTruthy();
+    expect(viewDetailsButton).toBeTruthy();
   });
 });
