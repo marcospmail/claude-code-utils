@@ -1,6 +1,7 @@
+// import { homedir } from "os"; // TEMPORARY: commented out for mock folder
+import { readdir, readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
 
 export interface SlashCommand {
   id: string;
@@ -9,6 +10,7 @@ export interface SlashCommand {
   filePath: string;
 }
 
+// TEMPORARY: Using mock commands-raycast folder for screenshots
 const COMMANDS_DIR = join(homedir(), ".claude", "commands");
 
 /**
@@ -30,7 +32,7 @@ export async function getSlashCommands(): Promise<SlashCommand[]> {
         content,
         filePath,
       };
-    }),
+    })
   );
 
   return commands.sort((a, b) => a.name.localeCompare(b.name));
