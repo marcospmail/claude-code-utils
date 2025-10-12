@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "claude-code-utils",
   "title": "Claude Code Utils",
-  "description": "Browse, search, and manage your Claude Code conversations. Access sent/received messages, create snippets, and view command shortcuts.",
+  "description": "Browse your Claude Code sent/received messages, create snippets, easy access to your agents/commands, browse Claude Code changelog and see all Claude Code commands and shortcuts",
   "icon": "icon.png",
   "author": "marcospmail",
   "categories": [
