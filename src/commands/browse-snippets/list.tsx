@@ -17,7 +17,7 @@ import {
   getSnippets,
   deleteSnippet,
   Snippet,
-} from "../../utils/claudeMessages";
+} from "../../utils/claude-messages";
 import { normalSearchSnippets } from "../../utils/ai-search";
 import CreateSnippet from "../create-snippet/list";
 import SnippetDetail from "./detail";

@@ -6,7 +6,7 @@ import {
   Icon,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { Snippet } from "../../utils/claudeMessages";
+import { Snippet } from "../../utils/claude-messages";
 import CreateSnippet from "../create-snippet/list";
 
 interface SnippetDetailProps {

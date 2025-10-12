@@ -1,4 +1,4 @@
-import { ParsedMessage, Snippet } from "./claudeMessages";
+import { ParsedMessage, Snippet } from "./claude-messages";
 
 /**
  * Normal (keyword) search for messages

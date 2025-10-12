@@ -22,7 +22,7 @@ import {
   createSnippet,
   deleteSnippet,
   type ParsedMessage,
-} from "../claudeMessages";
+} from "../claude-messages";
 
 // Mock all external dependencies
 jest.mock("fs", () => ({

@@ -11,7 +11,7 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BrowseSnippets from "../commands/browse-snippets/list";
-import { Snippet } from "../utils/claudeMessages";
+import { Snippet } from "../utils/claude-messages";
 import React from "react";
 
 // Mock timers for debouncing tests
@@ -310,12 +310,12 @@ jest.mock("@raycast/api", () => ({
 const { showToast, showHUD, closeMainWindow, confirmAlert, Clipboard } =
   jest.requireMock("@raycast/api");
 
-jest.mock("../utils/claudeMessages");
+jest.mock("../utils/claude-messages");
 jest.mock("../utils/ai-search");
 
 // Get mocked versions
 const { getSnippets, deleteSnippet } = jest.requireMock(
-  "../utils/claudeMessages",
+  "../utils/claude-messages",
 );
 const { normalSearchSnippets } = jest.requireMock("../utils/ai-search");
 

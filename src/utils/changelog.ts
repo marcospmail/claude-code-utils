@@ -1,4 +1,4 @@
-import { simulateNetworkDelay } from "./networkSimulation";
+import { simulateNetworkDelay } from "./network-simulation";
 
 export interface ChangelogVersion {
   version: string;

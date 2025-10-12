@@ -7,7 +7,7 @@ import {
   // semanticSearchSnippets,
   normalSearchSnippets,
 } from "../ai-search";
-import { ParsedMessage, Snippet } from "../claudeMessages";
+import { ParsedMessage, Snippet } from "../claude-messages";
 
 // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
 // jest.mock("@raycast/api");

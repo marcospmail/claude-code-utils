@@ -11,7 +11,7 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import SentMessages from "../commands/sent-messages/list";
-import { ParsedMessage } from "../utils/claudeMessages";
+import { ParsedMessage } from "../utils/claude-messages";
 import React from "react";
 
 // Mock Raycast API
@@ -255,7 +255,7 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Mock utils
-jest.mock("../utils/claudeMessages", () => ({
+jest.mock("../utils/claude-messages", () => ({
   getSentMessages: jest.fn(),
 }));
 
@@ -304,7 +304,7 @@ describe("SentMessages", () => {
   ];
 
   const getSentMessages = jest.mocked(
-    jest.requireMock("../utils/claudeMessages").getSentMessages,
+    jest.requireMock("../utils/claude-messages").getSentMessages,
   );
   const normalSearchMessages = jest.mocked(
     jest.requireMock("../utils/ai-search").normalSearchMessages,

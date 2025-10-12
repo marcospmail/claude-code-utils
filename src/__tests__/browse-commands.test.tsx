@@ -5,7 +5,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BrowseCommands from "../browse-commands";
-import * as slashCommandsUtils from "../utils/slashCommands";
+import * as slashCommandsUtils from "../utils/slash-commands";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -96,7 +96,7 @@ jest.mock("../commands/browse-commands/detail", () => ({
 }));
 
 // Mock slashCommands utils
-jest.mock("../utils/slashCommands");
+jest.mock("../utils/slash-commands");
 
 const mockGetSlashCommands =
   slashCommandsUtils.getSlashCommands as jest.MockedFunction<

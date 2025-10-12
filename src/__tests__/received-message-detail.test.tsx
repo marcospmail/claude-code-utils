@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import MessageDetail from "../commands/received-messages/detail";
-import { ParsedMessage } from "../utils/claudeMessages";
+import { ParsedMessage } from "../utils/claude-messages";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({

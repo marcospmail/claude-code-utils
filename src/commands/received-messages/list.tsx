@@ -11,12 +11,15 @@ import {
   Toast,
 } from "@raycast/api";
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { getReceivedMessages, ParsedMessage } from "../../utils/claudeMessages";
+import {
+  getReceivedMessages,
+  ParsedMessage,
+} from "../../utils/claude-messages";
 import { normalSearch } from "../../utils/ai-search";
 import {
   groupMessagesByDate,
   formatSectionTitle,
-} from "../../utils/dateGrouping";
+} from "../../utils/date-grouping";
 import CreateSnippet from "../create-snippet/list";
 import MessageDetail from "./detail";
 
