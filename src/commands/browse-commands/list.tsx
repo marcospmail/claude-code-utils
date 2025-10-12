@@ -60,7 +60,7 @@ export default function BrowseCommands() {
                   target={<SlashCommandDetail command={command} />}
                 />
                 <Action.CopyToClipboard
-                  title="Copy Command Content"
+                  title="Copy to Clipboard"
                   content={command.content}
                   icon={Icon.Clipboard}
                   shortcut={{ modifiers: ["cmd"], key: "enter" }}
