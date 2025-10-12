@@ -27,7 +27,7 @@ export interface MessageGroup {
  * @param now - Current date (defaults to new Date(), injectable for testing)
  * @returns Category string ("Today", "Yesterday", "2023", etc.)
  */
-export function getDateCategory(
+function getDateCategory(
   messageDate: Date,
   now: Date = new Date(),
 ): DateCategory {
@@ -98,7 +98,7 @@ const SECTION_ORDER: DateCategory[] = [
  * @param category - Date category
  * @returns Sort key (0-4 for standard sections, 1000-year for year sections, descending)
  */
-export function getSectionSortKey(category: DateCategory): number {
+function getSectionSortKey(category: DateCategory): number {
   const index = SECTION_ORDER.indexOf(category);
   if (index !== -1) return index;
 

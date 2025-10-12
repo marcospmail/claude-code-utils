@@ -1,4 +1,4 @@
-import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { getSlashCommands, SlashCommand } from "../../utils/slash-commands";
 import SlashCommandDetail from "./detail";
@@ -15,7 +15,7 @@ export default function BrowseCommands() {
         setCommands(loadedCommands);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load commands",
+          err instanceof Error ? err.message : "Failed to load commands"
         );
       } finally {
         setIsLoading(false);
@@ -38,7 +38,7 @@ export default function BrowseCommands() {
   }
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Search commands...">
+    <List isLoading={isLoading} searchBarPlaceholder="Browse commands...">
       {commands.length === 0 && !isLoading ? (
         <List.EmptyView
           icon={Icon.Document}
@@ -63,11 +63,15 @@ export default function BrowseCommands() {
                   title="Copy Command Content"
                   content={command.content}
                   icon={Icon.Clipboard}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                  shortcut={{ modifiers: ["cmd"], key: "enter" }}
                 />
                 <Action.ShowInFinder
                   path={command.filePath}
                   shortcut={{ modifiers: ["cmd", "shift"], key: "f" }}
+                />
+                <Action.OpenWith
+                  path={command.filePath}
+                  shortcut={{ modifiers: ["cmd"], key: "o" }}
                 />
               </ActionPanel>
             }

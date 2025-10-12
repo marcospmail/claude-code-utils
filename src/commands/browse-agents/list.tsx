@@ -1,6 +1,6 @@
-import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { getAgents, Agent } from "../../utils/agents";
+import { Agent, getAgents } from "../../utils/agents";
 import AgentDetail from "./detail";
 
 export default function BrowseAgents() {
@@ -36,7 +36,7 @@ export default function BrowseAgents() {
   }
 
   return (
-    <List isLoading={isLoading} searchBarPlaceholder="Search agents...">
+    <List isLoading={isLoading} searchBarPlaceholder="Browse agents...">
       {agents.length === 0 && !isLoading ? (
         <List.EmptyView
           icon={Icon.Document}
@@ -61,11 +61,15 @@ export default function BrowseAgents() {
                   title="Copy Agent Content"
                   content={agent.content}
                   icon={Icon.Clipboard}
-                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                  shortcut={{ modifiers: ["cmd"], key: "enter" }}
                 />
                 <Action.ShowInFinder
                   path={agent.filePath}
                   shortcut={{ modifiers: ["cmd", "shift"], key: "f" }}
+                />
+                <Action.OpenWith
+                  path={agent.filePath}
+                  shortcut={{ modifiers: ["cmd"], key: "o" }}
                 />
               </ActionPanel>
             }

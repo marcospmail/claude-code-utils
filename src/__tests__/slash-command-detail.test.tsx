@@ -79,8 +79,13 @@ describe("SlashCommandDetail", () => {
   it("should render copy action", () => {
     render(<SlashCommandDetail command={mockCommand} />);
 
-    const copyAction = screen.getByTestId("action-copy");
-    expect(copyAction).toHaveAttribute("data-title", "Copy Command Content");
+    const copyActions = screen.getAllByTestId("action-copy");
+    expect(copyActions).toHaveLength(2);
+    expect(copyActions[0]).toHaveAttribute("data-title", "Copy Command Name");
+    expect(copyActions[1]).toHaveAttribute(
+      "data-title",
+      "Copy Command Content",
+    );
   });
 
   it("should render show in finder action", () => {

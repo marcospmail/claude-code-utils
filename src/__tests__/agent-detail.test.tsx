@@ -79,8 +79,10 @@ describe("AgentDetail", () => {
   it("should render copy action", () => {
     render(<AgentDetail agent={mockAgent} />);
 
-    const copyAction = screen.getByTestId("action-copy");
-    expect(copyAction).toHaveAttribute("data-title", "Copy Agent Content");
+    const copyActions = screen.getAllByTestId("action-copy");
+    expect(copyActions).toHaveLength(2);
+    expect(copyActions[0]).toHaveAttribute("data-title", "Copy Agent Name");
+    expect(copyActions[1]).toHaveAttribute("data-title", "Copy Agent Content");
   });
 
   it("should render show in finder action", () => {

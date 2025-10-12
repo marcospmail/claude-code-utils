@@ -6,7 +6,7 @@ jest.mock("os", () => ({
   homedir: jest.fn(() => "/home/user"),
 }));
 
-import { getSlashCommands, getSlashCommand } from "../slash-commands";
+import { getSlashCommands } from "../slash-commands";
 import { readdir, readFile } from "fs/promises";
 
 const mockReaddir = readdir as jest.MockedFunction<typeof readdir>;
@@ -34,7 +34,7 @@ describe("slashCommands", () => {
       expect(commands).toHaveLength(2);
       expect(commands[0]).toEqual({
         id: "another-command",
-        name: "Another Command",
+        name: "another-command",
         content: "# Another Command Content",
         filePath: join(
           "/home/user",
@@ -45,7 +45,7 @@ describe("slashCommands", () => {
       });
       expect(commands[1]).toEqual({
         id: "test-command",
-        name: "Test Command",
+        name: "test-command",
         content: "# Test Command Content",
         filePath: join("/home/user", ".claude", "commands", "test-command.md"),
       });
@@ -66,17 +66,15 @@ describe("slashCommands", () => {
       expect(mockReadFile).toHaveBeenCalledTimes(1);
     });
 
-    it("should return empty array when directory does not exist", async () => {
+    it("should throw error when directory does not exist", async () => {
       const error = new Error("ENOENT");
       (error as NodeJS.ErrnoException).code = "ENOENT";
       mockReaddir.mockRejectedValue(error);
 
-      const commands = await getSlashCommands();
-
-      expect(commands).toEqual([]);
+      await expect(getSlashCommands()).rejects.toThrow("ENOENT");
     });
 
-    it("should throw error for non-ENOENT errors", async () => {
+    it("should throw error for other filesystem errors", async () => {
       const error = new Error("Permission denied");
       mockReaddir.mockRejectedValue(error);
 
@@ -97,12 +95,12 @@ describe("slashCommands", () => {
 
       const commands = await getSlashCommands();
 
-      expect(commands[0].name).toBe("Apple Command");
-      expect(commands[1].name).toBe("Middle Command");
-      expect(commands[2].name).toBe("Zebra Command");
+      expect(commands[0].name).toBe("apple-command");
+      expect(commands[1].name).toBe("middle-command");
+      expect(commands[2].name).toBe("zebra-command");
     });
 
-    it("should format command names correctly", async () => {
+    it("should keep command names in kebab-case", async () => {
       mockReaddir.mockResolvedValue([
         "multi-word-command-name.md",
         "single.md",
@@ -114,8 +112,8 @@ describe("slashCommands", () => {
 
       const commands = await getSlashCommands();
 
-      expect(commands[0].name).toBe("Multi Word Command Name");
-      expect(commands[1].name).toBe("Single");
+      expect(commands[0].name).toBe("multi-word-command-name");
+      expect(commands[1].name).toBe("single");
     });
 
     it("should handle empty directory", async () => {
@@ -139,60 +137,6 @@ describe("slashCommands", () => {
       expect(commands[0].filePath).toBe(
         join("/home/user", ".claude", "commands", "test.md"),
       );
-    });
-  });
-
-  describe("getSlashCommand", () => {
-    it("should return a single command by id", async () => {
-      mockReadFile.mockResolvedValueOnce("# Test Command Content");
-
-      const command = await getSlashCommand("test-command");
-
-      expect(command).toEqual({
-        id: "test-command",
-        name: "Test Command",
-        content: "# Test Command Content",
-        filePath: join("/home/user", ".claude", "commands", "test-command.md"),
-      });
-      expect(mockReadFile).toHaveBeenCalledWith(
-        join("/home/user", ".claude", "commands", "test-command.md"),
-        "utf-8",
-      );
-    });
-
-    it("should return null when command file does not exist", async () => {
-      const error = new Error("ENOENT");
-      (error as NodeJS.ErrnoException).code = "ENOENT";
-      mockReadFile.mockRejectedValue(error);
-
-      const command = await getSlashCommand("non-existent");
-
-      expect(command).toBeNull();
-    });
-
-    it("should throw error for non-ENOENT errors", async () => {
-      const error = new Error("Permission denied");
-      mockReadFile.mockRejectedValue(error);
-
-      await expect(getSlashCommand("test")).rejects.toThrow(
-        "Permission denied",
-      );
-    });
-
-    it("should format command name from id", async () => {
-      mockReadFile.mockResolvedValueOnce("# Content");
-
-      const command = await getSlashCommand("my-custom-command");
-
-      expect(command?.name).toBe("My Custom Command");
-    });
-
-    it("should handle single word command names", async () => {
-      mockReadFile.mockResolvedValueOnce("# Content");
-
-      const command = await getSlashCommand("command");
-
-      expect(command?.name).toBe("Command");
     });
   });
 });

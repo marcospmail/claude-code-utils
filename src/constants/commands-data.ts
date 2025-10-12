@@ -166,6 +166,14 @@ export const claudeCodeCommands: CommandItem[] = [
     usage: "/resume",
   },
   {
+    id: "rewind",
+    name: "/rewind",
+    description:
+      "Open rewind menu to restore previous conversation and/or code state (alternative to Esc + Esc)",
+    category: "Commands",
+    usage: "/rewind",
+  },
+  {
     id: "review",
     name: "/review",
     description: "Request code review",
@@ -289,7 +297,8 @@ export const claudeCodeCommands: CommandItem[] = [
   {
     id: "esc-esc",
     name: "Esc + Esc",
-    description: "Edit previous message / Clear input",
+    description:
+      "Open rewind menu to restore previous conversation and/or code state (alternative to /rewind)",
     category: "Keyboard Shortcuts",
     usage: "Esc Esc",
   },
@@ -528,7 +537,8 @@ export const claudeCodeCommands: CommandItem[] = [
   {
     id: "double-escape",
     name: "Double-tap Escape",
-    description: "Show list of previous messages to jump to",
+    description:
+      "Open rewind menu to restore previous conversation and/or code state (alternative to /rewind)",
     category: "Special Keywords",
     usage: "Esc Esc (quickly)",
   },
