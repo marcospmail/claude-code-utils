@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import CommandDetail from "../commands/cheatsheet/detail";
 import { CommandItem } from "../constants/commands-data";
@@ -24,6 +24,15 @@ jest.mock("@raycast/api", () => ({
     <div data-testid="action-panel">{children}</div>
   ),
   Action: {
+    Paste: ({ title, content }: { title: string; content: string }) => (
+      <button
+        data-testid="action-paste"
+        data-title={title}
+        data-content={content}
+      >
+        {title}
+      </button>
+    ),
     CopyToClipboard: ({
       title,
       content,
@@ -44,7 +53,12 @@ jest.mock("@raycast/api", () => ({
     Clipboard: "clipboard-icon",
     Code: "code-icon",
     Document: "document-icon",
+    Window: "window-icon",
   },
+  getFrontmostApplication: jest.fn().mockResolvedValue({
+    name: "Test App",
+    path: "/Applications/Test.app",
+  }),
 }));
 
 describe("CommandDetail", () => {
@@ -81,9 +95,8 @@ describe("CommandDetail", () => {
     const { getByTestId } = render(<CommandDetail command={mockCommand} />);
     const detail = getByTestId("detail");
     const markdown = detail.getAttribute("data-markdown");
-    expect(markdown).toContain(
-      "**Description:** Get usage help and list available commands",
-    );
+    expect(markdown).toContain("**Description:**");
+    expect(markdown).toContain("Get usage help and list available commands");
   });
 
   it("should show usage before description when both are present", () => {
@@ -133,50 +146,15 @@ describe("CommandDetail", () => {
     expect(markdown).not.toContain("**Examples:**");
   });
 
-  it("should render copy command action", () => {
-    const { getAllByTestId } = render(<CommandDetail command={mockCommand} />);
-    const copyActions = getAllByTestId("action-copy");
-    const copyCommandAction = copyActions.find(
-      (action) => action.getAttribute("data-title") === "Copy Command",
-    );
-    expect(copyCommandAction).toBeInTheDocument();
-    expect(copyCommandAction).toHaveAttribute("data-content", "/help");
-  });
+  it("should render paste action as primary", async () => {
+    render(<CommandDetail command={mockCommand} />);
 
-  it("should render copy usage action when usage is provided", () => {
-    const { getAllByTestId } = render(<CommandDetail command={mockCommand} />);
-    const copyActions = getAllByTestId("action-copy");
-    const copyUsageAction = copyActions.find(
-      (action) => action.getAttribute("data-title") === "Copy Usage",
-    );
-    expect(copyUsageAction).toBeInTheDocument();
-    expect(copyUsageAction).toHaveAttribute("data-content", "/help");
-  });
+    // Wait for getFrontmostApplication to resolve
+    const pasteAction = await screen.findByTestId("action-paste");
 
-  it("should render copy first example action when examples are provided", () => {
-    const { getAllByTestId } = render(<CommandDetail command={mockCommand} />);
-    const copyActions = getAllByTestId("action-copy");
-    const copyExampleAction = copyActions.find(
-      (action) => action.getAttribute("data-title") === "Copy First Example",
-    );
-    expect(copyExampleAction).toBeInTheDocument();
-    expect(copyExampleAction).toHaveAttribute("data-content", "/help");
-  });
-
-  it("should not render copy usage action when usage is not provided", () => {
-    const { queryByText } = render(
-      <CommandDetail command={mockCommandWithoutOptional} />,
-    );
-    const copyUsageAction = queryByText("Copy Usage");
-    expect(copyUsageAction).not.toBeInTheDocument();
-  });
-
-  it("should not render copy example action when examples are not provided", () => {
-    const { queryByText } = render(
-      <CommandDetail command={mockCommandWithoutOptional} />,
-    );
-    const copyExampleAction = queryByText("Copy First Example");
-    expect(copyExampleAction).not.toBeInTheDocument();
+    expect(pasteAction).toBeInTheDocument();
+    expect(pasteAction).toHaveAttribute("data-title", "Paste to Test App");
+    expect(pasteAction).toHaveAttribute("data-content", "/help");
   });
 
   it("should handle commands with special characters", () => {

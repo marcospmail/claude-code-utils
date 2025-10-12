@@ -1,65 +1,70 @@
-import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Application,
+  Detail,
+  getFrontmostApplication,
+} from "@raycast/api";
+import { useEffect, useState } from "react";
 import { CommandItem } from "../../constants/commands-data";
+import {
+  formatCodeBlock,
+  formatContentMarkdown,
+} from "../../utils/markdown-formatters";
 
 interface CommandDetailProps {
   command: CommandItem;
 }
 
 export default function CommandDetail({ command }: CommandDetailProps) {
-  const markdown = `
-# ${command.name}
+  const [frontmostApp, setFrontmostApp] = useState<Application>();
 
-${
-  command.usage
-    ? `**Usage:**
-\`\`\`bash
-${command.usage}
-\`\`\`
+  // Build sections dynamically using push
+  const sections: string[] = [];
 
----
+  // Usage section (optional)
+  if (command.usage) {
+    sections.push("**Usage:**");
+    sections.push(formatCodeBlock(command.usage));
+    sections.push("&nbsp;"); // Non-breaking space for extra spacing
+  }
 
-`
-    : ""
-}**Description:** ${command.description}
+  // Description section (required)
+  sections.push(`**Description:**`);
+  sections.push(command.description);
+  sections.push("&nbsp;"); // Non-breaking space for extra spacing
 
-${
-  command.examples && command.examples.length > 0
-    ? `**Examples:**
-${command.examples
-  .map(
-    (example) => `\`\`\`bash
-${example}
-\`\`\``,
-  )
-  .join("\n\n")}
-`
-    : ""
-}
+  // Examples section (optional)
+  if (command.examples && command.examples.length > 0) {
+    sections.push("**Examples:**");
+    command.examples.forEach((example) => {
+      sections.push(formatCodeBlock(example));
+    });
+  }
 
-  `;
+  // Combine all sections
+  const content = sections.join("\n\n");
+
+  // Format with title using the utility function
+  const markdown = formatContentMarkdown(command.name, content);
+
+  useEffect(() => {
+    getFrontmostApplication().then((app) => {
+      setFrontmostApp(app);
+    });
+  }, []);
 
   return (
     <Detail
       markdown={markdown}
+      navigationTitle={command.name}
       actions={
         <ActionPanel>
-          <Action.CopyToClipboard
-            title="Copy Command"
-            content={command.name}
-            icon={Icon.Clipboard}
-          />
-          {command.usage && (
-            <Action.CopyToClipboard
-              title="Copy Usage"
-              content={command.usage}
-              icon={Icon.Code}
-            />
-          )}
-          {command.examples && command.examples.length > 0 && (
-            <Action.CopyToClipboard
-              title="Copy First Example"
-              content={command.examples[0]}
-              icon={Icon.Document}
+          {frontmostApp && (
+            <Action.Paste
+              title={`Paste to ${frontmostApp?.name}`}
+              content={command.name}
+              icon={frontmostApp?.path}
             />
           )}
         </ActionPanel>
