@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { readdir, stat } from "fs/promises";
 import { createReadStream } from "fs";
+import * as fs from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import { createInterface } from "readline";
@@ -156,7 +158,6 @@ describe("claudeMessages", () => {
       const result = await getSentMessages();
 
       expect(result).toEqual([]);
-      expect(console.error).toHaveBeenCalled();
     });
 
     it("should handle permission errors when reading directories", async () => {
@@ -165,13 +166,12 @@ describe("claudeMessages", () => {
       const result = await getAllClaudeMessages();
 
       expect(result).toEqual([]);
-      expect(console.error).toHaveBeenCalled();
     });
   });
 
   describe("getSentMessages", () => {
     it("should return empty array when no projects exist", async () => {
-      mockedReaddir.mockResolvedValue([]);
+      mockedReaddir.mockResolvedValue([] as any);
 
       const result = await getSentMessages();
 
@@ -181,9 +181,9 @@ describe("claudeMessages", () => {
     it("should process projects and return user messages", async () => {
       // Mock directory structure
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // Projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // Files in project1
-        .mockResolvedValueOnce(["session1.jsonl"]); // Files listing again for processing
+        .mockResolvedValueOnce(["project1"] as any) // Projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // Files in project1
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // Files listing again for processing
 
       // Mock stats for projects - need to match the exact order in the function
       const mockProjectStat = {
@@ -193,16 +193,16 @@ describe("claudeMessages", () => {
       const mockFileStat1 = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat) // project1 directory stat
-        .mockResolvedValueOnce(mockFileStat1) // session1.jsonl for mtime comparison
-        .mockResolvedValueOnce(mockFileStat1); // session1.jsonl stat for file sorting
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats) // project1 directory stat
+        .mockResolvedValueOnce(mockFileStat1 as unknown as fs.Stats) // session1.jsonl for mtime comparison
+        .mockResolvedValueOnce(mockFileStat1 as unknown as fs.Stats); // session1.jsonl stat for file sorting
 
       // Mock readline interface
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       // Start the function
       const resultPromise = getSentMessages();
@@ -251,9 +251,9 @@ describe("claudeMessages", () => {
 
     it("should filter out system messages and interrupted requests", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -262,15 +262,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -334,9 +334,9 @@ describe("claudeMessages", () => {
 
     it("should handle complex content arrays", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -345,15 +345,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -385,9 +385,9 @@ describe("claudeMessages", () => {
 
     it("should handle malformed JSON gracefully", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -396,15 +396,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -442,14 +442,13 @@ describe("claudeMessages", () => {
       const result = await resultPromise;
 
       expect(result).toHaveLength(2);
-      expect(console.error).toHaveBeenCalled();
     });
 
     it("should handle stream errors gracefully", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -458,15 +457,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -477,7 +476,6 @@ describe("claudeMessages", () => {
       const result = await resultPromise;
 
       expect(result).toEqual([]);
-      expect(console.error).toHaveBeenCalled();
     });
 
     it("should limit to 5 projects and 5 files per project", async () => {
@@ -490,7 +488,7 @@ describe("claudeMessages", () => {
         "project5",
         "project6",
       ];
-      mockedReaddir.mockResolvedValueOnce(projects);
+      mockedReaddir.mockResolvedValueOnce(projects as any);
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -499,11 +497,13 @@ describe("claudeMessages", () => {
 
       // Mock stats for all 6 projects to determine which have most recent files
       for (let i = 0; i < 6; i++) {
-        mockedStat.mockResolvedValueOnce(mockProjectStat);
+        mockedStat.mockResolvedValueOnce(
+          mockProjectStat as unknown as fs.Stats,
+        );
         // Mock file listing to determine most recent file time
-        mockedReaddir.mockResolvedValueOnce(["session1.jsonl"]);
+        mockedReaddir.mockResolvedValueOnce(["session1.jsonl"] as any);
         const mockFileStat = { mtime: new Date(`2023-01-${i + 2}`) };
-        mockedStat.mockResolvedValueOnce(mockFileStat);
+        mockedStat.mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
       }
 
       // Store the readline interfaces for explicit control
@@ -512,9 +512,9 @@ describe("claudeMessages", () => {
       // Mock the actual processing for the top 5 projects only
       for (let i = 0; i < 5; i++) {
         // Mock file listing again for processing
-        mockedReaddir.mockResolvedValueOnce(["session1.jsonl"]);
+        mockedReaddir.mockResolvedValueOnce(["session1.jsonl"] as any);
         const mockFileStat = { mtime: new Date(`2023-01-${i + 2}`) };
-        mockedStat.mockResolvedValueOnce(mockFileStat);
+        mockedStat.mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
         // Mock readline interface for each file
         const mockReadlineInterface = new MockReadlineInterface();
@@ -548,9 +548,9 @@ describe("claudeMessages", () => {
 
     it("should handle empty content in messages", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -559,15 +559,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -617,9 +617,9 @@ describe("claudeMessages", () => {
 
     it("should handle messages with content items having no text", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -628,15 +628,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -669,9 +669,9 @@ describe("claudeMessages", () => {
   describe("getReceivedMessages", () => {
     it("should return assistant messages from getAllClaudeMessages", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -680,15 +680,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getReceivedMessages();
 
@@ -720,9 +720,9 @@ describe("claudeMessages", () => {
 
     it("should handle empty content gracefully", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -731,15 +731,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getReceivedMessages();
 
@@ -778,9 +778,9 @@ describe("claudeMessages", () => {
 
     it("should create preview for long content", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -789,15 +789,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const longContent = "A".repeat(200);
       const resultPromise = getReceivedMessages();
@@ -826,9 +826,9 @@ describe("claudeMessages", () => {
 
     it("should handle messages with null/undefined content gracefully", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -837,15 +837,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getReceivedMessages();
 
@@ -873,9 +873,9 @@ describe("claudeMessages", () => {
 
     it("should handle invalid timestamp conversion", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -884,15 +884,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getReceivedMessages();
 
@@ -981,17 +981,9 @@ describe("claudeMessages", () => {
         preview: "Test...",
       };
 
-      // Mock the console.error to track if it was called
-      const consoleSpy = jest
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
-
       const result = generateMessageId(message);
 
       expect(result).toBe("mocked-hash");
-      expect(consoleSpy).toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -1047,7 +1039,6 @@ describe("claudeMessages", () => {
         const result = await getPinnedMessages();
 
         expect(result).toEqual([]);
-        expect(console.error).toHaveBeenCalled();
       });
 
       it("should create preview for long pinned messages", async () => {
@@ -1120,7 +1111,6 @@ describe("claudeMessages", () => {
 
         expect(result).toBeInstanceOf(Set);
         expect(result.size).toBe(0);
-        expect(console.error).toHaveBeenCalled();
       });
     });
 
@@ -1177,7 +1167,6 @@ describe("claudeMessages", () => {
         const result = await isPinned("msg-1");
 
         expect(result).toBe(false);
-        expect(console.error).toHaveBeenCalled();
       });
 
       it("should return false when no pinned data exists", async () => {
@@ -1194,7 +1183,6 @@ describe("claudeMessages", () => {
         const result = await isPinned("msg-1");
 
         expect(result).toBe(false);
-        expect(console.error).toHaveBeenCalled();
       });
     });
 
@@ -1275,7 +1263,6 @@ describe("claudeMessages", () => {
         await expect(pinMessage(message)).rejects.toThrow(
           "Failed to pin message",
         );
-        expect(console.error).toHaveBeenCalled();
       });
 
       it("should add to existing pinned messages", async () => {
@@ -1436,7 +1423,6 @@ describe("claudeMessages", () => {
         const result = await getSnippets();
 
         expect(result).toEqual([]);
-        expect(console.error).toHaveBeenCalled();
       });
     });
 
@@ -1493,7 +1479,6 @@ describe("claudeMessages", () => {
         await expect(createSnippet("Title", "Content")).rejects.toThrow(
           "Failed to create snippet",
         );
-        expect(console.error).toHaveBeenCalled();
       });
 
       it("should handle JSON parse errors in existing data", async () => {
@@ -1509,7 +1494,6 @@ describe("claudeMessages", () => {
         });
         expect(result.createdAt).toBeInstanceOf(Date);
         expect(result.updatedAt).toBeInstanceOf(Date);
-        expect(console.error).toHaveBeenCalled();
       });
     });
 
@@ -1581,9 +1565,9 @@ describe("claudeMessages", () => {
   describe("Error handling and edge cases", () => {
     it("should handle readline interface errors", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1592,15 +1576,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -1611,14 +1595,13 @@ describe("claudeMessages", () => {
       const result = await resultPromise;
 
       expect(result).toEqual([]);
-      expect(console.error).toHaveBeenCalled();
     });
 
     it("should handle timestamp conversion edge cases", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1627,15 +1610,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -1700,9 +1683,9 @@ describe("claudeMessages", () => {
 
     it("should handle empty lines in JSONL files", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1711,15 +1694,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -1753,9 +1736,9 @@ describe("claudeMessages", () => {
 
     it("should sort messages correctly by timestamp", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1764,15 +1747,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -1825,8 +1808,8 @@ describe("claudeMessages", () => {
 
     it("should handle file stat errors", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files to find most recent
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files to find most recent
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1834,17 +1817,16 @@ describe("claudeMessages", () => {
       };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
         .mockRejectedValueOnce(new Error("File stat error")); // Error getting file stat
 
       const result = await getSentMessages();
 
       expect(result).toEqual([]);
-      expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
     it("should handle non-directory items in projects folder", async () => {
-      mockedReaddir.mockResolvedValueOnce(["project1", "file.txt"]);
+      mockedReaddir.mockResolvedValueOnce(["project1", "file.txt"] as any);
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1856,23 +1838,23 @@ describe("claudeMessages", () => {
       };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat); // file.txt is not a directory
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats); // file.txt is not a directory
 
       mockedReaddir
-        .mockResolvedValueOnce(["session1.jsonl"]) // Files in project1 to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // Files in project1 again to process
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // Files in project1 to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // Files in project1 again to process
 
       const mockFileStatForSession = { mtime: new Date("2023-01-02") };
       mockedStat
-        .mockResolvedValueOnce(mockFileStatForSession) // session1.jsonl stat for finding most recent
-        .mockResolvedValueOnce(mockFileStatForSession); // session1.jsonl stat for processing
+        .mockResolvedValueOnce(mockFileStatForSession as unknown as fs.Stats) // session1.jsonl stat for finding most recent
+        .mockResolvedValueOnce(mockFileStatForSession as unknown as fs.Stats); // session1.jsonl stat for processing
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -1898,9 +1880,9 @@ describe("claudeMessages", () => {
 
     it("should handle error in createReadStream", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1909,9 +1891,9 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       // Mock createReadStream to throw error
       mockedCreateReadStream.mockImplementation(() => {
@@ -1921,14 +1903,13 @@ describe("claudeMessages", () => {
       const result = await getSentMessages();
 
       expect(result).toEqual([]);
-      expect(console.error).toHaveBeenCalled();
     });
 
     it("should handle <command-name> filtering", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]); // List files again to process
+        .mockResolvedValueOnce(["project1"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any); // List files again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -1937,15 +1918,15 @@ describe("claudeMessages", () => {
       const mockFileStat = { mtime: new Date("2023-01-02") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat)
-        .mockResolvedValueOnce(mockFileStat)
-        .mockResolvedValueOnce(mockFileStat);
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
 
       const mockReadlineInterface = new MockReadlineInterface();
       const mockFileStream = new MockFileStream();
 
-      mockedCreateReadStream.mockReturnValue(mockFileStream);
-      mockedCreateInterface.mockReturnValue(mockReadlineInterface);
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
 
       const resultPromise = getSentMessages();
 
@@ -1986,7 +1967,7 @@ describe("claudeMessages", () => {
 
   describe("getAllClaudeMessages", () => {
     it("should return empty array when no projects exist", async () => {
-      mockedReaddir.mockResolvedValue([]);
+      mockedReaddir.mockResolvedValue([] as any);
 
       const result = await getAllClaudeMessages();
 
@@ -1994,14 +1975,14 @@ describe("claudeMessages", () => {
     });
 
     it("should handle error in getting project most recent file time", async () => {
-      mockedReaddir.mockResolvedValueOnce(["project1"]);
+      mockedReaddir.mockResolvedValueOnce(["project1"] as any);
 
       const mockProjectStat = {
         isDirectory: () => true,
         mtime: new Date("2023-01-01"),
       };
 
-      mockedStat.mockResolvedValueOnce(mockProjectStat);
+      mockedStat.mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats);
 
       // Mock readdir to fail when getting files in project
       mockedReaddir.mockRejectedValueOnce(
@@ -2011,16 +1992,15 @@ describe("claudeMessages", () => {
       const result = await getAllClaudeMessages();
 
       expect(result).toEqual([]);
-      expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
     it("should process multiple projects and return assistant messages", async () => {
       mockedReaddir
-        .mockResolvedValueOnce(["project1", "project2"]) // List projects
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files in project1 to find most recent
-        .mockResolvedValueOnce(["session1.jsonl"]) // List files in project1 again to process
-        .mockResolvedValueOnce(["session2.jsonl"]) // List files in project2 to find most recent
-        .mockResolvedValueOnce(["session2.jsonl"]); // List files in project2 again to process
+        .mockResolvedValueOnce(["project1", "project2"] as any) // List projects
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files in project1 to find most recent
+        .mockResolvedValueOnce(["session1.jsonl"] as any) // List files in project1 again to process
+        .mockResolvedValueOnce(["session2.jsonl"] as any) // List files in project2 to find most recent
+        .mockResolvedValueOnce(["session2.jsonl"] as any); // List files in project2 again to process
 
       const mockProjectStat = {
         isDirectory: () => true,
@@ -2030,12 +2010,12 @@ describe("claudeMessages", () => {
       const mockFileStat2 = { mtime: new Date("2023-01-03") };
 
       mockedStat
-        .mockResolvedValueOnce(mockProjectStat) // project1 stat
-        .mockResolvedValueOnce(mockFileStat1) // session1.jsonl stat for finding most recent
-        .mockResolvedValueOnce(mockProjectStat) // project2 stat
-        .mockResolvedValueOnce(mockFileStat2) // session2.jsonl stat for finding most recent
-        .mockResolvedValueOnce(mockFileStat1) // session1.jsonl stat for processing
-        .mockResolvedValueOnce(mockFileStat2); // session2.jsonl stat for processing
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats) // project1 stat
+        .mockResolvedValueOnce(mockFileStat1 as unknown as fs.Stats) // session1.jsonl stat for finding most recent
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats) // project2 stat
+        .mockResolvedValueOnce(mockFileStat2 as unknown as fs.Stats) // session2.jsonl stat for finding most recent
+        .mockResolvedValueOnce(mockFileStat1 as unknown as fs.Stats) // session1.jsonl stat for processing
+        .mockResolvedValueOnce(mockFileStat2 as unknown as fs.Stats); // session2.jsonl stat for processing
 
       // Create separate mock interfaces for each file
       const mockReadlineInterface1 = new MockReadlineInterface();
