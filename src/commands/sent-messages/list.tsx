@@ -3,7 +3,6 @@ import {
   ActionPanel,
   Clipboard,
   closeMainWindow,
-  getFrontmostApplication,
   Icon,
   List,
   showHUD,
@@ -25,23 +24,6 @@ export default function SentMessages() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const loadingRef = useRef(false);
-  const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
-  const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
-    Icon.Window,
-  );
-
-  // Get frontmost application for list items
-  useEffect(() => {
-    getFrontmostApplication()
-      .then((app) => {
-        setFrontmostApp(app.name);
-        setAppIcon({ fileIcon: app.path });
-      })
-      .catch(() => {
-        setFrontmostApp("Active App");
-        setAppIcon(Icon.Window);
-      });
-  }, []);
 
   const loadMessages = useCallback(async () => {
     if (loadingRef.current) return;
@@ -166,12 +148,6 @@ export default function SentMessages() {
                     icon={Icon.Clipboard}
                     shortcut={{ modifiers: ["cmd"], key: "enter" }}
                     onAction={() => copyContent(message, true)}
-                  />
-                  <Action.Paste
-                    title={`Paste to ${frontmostApp}`}
-                    content={message.content}
-                    icon={appIcon}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "v" }}
                   />
                   <Action.Push
                     title="Create Snippet from Message"
