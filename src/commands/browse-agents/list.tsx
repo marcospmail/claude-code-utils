@@ -58,7 +58,7 @@ export default function BrowseAgents() {
                   target={<AgentDetail agent={agent} />}
                 />
                 <Action.CopyToClipboard
-                  title="Copy Agent Content"
+                  title="Copy to Clipboard"
                   content={agent.content}
                   icon={Icon.Clipboard}
                   shortcut={{ modifiers: ["cmd"], key: "enter" }}
