@@ -15,7 +15,7 @@ export default function BrowseCommands() {
         setCommands(loadedCommands);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load commands"
+          err instanceof Error ? err.message : "Failed to load commands",
         );
       } finally {
         setIsLoading(false);
