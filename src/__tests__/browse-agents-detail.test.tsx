@@ -30,6 +30,15 @@ jest.mock("@raycast/api", () => ({
     <div data-testid="action-panel">{children}</div>
   ),
   Action: {
+    Paste: ({ title, content }: { title: string; content: string }) => (
+      <button
+        data-testid="action-paste"
+        data-title={title}
+        data-content={content}
+      >
+        {title}
+      </button>
+    ),
     CopyToClipboard: ({ title }: { title: string }) => (
       <button data-testid="action-copy" data-title={title}>
         {title}
@@ -40,7 +49,12 @@ jest.mock("@raycast/api", () => ({
   },
   Icon: {
     Clipboard: "clipboard-icon",
+    Window: "window-icon",
   },
+  getFrontmostApplication: jest.fn().mockResolvedValue({
+    name: "Test App",
+    path: "/Applications/Test.app",
+  }),
 }));
 
 describe("AgentDetail", () => {
@@ -72,17 +86,28 @@ describe("AgentDetail", () => {
     const markdown = detail.getAttribute("data-markdown");
 
     expect(markdown).toContain("# Test Agent");
-    expect(markdown).toContain("# Test Agent\n\nThis is a test agent.");
-    expect(markdown).toContain("```markdown");
+    expect(markdown).toContain("---"); // HR separator
+    expect(markdown).toContain("This is a test agent.");
   });
 
-  it("should render copy action", () => {
+  it("should render paste action as primary", async () => {
     render(<AgentDetail agent={mockAgent} />);
 
-    const copyActions = screen.getAllByTestId("action-copy");
-    expect(copyActions).toHaveLength(2);
-    expect(copyActions[0]).toHaveAttribute("data-title", "Copy Agent Name");
-    expect(copyActions[1]).toHaveAttribute("data-title", "Copy Agent Content");
+    // Wait for getFrontmostApplication to resolve
+    await screen.findByTestId("action-paste");
+
+    const pasteAction = screen.getByTestId("action-paste");
+    expect(pasteAction).toBeInTheDocument();
+    expect(pasteAction).toHaveAttribute("data-title", "Paste to Test App");
+    expect(pasteAction).toHaveAttribute("data-content", mockAgent.content);
+  });
+
+  it("should render copy to clipboard action with cmd+enter", () => {
+    render(<AgentDetail agent={mockAgent} />);
+
+    const copyAction = screen.getByTestId("action-copy");
+    expect(copyAction).toBeInTheDocument();
+    expect(copyAction).toHaveAttribute("data-title", "Copy to Clipboard");
   });
 
   it("should render show in finder action", () => {

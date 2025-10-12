@@ -1,4 +1,12 @@
-import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
+import {
+  ActionPanel,
+  Action,
+  Application,
+  Detail,
+  Icon,
+  getFrontmostApplication,
+} from "@raycast/api";
+import { useEffect, useState } from "react";
 import { Agent } from "../../utils/agents";
 import { formatContentMarkdown } from "../../utils/markdown-formatters";
 
@@ -8,6 +16,13 @@ interface AgentDetailProps {
 
 export default function AgentDetail({ agent }: AgentDetailProps) {
   const markdown = formatContentMarkdown(agent.name, agent.content);
+  const [frontmostApp, setFrontmostApp] = useState<Application>();
+
+  useEffect(() => {
+    getFrontmostApplication().then((app) => {
+      setFrontmostApp(app);
+    });
+  }, []);
 
   return (
     <Detail
@@ -15,13 +30,15 @@ export default function AgentDetail({ agent }: AgentDetailProps) {
       navigationTitle={agent.name}
       actions={
         <ActionPanel>
+          {frontmostApp && (
+            <Action.Paste
+              title={`Paste to ${frontmostApp.name}`}
+              content={agent.content}
+              icon={frontmostApp.path}
+            />
+          )}
           <Action.CopyToClipboard
-            title="Copy Agent Name"
-            content={agent.id}
-            icon={Icon.Clipboard}
-          />
-          <Action.CopyToClipboard
-            title="Copy Agent Content"
+            title="Copy to Clipboard"
             content={agent.content}
             icon={Icon.Clipboard}
             shortcut={{ modifiers: ["cmd"], key: "enter" }}
