@@ -1,4 +1,12 @@
-import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Application,
+  Detail,
+  Icon,
+  getFrontmostApplication,
+} from "@raycast/api";
+import { useEffect, useState } from "react";
 import { SlashCommand } from "../../utils/commands";
 import { formatContentMarkdown } from "../../utils/markdown-formatters";
 
@@ -10,6 +18,13 @@ export default function SlashCommandDetail({
   command,
 }: SlashCommandDetailProps) {
   const markdown = formatContentMarkdown(command.name, command.content);
+  const [frontmostApp, setFrontmostApp] = useState<Application>();
+
+  useEffect(() => {
+    getFrontmostApplication().then((app) => {
+      setFrontmostApp(app);
+    });
+  }, []);
 
   return (
     <Detail
@@ -17,13 +32,15 @@ export default function SlashCommandDetail({
       navigationTitle={command.name}
       actions={
         <ActionPanel>
+          {frontmostApp && (
+            <Action.Paste
+              title={`Paste to ${frontmostApp.name}`}
+              content={command.content}
+              icon={frontmostApp.path}
+            />
+          )}
           <Action.CopyToClipboard
-            title="Copy Command Name"
-            content={command.id}
-            icon={Icon.Clipboard}
-          />
-          <Action.CopyToClipboard
-            title="Copy Command Content"
+            title="Copy to Clipboard"
             content={command.content}
             icon={Icon.Clipboard}
             shortcut={{ modifiers: ["cmd"], key: "enter" }}
