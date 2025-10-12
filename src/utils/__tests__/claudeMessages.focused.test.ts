@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { jest } from "@jest/globals";
 
 // Mock all the modules before importing the target module
@@ -81,6 +82,8 @@ describe("claudeMessages - Focused Tests", () => {
         content: "Test message content",
         timestamp: new Date("2023-01-01T12:00:00Z"),
         role: "user" as const,
+        preview: "",
+        sessionId: "",
       };
 
       const result = formatMessageForDisplay(message);
@@ -94,6 +97,9 @@ describe("claudeMessages - Focused Tests", () => {
         content: "Test message",
         timestamp: new Date("2023-01-01T12:00:00Z"),
         role: "user" as const,
+        id: "",
+        preview: "",
+        sessionId: "",
       };
 
       const id1 = generateMessageId(message);
@@ -108,6 +114,9 @@ describe("claudeMessages - Focused Tests", () => {
         content: "Test message",
         timestamp: new Date("invalid-date"),
         role: "user" as const,
+        id: "",
+        preview: "",
+        sessionId: "",
       };
 
       const id = generateMessageId(message);
@@ -119,7 +128,7 @@ describe("claudeMessages - Focused Tests", () => {
 
   describe("Pinning Functionality", () => {
     it("should return false for non-existent pinned message", async () => {
-      mockedLocalStorage.getItem.mockResolvedValue(null);
+      mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
       const result = await isPinned("test-id");
 
@@ -129,7 +138,14 @@ describe("claudeMessages - Focused Tests", () => {
     it("should return true for pinned message", async () => {
       // The actual format uses 'claude-messages-pinned' key and stores message objects, not just IDs
       const pinnedData = JSON.stringify([
-        { id: "test-id", content: "Test", timestamp: new Date(), role: "user" },
+        {
+          id: "test-id",
+          content: "Test",
+          timestamp: new Date(),
+          role: "user",
+          preview: "",
+          sessionId: "",
+        },
       ]);
       mockedLocalStorage.getItem.mockResolvedValue(pinnedData);
 
@@ -139,7 +155,7 @@ describe("claudeMessages - Focused Tests", () => {
     });
 
     it("should pin a new message", async () => {
-      mockedLocalStorage.getItem.mockResolvedValue(null);
+      mockedLocalStorage.getItem.mockResolvedValue(undefined);
       mockedLocalStorage.setItem.mockResolvedValue();
 
       const message = {
@@ -147,6 +163,8 @@ describe("claudeMessages - Focused Tests", () => {
         content: "Test message",
         timestamp: new Date(),
         role: "user" as const,
+        preview: "",
+        sessionId: "",
       };
 
       await pinMessage(message);
@@ -159,12 +177,21 @@ describe("claudeMessages - Focused Tests", () => {
 
     it("should unpin existing message", async () => {
       const pinnedData = JSON.stringify([
-        { id: "test-id", content: "Test", timestamp: new Date(), role: "user" },
+        {
+          id: "test-id",
+          content: "Test",
+          timestamp: new Date(),
+          role: "user",
+          preview: "",
+          sessionId: "",
+        },
         {
           id: "other-id",
           content: "Other",
           timestamp: new Date(),
           role: "user",
+          preview: "",
+          sessionId: "",
         },
       ]);
 
@@ -182,7 +209,7 @@ describe("claudeMessages - Focused Tests", () => {
 
   describe("Snippets Functionality", () => {
     it("should return empty array when no snippets exist", async () => {
-      mockedLocalStorage.getItem.mockResolvedValue(null);
+      mockedLocalStorage.getItem.mockResolvedValue(undefined);
 
       const result = await getSnippets();
 
@@ -190,7 +217,7 @@ describe("claudeMessages - Focused Tests", () => {
     });
 
     it("should create and save new snippet", async () => {
-      mockedLocalStorage.getItem.mockResolvedValue(null);
+      mockedLocalStorage.getItem.mockResolvedValue(undefined);
       mockedLocalStorage.setItem.mockResolvedValue();
 
       await createSnippet("Test Title", "Test content");
@@ -264,9 +291,9 @@ describe("claudeMessages - Focused Tests", () => {
 
     it("should handle readdir errors gracefully", async () => {
       mockedExistsSync.mockReturnValue(true);
-      mockedReaddir.mockImplementation((path, callback) => {
+      mockedReaddir.mockImplementation(((path: any, callback: any) => {
         callback(new Error("Permission denied"), null);
-      });
+      }) as any);
 
       const result = await getSentMessages();
 

@@ -21,7 +21,6 @@ export async function simulateNetworkDelay<T>(
   operation: () => Promise<T>,
 ): Promise<T> {
   if (config.enabled) {
-    console.log(`[Network Simulation] Adding ${config.delayMs}ms delay...`);
     await new Promise((resolve) => setTimeout(resolve, config.delayMs));
   }
   return operation();

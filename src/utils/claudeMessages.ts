@@ -81,9 +81,9 @@ async function parseUserMessagesOnlyStreaming(
   projectPath: string,
 ): Promise<Message[]> {
   return new Promise((resolve) => {
-    const userMessages: Message[] = []; // Collect user messages as we find them
-    let fileStream: ReturnType<typeof createReadStream> | null = null; // File stream handle
-    let rl: ReturnType<typeof createInterface> | null = null; // Readline interface handle
+    const userMessages: Message[] = [];
+    let fileStream: ReturnType<typeof createReadStream> | null = null;
+    let rl: ReturnType<typeof createInterface> | null = null;
 
     // Clean up resources to prevent memory leaks
     const cleanup = () => {
@@ -97,102 +97,81 @@ async function parseUserMessagesOnlyStreaming(
           fileStream.destroy();
           fileStream = null;
         }
-      } catch (error) {
-        console.error({ error });
-        // Ignore cleanup errors - we're already handling an error condition
+      } catch {
+        // Ignore cleanup errors
       }
     };
 
     try {
-      // Create a file stream that reads the file in chunks (not all at once)
       fileStream = createReadStream(filePath);
 
-      // Create readline interface to process file line by line
       rl = createInterface({
         input: fileStream,
-        crlfDelay: Infinity, // Handle different line endings properly
-        terminal: false, // We're reading a file, not interactive terminal
+        crlfDelay: Infinity,
+        terminal: false,
       });
 
-      // Process each line of the JSONL file
       rl.on("line", (line: string) => {
         try {
-          // Skip empty lines
           if (!line.trim()) return;
 
-          // Each line in JSONL file is a separate JSON object
           const data: JSONLData = JSON.parse(line);
 
-          // We only want user messages (messages sent TO Claude), not assistant responses
           if (data.message && data.message.role === "user") {
             let content = "";
 
-            // Extract text content from the message
             if (data.message.content) {
               if (typeof data.message.content === "string") {
-                // Simple string content
                 content = data.message.content;
               } else if (Array.isArray(data.message.content)) {
-                // Complex content with multiple parts (text, images, etc.)
-                // We only want the text parts
                 content = data.message.content
-                  .filter((item: ContentItem) => item.type === "text") // Only text content
+                  .filter((item: ContentItem) => item.type === "text")
                   .map((item: ContentItem) => item.text || "")
                   .join("\n");
               }
             }
 
-            // Filter out system/command messages and interrupted requests
-            // We only want real user messages that were successfully sent
             if (
               content &&
               content.trim() &&
-              !content.includes("<command-message>") && // System command messages
-              !content.includes("<command-name>") && // System command names
+              !content.includes("<command-message>") &&
+              !content.includes("<command-name>") &&
               !content.includes("[Request interrupted")
             ) {
-              // Interrupted/cancelled messages
-
               const timestamp = parseTimestamp(data.timestamp);
 
               userMessages.push({
                 role: "user",
                 content,
                 timestamp,
-                sessionId, // Which conversation session this belongs to
-                projectPath, // Which project/folder this conversation was in
+                sessionId,
+                projectPath,
               });
             }
           }
-        } catch (error) {
-          console.error({ error });
-          // Skip lines that aren't valid JSON - don't crash on malformed data
+        } catch {
+          // Skip invalid JSON
         }
       });
 
       rl.on("close", () => {
         cleanup();
-        // Sort by timestamp and take only the most recent messages
         const recentMessages = userMessages
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
           .slice(0, MAX_MESSAGES_PER_FILE);
         resolve(recentMessages);
       });
 
-      rl.on("error", (error: Error) => {
-        console.error({ error });
-        cleanup();
-        resolve([]); // Return empty array instead of rejecting
-      });
-
-      fileStream.on("error", (error: Error) => {
-        console.error({ error });
+      rl.on("error", () => {
         cleanup();
         resolve([]);
       });
-    } catch (error) {
-      console.error({ error });
 
+      fileStream.on("error", () => {
+        cleanup();
+        resolve([]);
+      });
+    } catch {
       cleanup();
       resolve([]);
     }
@@ -220,8 +199,7 @@ async function parseAssistantMessagesOnlyStreaming(
           fileStream.destroy();
           fileStream = null;
         }
-      } catch (error) {
-        console.error({ error });
+      } catch {
         // Ignore cleanup errors
       }
     };
@@ -240,7 +218,6 @@ async function parseAssistantMessagesOnlyStreaming(
 
           const data: JSONLData = JSON.parse(line);
 
-          // Only process assistant messages to save memory
           if (data.message && data.message.role === "assistant") {
             let content: string | null = "";
 
@@ -250,7 +227,6 @@ async function parseAssistantMessagesOnlyStreaming(
               } else if (typeof data.message.content === "string") {
                 content = data.message.content;
               } else if (Array.isArray(data.message.content)) {
-                // Extract only text content, not thinking
                 content = data.message.content
                   .filter((item: ContentItem) => item.type === "text")
                   .map((item: ContentItem) => item.text || "")
@@ -258,24 +234,17 @@ async function parseAssistantMessagesOnlyStreaming(
               }
             }
 
-            // Handle different content scenarios:
-            // - null content: include with empty string (will show "[Empty message]")
-            // - empty string or undefined: filter out completely
-            // - valid content: include normally
-
             const timestamp = parseTimestamp(data.timestamp);
 
             if (content === null) {
-              // Special case: explicitly null content should be handled gracefully
               assistantMessages.push({
                 role: "assistant",
-                content: "", // Convert null to empty string
+                content: "",
                 timestamp,
                 sessionId,
                 projectPath,
               });
             } else if (content !== undefined && content !== "") {
-              // Valid non-empty content
               assistantMessages.push({
                 role: "assistant",
                 content: content,
@@ -284,36 +253,30 @@ async function parseAssistantMessagesOnlyStreaming(
                 projectPath,
               });
             }
-            // Skip empty string ("") and undefined content
           }
-        } catch (error) {
-          console.error({ error });
-          // Skip invalid JSON lines
+        } catch {
+          // Skip invalid JSON
         }
       });
 
       rl.on("close", () => {
         cleanup();
-        // Sort by timestamp (newest first) and limit to prevent memory issues
         const recentMessages = assistantMessages
           .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
           .slice(0, MAX_MESSAGES_PER_FILE);
         resolve(recentMessages);
       });
 
-      rl.on("error", (error: Error) => {
-        console.error({ error });
-        cleanup();
-        resolve([]); // Return empty array instead of rejecting
-      });
-
-      fileStream.on("error", (error: Error) => {
-        console.error({ error });
+      rl.on("error", () => {
         cleanup();
         resolve([]);
       });
-    } catch (error) {
-      console.error({ error });
+
+      fileStream.on("error", () => {
+        cleanup();
+        resolve([]);
+      });
+    } catch {
       cleanup();
       resolve([]);
     }
@@ -343,9 +306,8 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
                 mostRecentFileTime = fileStat.mtime;
               }
             }
-          } catch (error) {
+          } catch {
             // If we can't read files, use directory mtime
-            console.error({ error });
           }
 
           projectsWithStats.push({
@@ -354,8 +316,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
             mtime: mostRecentFileTime, // Use most recent file time
           });
         }
-      } catch (error) {
-        console.error({ error });
+      } catch {
         continue;
       }
     }
@@ -384,8 +345,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
               path: filePath,
               mtime: fileStat.mtime,
             });
-          } catch (error) {
-            console.error({ error });
+          } catch {
             continue;
           }
         }
@@ -407,15 +367,13 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
               project.path,
             );
             allMessages.push(...messages);
-          } catch (error) {
-            console.error({ error });
+          } catch {
             continue;
           }
         }
 
         // Don't break early - scan all 5 projects
-      } catch (error) {
-        console.error({ error });
+      } catch {
         continue;
       }
     }
@@ -426,8 +384,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     return assistantMessages;
-  } catch (error) {
-    console.error({ error });
+  } catch {
     return [];
   }
 }
@@ -460,9 +417,8 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
                 mostRecentFileTime = fileStat.mtime;
               }
             }
-          } catch (error) {
+          } catch {
             // If we can't read files, use directory mtime as fallback
-            console.error({ error });
           }
 
           projectsWithStats.push({
@@ -471,9 +427,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
             mtime: mostRecentFileTime, // Use most recent file time to detect active sessions
           });
         }
-      } catch (error) {
-        // Skip projects we can't read (permissions, etc.)
-        console.error({ error });
+      } catch {
         continue;
       }
     }
@@ -508,9 +462,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
               path: filePath,
               mtime: fileStat.mtime, // When this conversation file was last modified
             });
-          } catch (error) {
-            // Skip files we can't read
-            console.error({ error });
+          } catch {
             continue;
           }
         }
@@ -535,16 +487,12 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
 
             // Add all user messages from this file to our collection
             topUserMessages.push(...userMessages);
-          } catch (error) {
-            console.error({ error });
-            continue; // Skip problematic files
+          } catch {
+            continue;
           }
         }
-
-        // Continue to next project (don't break early - we want to scan all 5 projects)
-      } catch (error) {
-        console.error({ error });
-        continue; // Skip problematic projects
+      } catch {
+        continue;
       }
     }
 
@@ -562,8 +510,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
       preview:
         msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : ""), // Preview text for list
     }));
-  } catch (error) {
-    console.error({ error });
+  } catch {
     return [];
   }
 }
@@ -619,9 +566,7 @@ export function generateMessageId(message: ParsedMessage): string {
 
     const content = `${message.content}-${timestamp}-${message.sessionId}`;
     return createHash("md5").update(content).digest("hex");
-  } catch (error) {
-    console.error({ error });
-    // Fallback if timestamp is invalid
+  } catch {
     const fallbackContent = `${message.content}-${message.sessionId}-${message.id}`;
     return createHash("md5").update(fallbackContent).digest("hex");
   }
@@ -647,8 +592,7 @@ export async function getPinnedMessages(): Promise<ParsedMessage[]> {
         msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : ""),
       isPinned: true,
     }));
-  } catch (error) {
-    console.error({ error });
+  } catch {
     return [];
   }
 }
@@ -663,8 +607,7 @@ export async function getPinnedMessageIds(): Promise<Set<string>> {
 
     const pinnedMessages: PinnedMessage[] = JSON.parse(pinnedData);
     return new Set(pinnedMessages.map((msg) => msg.id));
-  } catch (error) {
-    console.error({ error });
+  } catch {
     return new Set();
   }
 }
@@ -682,8 +625,7 @@ export async function isPinned(messageId: string): Promise<boolean> {
 
     const pinnedMessages: PinnedMessage[] = JSON.parse(pinnedData);
     return pinnedMessages.some((msg) => msg?.id === messageId);
-  } catch (error) {
-    console.error({ error });
+  } catch {
     return false;
   }
 }
@@ -720,8 +662,7 @@ export async function pinMessage(message: ParsedMessage): Promise<void> {
       PINNED_MESSAGES_KEY,
       JSON.stringify(pinnedMessages),
     );
-  } catch (error) {
-    console.error({ error });
+  } catch {
     throw new Error("Failed to pin message");
   }
 }
@@ -741,8 +682,7 @@ export async function unpinMessage(messageId: string): Promise<void> {
       PINNED_MESSAGES_KEY,
       JSON.stringify(pinnedMessages),
     );
-  } catch (error) {
-    console.error("Error unpinning message:", error);
+  } catch {
     throw new Error("Failed to unpin message");
   }
 }
@@ -772,8 +712,7 @@ export async function getSnippets(): Promise<Snippet[]> {
       createdAt: new Date(snippet.createdAt),
       updatedAt: new Date(snippet.updatedAt),
     }));
-  } catch (error) {
-    console.error({ error });
+  } catch {
     return [];
   }
 }
@@ -793,9 +732,7 @@ export async function createSnippet(
     if (snippetsData) {
       try {
         snippets = JSON.parse(snippetsData);
-      } catch (parseError) {
-        console.error({ parseError });
-        // Treat invalid JSON as no existing data
+      } catch {
         snippets = [];
       }
     }
@@ -814,8 +751,7 @@ export async function createSnippet(
     await LocalStorage.setItem(SNIPPETS_KEY, JSON.stringify(snippets));
 
     return newSnippet;
-  } catch (error) {
-    console.error({ error });
+  } catch {
     throw new Error("Failed to create snippet");
   }
 }
@@ -832,8 +768,7 @@ export async function deleteSnippet(id: string): Promise<void> {
     snippets = snippets.filter((s) => s.id !== id);
 
     await LocalStorage.setItem(SNIPPETS_KEY, JSON.stringify(snippets));
-  } catch (error) {
-    console.error({ error });
+  } catch {
     throw new Error("Failed to delete snippet");
   }
 }
