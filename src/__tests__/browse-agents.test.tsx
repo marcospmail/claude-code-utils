@@ -204,7 +204,7 @@ describe("BrowseAgents", () => {
     expect(pushAction).toHaveAttribute("data-title", "View Agent Details");
 
     const copyAction = screen.getByTestId("action-copy");
-    expect(copyAction).toHaveAttribute("data-title", "Copy Agent Content");
+    expect(copyAction).toHaveAttribute("data-title", "Copy to Clipboard");
 
     expect(screen.getByTestId("action-show-finder")).toBeInTheDocument();
   });
