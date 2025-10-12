@@ -49,18 +49,6 @@ export default function BrowseCommandsCheatsheet() {
                     target={<CommandDetail command={command} />}
                     icon={Icon.Eye}
                   />
-                  <Action.CopyToClipboard
-                    title="Copy Command"
-                    content={command.name}
-                    icon={Icon.Clipboard}
-                  />
-                  {command.usage && (
-                    <Action.CopyToClipboard
-                      title="Copy Usage"
-                      content={command.usage}
-                      icon={Icon.Code}
-                    />
-                  )}
                 </ActionPanel>
               }
             />
@@ -85,18 +73,6 @@ export default function BrowseCommandsCheatsheet() {
                       target={<CommandDetail command={command} />}
                       icon={Icon.Eye}
                     />
-                    <Action.CopyToClipboard
-                      title="Copy Command"
-                      content={command.name}
-                      icon={Icon.Clipboard}
-                    />
-                    {command.usage && (
-                      <Action.CopyToClipboard
-                        title="Copy Usage"
-                        content={command.usage}
-                        icon={Icon.Code}
-                      />
-                    )}
                   </ActionPanel>
                 }
               />
