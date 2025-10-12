@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import MessageDetail from "../commands/received-messages/detail";
 import { ParsedMessage } from "../utils/claude-messages";
 
@@ -108,7 +108,7 @@ describe("MessageDetail (Received Messages)", () => {
     expect(markdown.textContent).toBe(mockMessage.content);
   });
 
-  it("should render action panel with paste action", () => {
+  it("should render action panel with paste action", async () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockResolvedValue({
       name: "VSCode",
@@ -116,6 +116,11 @@ describe("MessageDetail (Received Messages)", () => {
     });
 
     const { getByTestId } = render(<MessageDetail message={mockMessage} />);
+
+    // Wait for getFrontmostApplication to resolve
+    await waitFor(() => {
+      expect(getByTestId("paste-action")).toBeTruthy();
+    });
 
     const pasteAction = getByTestId("paste-action");
     expect(pasteAction).toBeTruthy();
@@ -167,7 +172,9 @@ describe("MessageDetail (Received Messages)", () => {
     const { getByTestId } = render(<MessageDetail message={mockMessage} />);
 
     // Wait for useEffect to complete
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => {
+      expect(getByTestId("paste-action")).toBeTruthy();
+    });
 
     const pasteAction = getByTestId("paste-action");
     expect(pasteAction.getAttribute("data-title")).toContain("Chrome");
@@ -177,12 +184,13 @@ describe("MessageDetail (Received Messages)", () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockRejectedValue(new Error("Failed to get app"));
 
-    const { getByTestId } = render(<MessageDetail message={mockMessage} />);
+    const { queryByTestId } = render(<MessageDetail message={mockMessage} />);
 
     // Wait for useEffect to complete
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const pasteAction = getByTestId("paste-action");
-    expect(pasteAction.getAttribute("data-title")).toContain("Active App");
+    // When getFrontmostApplication fails, no paste action should be rendered
+    const pasteAction = queryByTestId("paste-action");
+    expect(pasteAction).toBeNull();
   });
 });
