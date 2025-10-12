@@ -32,6 +32,10 @@ View and manage your Claude Code agents from `~/.claude/agents`.
 
 View and manage your Claude Code commands from `~/.claude/commands`.
 
+### 📝 **Changelog**
+
+View the latest Claude Code changelog with updates, releases, and new features directly from the official repository.
+
 ## Installation
 
 ### From Raycast Store
@@ -63,78 +67,32 @@ npm run build && npm run publish
 1. Open Raycast (`⌘ + Space`)
 2. Type "Claude" to see all available commands
 3. Select the feature you want to use:
+   - **Create Snippet** - Save code/text as reusable snippets
+   - **Browse Snippets** - Manage your snippets
    - **Received Messages** - View received messages
    - **Sent Messages** - View sent messages
-   - **Browse Snippets** - Manage your snippets
    - **Commands Cheat Sheet** - Reference guide
    - **Browse Agents** - View Claude Code agents
    - **Browse Commands** - View Claude Code commands
-
-### Search Modes
-
-Toggle between search modes using the dropdown:
-
-- **Normal Search** - Fast keyword matching
-- **AI Search** - Semantic understanding (requires Raycast Pro)
+   - **Changelog** - View Claude Code updates and releases
 
 ## Technical Details
-
-### Performance Optimizations
-
-- **Stream Processing** - Handles large conversation files efficiently using line-by-line reading
-- **Debounced Search** - AI search queries are debounced by 500ms for optimal performance
-- **Smart Scanning** - Only processes the 5 most recent projects and 5 most recent files per project
 
 ### Data Source
 
 - Reads from `~/.claude/projects/` where Claude Code stores conversations
-- Processes JSONL files containing timestamped messages
 - Automatically finds the most recent conversations
-- No data is sent to external servers (except for AI search with Raycast Pro)
+- No data is sent to external servers
 
 ### Limitations
 
 - Scans 5 most recent projects with 5 most recent conversation files per project
-- AI Search requires Raycast Pro subscription
-- Large conversation files may take a moment to load initially
-
-## Requirements
-
-- **Raycast** 1.26.0 or higher
-- **Node.js** 22.14 or higher
-- **Claude Code** installed and configured
-- **Raycast Pro** (optional, for AI search features)
-
-## Troubleshooting
-
-### No messages appearing
-
-- Ensure Claude Code is installed and you have conversation history
-- Check that `~/.claude/projects/` directory exists
-- Try refreshing with `⌘ + R`
-
-### Search not working
-
-- For AI search, ensure you have Raycast Pro subscription
-- Try switching to Normal search mode if AI search fails
-- Clear search and try again
-
-### Performance issues
-
-- The extension scans the 5 most recent projects and 5 most recent files per project
-- Large conversation files are processed efficiently using streaming
-- Try closing and reopening if performance degrades
 
 ## Privacy & Security
 
 - **Local Processing** - All data processing happens locally on your machine
 - **No External Storage** - Your messages are never uploaded or stored externally
-- **AI Search** - When using AI search, queries are processed by Raycast's AI service (Pro only)
 - **Open Source** - Full source code available for review
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
