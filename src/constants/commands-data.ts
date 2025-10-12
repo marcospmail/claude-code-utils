@@ -159,6 +159,22 @@ export const claudeCodeCommands: CommandItem[] = [
     usage: "/permissions",
   },
   {
+    id: "plugin",
+    name: "/plugin",
+    description:
+      "Manage Claude Code plugins - custom collections of commands, agents, MCP servers, and hooks. Install, uninstall, enable, disable plugins or manage plugin marketplaces.",
+    category: "Commands",
+    usage: "/plugin [subcommand] [arguments]",
+    examples: [
+      "/plugin",
+      "/plugin marketplace add your-org/claude-plugins",
+      "/plugin install formatter@your-org",
+      "/plugin uninstall formatter@your-org",
+      "/plugin enable formatter@your-org",
+      "/plugin disable formatter@your-org",
+    ],
+  },
+  {
     id: "resume",
     name: "/resume",
     description: "Resume previous conversation with full context",
