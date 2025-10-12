@@ -37,11 +37,9 @@ This is a Raycast extension with 8 commands following the **List + Detail patter
 - Processes timestamped JSONL format with line-by-line reading via `createReadStream` + `readline`
 - Key functions: `getSentMessages()`, `getReceivedMessages()`, `getSnippets()`, `pinMessage()`, `unpinMessage()`
 
-**Search Architecture** (`src/utils/aiSearch.ts`):
-- Two modes: Normal (keyword) and AI (semantic)
-- AI search uses Raycast's `AI.ask()` API (requires Raycast Pro)
-- Search is debounced at 500ms (`AI_SEARCH_DEBOUNCE_MS`) to prevent API spam
-- Functions: `semanticSearchMessages()`, `normalSearchMessages()`, `semanticSearchSnippets()`, `normalSearchSnippets()`
+**Search Architecture** (`src/utils/ai-search.ts`):
+- Keyword search functionality for filtering messages and snippets
+- Functions: `normalSearch()` for messages, `normalSearchSnippets()` for snippets
 
 **Agents & Commands** (`src/utils/agents.ts`, `src/utils/slashCommands.ts`):
 - Read markdown files from `~/.claude/agents/` and `~/.claude/commands/`
@@ -60,7 +58,6 @@ This is a Raycast extension with 8 commands following the **List + Detail patter
 // State management
 const [items, setItems] = useState([]);
 const [isLoading, setIsLoading] = useState(true);
-const [useAISearch, setUseAISearch] = useState(false);
 const [searchText, setSearchText] = useState("");
 
 // Load data on mount
@@ -73,10 +70,10 @@ useEffect(() => {
   loadData();
 }, []);
 
-// List with search dropdown
+// List with search
 <List
   isLoading={isLoading}
-  searchBarAccessory={<SearchModeDropdown />}
+  searchBarPlaceholder="Search items..."
 >
 ```
 
@@ -156,6 +153,5 @@ SIMULATE_SLOW_NETWORK=true npm run dev
 
 ### Performance Considerations
 - Large JSONL files: Use streaming parsers (see `claudeMessages.ts`)
-- AI search: Always debounce (500ms minimum)
 - Limit scanning to most recent data (5 projects × 5 files default)
 - Use `useMemo` for expensive computations in React components
