@@ -1,6 +1,6 @@
-import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { getSlashCommands, SlashCommand } from "../../utils/slashCommands";
+import { getSlashCommands, SlashCommand } from "../../utils/commands";
 import SlashCommandDetail from "./detail";
 
 export default function BrowseCommands() {
@@ -68,6 +68,10 @@ export default function BrowseCommands() {
                 <Action.ShowInFinder
                   path={command.filePath}
                   shortcut={{ modifiers: ["cmd", "shift"], key: "f" }}
+                />
+                <Action.OpenWith
+                  path={command.filePath}
+                  shortcut={{ modifiers: ["cmd"], key: "o" }}
                 />
               </ActionPanel>
             }

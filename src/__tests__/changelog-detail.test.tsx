@@ -8,45 +8,7 @@ import ChangelogDetail from "../commands/changelog/detail";
 import { ChangelogVersion } from "../utils/changelog";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  Detail: ({
-    markdown,
-    navigationTitle,
-    actions,
-  }: {
-    markdown: string;
-    navigationTitle: string;
-    actions: React.ReactNode;
-  }) => (
-    <div
-      data-testid="detail"
-      data-markdown={markdown}
-      data-navigation-title={navigationTitle}
-    >
-      {actions}
-    </div>
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    CopyToClipboard: ({ title }: { title: string }) => (
-      <button data-testid="action-copy" data-title={title}>
-        {title}
-      </button>
-    ),
-    OpenInBrowser: ({ title }: { title: string }) => (
-      <button data-testid="action-browser" data-title={title}>
-        {title}
-      </button>
-    ),
-  },
-  Icon: {
-    Clipboard: "clipboard-icon",
-    Document: "document-icon",
-    Globe: "globe-icon",
-  },
-}));
+jest.mock("@raycast/api");
 
 describe("ChangelogDetail", () => {
   const mockVersion: ChangelogVersion = {
@@ -84,21 +46,20 @@ describe("ChangelogDetail", () => {
   it("should render copy version action", () => {
     render(<ChangelogDetail version={mockVersion} />);
 
-    const actions = screen.getAllByTestId("action-copy");
-    const copyVersionAction = actions.find(
-      (action) => action.getAttribute("data-title") === "Copy Version Number",
-    );
+    const copyVersionAction = screen.getByTestId("action-copy-version-number");
     expect(copyVersionAction).toBeInTheDocument();
+    expect(copyVersionAction).toHaveAttribute(
+      "data-title",
+      "Copy Version Number",
+    );
   });
 
   it("should render copy changes action", () => {
     render(<ChangelogDetail version={mockVersion} />);
 
-    const actions = screen.getAllByTestId("action-copy");
-    const copyChangesAction = actions.find(
-      (action) => action.getAttribute("data-title") === "Copy All Changes",
-    );
+    const copyChangesAction = screen.getByTestId("action-copy-all-changes");
     expect(copyChangesAction).toBeInTheDocument();
+    expect(copyChangesAction).toHaveAttribute("data-title", "Copy All Changes");
   });
 
   it("should render open in browser action", () => {
@@ -210,11 +171,14 @@ describe("ChangelogDetail", () => {
     const actionPanel = screen.getByTestId("action-panel");
     expect(actionPanel).toBeInTheDocument();
 
-    const copyActions = screen.getAllByTestId("action-copy");
-    expect(copyActions).toHaveLength(2); // Copy version and copy changes
+    // Check for both copy actions
+    expect(
+      screen.getByTestId("action-copy-version-number"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("action-copy-all-changes")).toBeInTheDocument();
 
-    const browserActions = screen.getAllByTestId("action-browser");
-    expect(browserActions).toHaveLength(1);
+    // Check for browser action
+    expect(screen.getByTestId("action-browser")).toBeInTheDocument();
   });
 
   it("should handle changes with newlines", () => {

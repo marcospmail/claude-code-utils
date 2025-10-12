@@ -1,6 +1,6 @@
+import { readdir, readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
 
 export interface Agent {
   id: string;
@@ -10,6 +10,17 @@ export interface Agent {
 }
 
 const AGENTS_DIR = join(homedir(), ".claude", "agents");
+
+/**
+ * Convert kebab-case string to Title Case
+ * Examples: "test-agent" → "Test Agent", "multi-word-name" → "Multi Word Name"
+ */
+function formatAgentName(kebabCase: string): string {
+  return kebabCase
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 /**
  * Get all agent files from ~/.claude/agents
@@ -38,39 +49,6 @@ export async function getAgents(): Promise<Agent[]> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return [];
-    }
-    throw error;
-  }
-}
-
-/**
- * Format agent filename to display name
- * e.g., "anthropic-docs-expert" -> "Anthropic Docs Expert"
- */
-function formatAgentName(filename: string): string {
-  return filename
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-/**
- * Get a single agent by ID
- */
-export async function getAgent(id: string): Promise<Agent | null> {
-  try {
-    const filePath = join(AGENTS_DIR, `${id}.md`);
-    const content = await readFile(filePath, "utf-8");
-
-    return {
-      id,
-      name: formatAgentName(id),
-      content,
-      filePath,
-    };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return null;
     }
     throw error;
   }

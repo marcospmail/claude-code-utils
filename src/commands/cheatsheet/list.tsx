@@ -1,9 +1,9 @@
-import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useState } from "react";
 import {
+  CommandItem,
   getCommandsByCategory,
   searchCommands,
-  CommandItem,
 } from "../../constants/commands-data";
 import CommandDetail from "./detail";
 
@@ -13,17 +13,21 @@ export default function BrowseCommandsCheatsheet() {
   const filteredCommands = searchText ? searchCommands(searchText) : [];
 
   const getIconForCommand = (command: CommandItem): Icon => {
-    if (command.category === "Commands") {
-      return Icon.Terminal;
-    } else if (command.category === "Keyboard Shortcuts") {
-      return Icon.Keyboard;
-    } else if (command.category === "CLI Flags") {
-      return Icon.Flag;
-    } else if (command.category === "Special Keywords") {
-      return Icon.Stars;
-    } else {
-      return Icon.Code;
+    const iconMap: Record<string, Icon> = {
+      ["Commands"]: Icon.Terminal,
+      ["Keyboard Shortcuts"]: Icon.Keyboard,
+      ["CLI Flags"]: Icon.Flag,
+      ["Special Keywords"]: Icon.Stars,
+      ["Configuration Commands"]: Icon.Code,
+    };
+
+    const icon = iconMap[command.category];
+
+    if (icon) {
+      return icon;
     }
+
+    return Icon.Code;
   };
 
   return (

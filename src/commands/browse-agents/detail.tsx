@@ -1,18 +1,16 @@
-import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
 import { Agent } from "../../utils/agents";
+import { generateFileContentMarkdown } from "../../utils/markdown-formatters";
 
 interface AgentDetailProps {
   agent: Agent;
 }
 
 export default function AgentDetail({ agent }: AgentDetailProps) {
-  const markdown = `
-# ${agent.name}
-
-\`\`\`markdown
-${agent.content}
-\`\`\`
-  `;
+  const markdown = generateFileContentMarkdown({
+    name: agent.name,
+    content: agent.content,
+  });
 
   return (
     <Detail

@@ -6,7 +6,7 @@ jest.mock("os", () => ({
   homedir: jest.fn(() => "/home/user"),
 }));
 
-import { getAgents, getAgent } from "../agents";
+import { getAgents } from "../agents";
 import { readdir, readFile } from "fs/promises";
 
 const mockReaddir = readdir as jest.MockedFunction<typeof readdir>;
@@ -134,58 +134,6 @@ describe("agents", () => {
       expect(agents[0].filePath).toBe(
         join("/home/user", ".claude", "agents", "test.md"),
       );
-    });
-  });
-
-  describe("getAgent", () => {
-    it("should return a single agent by id", async () => {
-      mockReadFile.mockResolvedValueOnce("# Test Agent Content");
-
-      const agent = await getAgent("test-agent");
-
-      expect(agent).toEqual({
-        id: "test-agent",
-        name: "Test Agent",
-        content: "# Test Agent Content",
-        filePath: join("/home/user", ".claude", "agents", "test-agent.md"),
-      });
-      expect(mockReadFile).toHaveBeenCalledWith(
-        join("/home/user", ".claude", "agents", "test-agent.md"),
-        "utf-8",
-      );
-    });
-
-    it("should return null when agent file does not exist", async () => {
-      const error = new Error("ENOENT");
-      (error as NodeJS.ErrnoException).code = "ENOENT";
-      mockReadFile.mockRejectedValue(error);
-
-      const agent = await getAgent("non-existent");
-
-      expect(agent).toBeNull();
-    });
-
-    it("should throw error for non-ENOENT errors", async () => {
-      const error = new Error("Permission denied");
-      mockReadFile.mockRejectedValue(error);
-
-      await expect(getAgent("test")).rejects.toThrow("Permission denied");
-    });
-
-    it("should format agent name from id", async () => {
-      mockReadFile.mockResolvedValueOnce("# Content");
-
-      const agent = await getAgent("my-custom-agent");
-
-      expect(agent?.name).toBe("My Custom Agent");
-    });
-
-    it("should handle single word agent names", async () => {
-      mockReadFile.mockResolvedValueOnce("# Content");
-
-      const agent = await getAgent("agent");
-
-      expect(agent?.name).toBe("Agent");
     });
   });
 });

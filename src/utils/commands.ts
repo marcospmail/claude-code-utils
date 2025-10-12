@@ -1,6 +1,6 @@
+import { readdir, readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
 
 export interface SlashCommand {
   id: string;
@@ -10,6 +10,17 @@ export interface SlashCommand {
 }
 
 const COMMANDS_DIR = join(homedir(), ".claude", "commands");
+
+/**
+ * Format command filename to display name
+ * e.g., "generate-commit-message" -> "Generate Commit Message"
+ */
+function formatCommandName(filename: string): string {
+  return filename
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
 
 /**
  * Get all command files from ~/.claude/commands
@@ -41,17 +52,6 @@ export async function getSlashCommands(): Promise<SlashCommand[]> {
     }
     throw error;
   }
-}
-
-/**
- * Format command filename to display name
- * e.g., "generate-commit-message" -> "Generate Commit Message"
- */
-function formatCommandName(filename: string): string {
-  return filename
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
 
 /**

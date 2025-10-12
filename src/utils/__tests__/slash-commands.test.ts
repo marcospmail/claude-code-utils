@@ -6,8 +6,8 @@ jest.mock("os", () => ({
   homedir: jest.fn(() => "/home/user"),
 }));
 
-import { getSlashCommands, getSlashCommand } from "../slashCommands";
 import { readdir, readFile } from "fs/promises";
+import { getSlashCommand, getSlashCommands } from "../commands";
 
 const mockReaddir = readdir as jest.MockedFunction<typeof readdir>;
 const mockReadFile = readFile as jest.MockedFunction<typeof readFile>;

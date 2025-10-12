@@ -1,13 +1,14 @@
 import {
-  ActionPanel,
   Action,
-  List,
+  ActionPanel,
   Icon,
+  List,
   showToast,
   Toast,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { fetchChangelog, ChangelogVersion } from "../../utils/changelog";
+import { useEffect, useState } from "react";
+import { CLAUDE_CODE_CHANGELOG_URL } from "../../utils/constants";
+import { ChangelogVersion, fetchChangelog } from "../../utils/changelog";
 import ChangelogDetail from "./detail";
 
 export default function Changelog() {
@@ -21,14 +22,14 @@ export default function Changelog() {
         setIsLoading(true);
         const data = await fetchChangelog();
         setVersions(data);
-        setError(null);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to fetch changelog";
+      } catch {
+        const errorMessage = "Failed to fetch changelog";
+
         setError(errorMessage);
+
         showToast({
           style: Toast.Style.Failure,
-          title: "Failed to load changelog",
+          title: "Failed",
           message: errorMessage,
         });
       } finally {
@@ -80,7 +81,7 @@ export default function Changelog() {
               />
               <Action.OpenInBrowser
                 title="View on GitHub"
-                url="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"
+                url={CLAUDE_CODE_CHANGELOG_URL}
                 icon={Icon.Globe}
               />
             </ActionPanel>

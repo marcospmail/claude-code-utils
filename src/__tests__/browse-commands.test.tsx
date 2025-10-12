@@ -5,87 +5,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BrowseCommands from "../browse-commands";
-import * as slashCommandsUtils from "../utils/slashCommands";
+import * as slashCommandsUtils from "../utils/commands";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  List: Object.assign(
-    ({
-      children,
-      isLoading,
-      searchBarPlaceholder,
-    }: {
-      children: React.ReactNode;
-      isLoading: boolean;
-      searchBarPlaceholder: string;
-    }) => (
-      <div
-        data-testid="list"
-        data-loading={isLoading}
-        data-placeholder={searchBarPlaceholder}
-      >
-        {children}
-      </div>
-    ),
-    {
-      Item: ({
-        title,
-        icon,
-        accessories,
-        actions,
-      }: {
-        title: string;
-        icon: string;
-        accessories: Array<{ text: string }>;
-        actions: React.ReactNode;
-      }) => (
-        <div
-          data-testid="list-item"
-          data-title={title}
-          data-icon={icon}
-          data-accessories={JSON.stringify(accessories)}
-        >
-          {actions}
-        </div>
-      ),
-      EmptyView: ({
-        title,
-        description,
-      }: {
-        title: string;
-        description: string;
-      }) => (
-        <div data-testid="empty-view">
-          <div data-testid="empty-title">{title}</div>
-          <div data-testid="empty-description">{description}</div>
-        </div>
-      ),
-    },
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    Push: ({ title }: { title: string }) => (
-      <button data-testid="action-push" data-title={title}>
-        {title}
-      </button>
-    ),
-    CopyToClipboard: ({ title }: { title: string }) => (
-      <button data-testid="action-copy" data-title={title}>
-        {title}
-      </button>
-    ),
-    ShowInFinder: () => <button data-testid="action-show-finder" />,
-  },
-  Icon: {
-    Terminal: "terminal-icon",
-    Eye: "eye-icon",
-    Clipboard: "clipboard-icon",
-    Document: "document-icon",
-    ExclamationMark: "exclamation-icon",
-  },
-}));
+jest.mock("@raycast/api");
 
 // Mock slash-command-detail component
 jest.mock("../commands/browse-commands/detail", () => ({
@@ -96,7 +19,7 @@ jest.mock("../commands/browse-commands/detail", () => ({
 }));
 
 // Mock slashCommands utils
-jest.mock("../utils/slashCommands");
+jest.mock("../utils/commands");
 
 const mockGetSlashCommands =
   slashCommandsUtils.getSlashCommands as jest.MockedFunction<
@@ -204,10 +127,10 @@ describe("BrowseCommands", () => {
       expect(screen.getByTestId("action-panel")).toBeInTheDocument();
     });
 
-    const pushAction = screen.getByTestId("action-push");
+    const pushAction = screen.getByTestId("action-push-view-command-details");
     expect(pushAction).toHaveAttribute("data-title", "View Command Details");
 
-    const copyAction = screen.getByTestId("action-copy");
+    const copyAction = screen.getByTestId("action-copy-command-content");
     expect(copyAction).toHaveAttribute("data-title", "Copy Command Content");
 
     expect(screen.getByTestId("action-show-finder")).toBeInTheDocument();

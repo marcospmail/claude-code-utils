@@ -1,11 +1,11 @@
 import {
   Action,
   ActionPanel,
-  AI,
+  // AI,
   Clipboard,
   closeMainWindow,
-  Color,
-  environment,
+  // Color,
+  // environment,
   getFrontmostApplication,
   List,
   showHUD,
@@ -15,53 +15,55 @@ import {
   Alert,
   Icon,
 } from "@raycast/api";
-import { useCallback, useEffect, useState, useRef, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   getSnippets,
   deleteSnippet,
   Snippet,
-} from "../../utils/claudeMessages";
-import {
-  semanticSearchSnippets,
-  normalSearchSnippets,
-} from "../../utils/aiSearch";
+} from "../../utils/claude-messages";
+// COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+// import {
+//   semanticSearchSnippets,
+//   normalSearchSnippets,
+// } from "../../utils/ai-search";
+import { normalSearchSnippets } from "../../utils/ai-search";
 import CreateSnippet from "../create-snippet/list";
 import SnippetDetail from "./detail";
 
 // Constants
-const AI_SEARCH_DEBOUNCE_MS = 500;
+// COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+// const AI_SEARCH_DEBOUNCE_MS = 500;
 
 // Types
-type AISearchError = false | "failed" | "pro-required";
+// COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+// type AISearchError = false | "failed" | "pro-required";
 
 export default function BrowseSnippets() {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [filteredSnippets, setFilteredSnippets] = useState<Snippet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [useAISearch, setUseAISearch] = useState(false);
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+  // const [useAISearch, setUseAISearch] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [debouncedSearchText, setDebouncedSearchText] = useState("");
-  const [aiSearchFailed, setAiSearchFailed] = useState<AISearchError>(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+  // const [debouncedSearchText, setDebouncedSearchText] = useState("");
+  // const [aiSearchFailed, setAiSearchFailed] = useState<AISearchError>(false);
+  // const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [frontmostApp, setFrontmostApp] = useState<string>("");
   const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
     Icon.Window,
   );
 
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
   // Check if user has AI access
-  const hasAIAccess = environment.canAccess(AI);
+  // const hasAIAccess = environment.canAccess(AI);
 
   // Get frontmost application for list items
   useEffect(() => {
-    getFrontmostApplication()
-      .then((app) => {
-        setFrontmostApp(app.name);
-        setAppIcon({ fileIcon: app.path });
-      })
-      .catch(() => {
-        setFrontmostApp("Active App");
-        setAppIcon(Icon.Window);
-      });
+    getFrontmostApplication().then((app) => {
+      setFrontmostApp(app.name);
+      setAppIcon({ fileIcon: app.path });
+    });
   }, []);
 
   const loadSnippets = useCallback(async () => {
@@ -89,86 +91,92 @@ export default function BrowseSnippets() {
     loadSnippets();
   }, [loadSnippets]);
 
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
   // Handle search text changes with debouncing for AI search
-  useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+  // useEffect(() => {
+  //   if (debounceTimerRef.current) {
+  //     clearTimeout(debounceTimerRef.current);
+  //   }
 
-    if (useAISearch) {
-      // Debounce AI search
-      debounceTimerRef.current = setTimeout(() => {
-        setDebouncedSearchText(searchText);
-      }, AI_SEARCH_DEBOUNCE_MS);
-    } else {
-      // No debounce for normal search
-      setDebouncedSearchText(searchText);
-    }
+  //   if (useAISearch) {
+  //     // Debounce AI search
+  //     debounceTimerRef.current = setTimeout(() => {
+  //       setDebouncedSearchText(searchText);
+  //     }, AI_SEARCH_DEBOUNCE_MS);
+  //   } else {
+  //     // No debounce for normal search
+  //     setDebouncedSearchText(searchText);
+  //   }
 
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [searchText, useAISearch]);
+  //   return () => {
+  //     if (debounceTimerRef.current) {
+  //       clearTimeout(debounceTimerRef.current);
+  //     }
+  //   };
+  // }, [searchText, useAISearch]);
 
   // Filter snippets immediately for normal search
   const displaySnippets = useMemo(() => {
-    if (!useAISearch && searchText.trim()) {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    // if (!useAISearch && searchText.trim()) {
+    if (searchText.trim()) {
       return normalSearchSnippets(snippets, searchText);
     }
     return filteredSnippets;
-  }, [snippets, searchText, useAISearch, filteredSnippets]);
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    // }, [snippets, searchText, useAISearch, filteredSnippets]);
+  }, [snippets, searchText, filteredSnippets]);
 
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
   // Perform AI search only on debounced text
-  useEffect(() => {
-    async function performAISearch() {
-      if (!debouncedSearchText.trim()) {
-        setFilteredSnippets(snippets);
-        return;
-      }
+  // useEffect(() => {
+  //   async function performAISearch() {
+  //     if (!debouncedSearchText.trim()) {
+  //       setFilteredSnippets(snippets);
+  //       return;
+  //     }
 
-      if (useAISearch) {
-        setIsLoading(true);
-        setAiSearchFailed(false);
-        try {
-          const results = await semanticSearchSnippets(
-            snippets,
-            debouncedSearchText,
-          );
-          setFilteredSnippets(results);
-          setAiSearchFailed(false);
-        } catch (error) {
-          // Clear results and show error state
-          setFilteredSnippets([]);
+  //     if (useAISearch) {
+  //       setIsLoading(true);
+  //       setAiSearchFailed(false);
+  //       try {
+  //         const results = await semanticSearchSnippets(
+  //           snippets,
+  //           debouncedSearchText,
+  //         );
+  //         setFilteredSnippets(results);
+  //         setAiSearchFailed(false);
+  //       } catch (error) {
+  //         // Clear results and show error state
+  //         setFilteredSnippets([]);
 
-          // Check if it's a Pro subscription error (either by checking access or error message)
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
-            setAiSearchFailed("pro-required");
-          } else {
-            setAiSearchFailed("failed");
-          }
+  //         // Check if it's a Pro subscription error (either by checking access or error message)
+  //         const errorMessage =
+  //           error instanceof Error ? error.message : String(error);
+  //         if (!hasAIAccess || errorMessage.includes("Raycast Pro")) {
+  //           setAiSearchFailed("pro-required");
+  //         } else {
+  //           setAiSearchFailed("failed");
+  //         }
 
-          // Show error toast
-          showToast({
-            style: Toast.Style.Failure,
-            title: "AI search failed",
-          });
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setFilteredSnippets(
-          normalSearchSnippets(snippets, debouncedSearchText),
-        );
-        setAiSearchFailed(false);
-      }
-    }
+  //         // Show error toast
+  //         showToast({
+  //           style: Toast.Style.Failure,
+  //           title: "AI search failed",
+  //         });
+  //       } finally {
+  //         setIsLoading(false);
+  //       }
+  //     } else {
+  //       setFilteredSnippets(
+  //         normalSearchSnippets(snippets, debouncedSearchText),
+  //       );
+  //       setAiSearchFailed(false);
+  //     }
+  //   }
 
-    performAISearch();
-  }, [debouncedSearchText, useAISearch, snippets]);
+  //   performAISearch();
+  // }, [debouncedSearchText, useAISearch, snippets]);
 
   async function copyContent(snippet: Snippet, closeWindow = false) {
     try {
@@ -224,28 +232,27 @@ export default function BrowseSnippets() {
   return (
     <List
       isLoading={isLoading}
-      searchBarPlaceholder={
-        useAISearch ? "Search with AI (semantic)..." : "Search your snippets..."
-      }
+      searchBarPlaceholder="Search your snippets..."
       onSearchTextChange={setSearchText}
-      searchBarAccessory={
-        <List.Dropdown
-          tooltip="Search Mode"
-          value={useAISearch ? "ai" : "normal"}
-          onChange={(value) => setUseAISearch(value === "ai")}
-        >
-          <List.Dropdown.Item
-            title="Normal Search"
-            value="normal"
-            icon={Icon.MagnifyingGlass}
-          />
-          <List.Dropdown.Item
-            title="AI Search (Semantic)"
-            value="ai"
-            icon={Icon.Stars}
-          />
-        </List.Dropdown>
-      }
+      // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+      // searchBarAccessory={
+      //   <List.Dropdown
+      //     tooltip="Search Mode"
+      //     value={useAISearch ? "ai" : "normal"}
+      //     onChange={(value) => setUseAISearch(value === "ai")}
+      //   >
+      //     <List.Dropdown.Item
+      //       title="Normal Search"
+      //       value="normal"
+      //       icon={Icon.MagnifyingGlass}
+      //     />
+      //     <List.Dropdown.Item
+      //       title="AI Search (Semantic)"
+      //       value="ai"
+      //       icon={Icon.Stars}
+      //     />
+      //   </List.Dropdown>
+      // }
       actions={
         <ActionPanel>
           <Action.Push
@@ -271,7 +278,8 @@ export default function BrowseSnippets() {
           }
         />
       )}
-      {aiSearchFailed && displaySnippets.length === 0 && !isLoading && (
+      {/* COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED */}
+      {/* {aiSearchFailed && displaySnippets.length === 0 && !isLoading && (
         <List.EmptyView
           icon={{
             source:
@@ -292,7 +300,7 @@ export default function BrowseSnippets() {
               : "Could not perform semantic search."
           }
         />
-      )}
+      )} */}
       {displaySnippets.map((snippet) => (
         <List.Item
           key={snippet.id}
@@ -315,12 +323,14 @@ export default function BrowseSnippets() {
                   <SnippetDetail snippet={snippet} onDelete={handleDelete} />
                 }
               />
-              <Action.Paste
-                title={`Paste to ${frontmostApp}`}
-                content={snippet.content}
-                icon={appIcon}
-                shortcut={{ modifiers: ["cmd"], key: "enter" }}
-              />
+              {!!frontmostApp && (
+                <Action.Paste
+                  title={`Paste to ${frontmostApp}`}
+                  content={snippet.content}
+                  icon={appIcon}
+                  shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                />
+              )}
               <Action
                 title="Copy Snippet"
                 icon={Icon.Clipboard}

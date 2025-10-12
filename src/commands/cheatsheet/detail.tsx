@@ -1,42 +1,65 @@
 import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
 import { CommandItem } from "../../constants/commands-data";
 
+interface CommandMarkdownOptions {
+  name: string;
+  description: string;
+  usage?: string;
+  examples?: string[];
+}
+
+/**
+ * Generates formatted markdown for command detail pages
+ */
+function generateCommandMarkdown(options: CommandMarkdownOptions): string {
+  const { name, description, usage, examples } = options;
+
+  const sections: string[] = [];
+
+  // Title
+  sections.push(`# ${name}`);
+  sections.push("");
+
+  // Usage section (if provided)
+  if (usage) {
+    sections.push("**Usage:**");
+    sections.push("```bash");
+    sections.push(usage);
+    sections.push("```");
+    sections.push("");
+    sections.push("---");
+    sections.push("");
+  }
+
+  // Description
+  sections.push(`**Description:** ${description}`);
+  sections.push("");
+
+  // Examples section (if provided)
+  if (examples && examples.length > 0) {
+    sections.push("**Examples:**");
+    examples.forEach((example) => {
+      sections.push("```bash");
+      sections.push(example);
+      sections.push("```");
+      sections.push("");
+    });
+  }
+
+  return sections.join("\n");
+}
+
 interface CommandDetailProps {
   command: CommandItem;
 }
 
 export default function CommandDetail({ command }: CommandDetailProps) {
-  const markdown = `
-# ${command.name}
-
-${
-  command.usage
-    ? `**Usage:**
-\`\`\`bash
-${command.usage}
-\`\`\`
-
----
-
-`
-    : ""
-}**Description:** ${command.description}
-
-${
-  command.examples && command.examples.length > 0
-    ? `**Examples:**
-${command.examples
-  .map(
-    (example) => `\`\`\`bash
-${example}
-\`\`\``,
-  )
-  .join("\n\n")}
-`
-    : ""
-}
-
-  `;
+  const markdown = generateCommandMarkdown({
+    name: command.name,
+    description: command.description,
+    usage: command.usage,
+    examples: command.examples,
+  });
 
   return (
     <Detail

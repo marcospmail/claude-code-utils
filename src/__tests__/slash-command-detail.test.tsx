@@ -5,43 +5,10 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import SlashCommandDetail from "../commands/browse-commands/detail";
-import { SlashCommand } from "../utils/slashCommands";
+import { SlashCommand } from "../utils/slash-commands";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  Detail: ({
-    markdown,
-    navigationTitle,
-    actions,
-  }: {
-    markdown: string;
-    navigationTitle: string;
-    actions: React.ReactNode;
-  }) => (
-    <div
-      data-testid="detail"
-      data-markdown={markdown}
-      data-navigation-title={navigationTitle}
-    >
-      {actions}
-    </div>
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    CopyToClipboard: ({ title }: { title: string }) => (
-      <button data-testid="action-copy" data-title={title}>
-        {title}
-      </button>
-    ),
-    ShowInFinder: () => <button data-testid="action-show-finder" />,
-    OpenWith: () => <button data-testid="action-open-with" />,
-  },
-  Icon: {
-    Clipboard: "clipboard-icon",
-  },
-}));
+jest.mock("@raycast/api");
 
 describe("SlashCommandDetail", () => {
   const mockCommand: SlashCommand = {
@@ -79,7 +46,7 @@ describe("SlashCommandDetail", () => {
   it("should render copy action", () => {
     render(<SlashCommandDetail command={mockCommand} />);
 
-    const copyAction = screen.getByTestId("action-copy");
+    const copyAction = screen.getByTestId("action-copy-command-content");
     expect(copyAction).toHaveAttribute("data-title", "Copy Command Content");
   });
 

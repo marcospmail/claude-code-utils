@@ -1,5 +1,6 @@
-import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
-import { SlashCommand } from "../../utils/slashCommands";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import { SlashCommand } from "../../utils/commands";
+import { generateFileContentMarkdown } from "../../utils/markdown-formatters";
 
 interface SlashCommandDetailProps {
   command: SlashCommand;
@@ -8,13 +9,10 @@ interface SlashCommandDetailProps {
 export default function SlashCommandDetail({
   command,
 }: SlashCommandDetailProps) {
-  const markdown = `
-# ${command.name}
-
-\`\`\`markdown
-${command.content}
-\`\`\`
-  `;
+  const markdown = generateFileContentMarkdown({
+    name: command.name,
+    content: command.content,
+  });
 
   return (
     <Detail

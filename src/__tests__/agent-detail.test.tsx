@@ -8,40 +8,7 @@ import AgentDetail from "../commands/browse-agents/detail";
 import { Agent } from "../utils/agents";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  Detail: ({
-    markdown,
-    navigationTitle,
-    actions,
-  }: {
-    markdown: string;
-    navigationTitle: string;
-    actions: React.ReactNode;
-  }) => (
-    <div
-      data-testid="detail"
-      data-markdown={markdown}
-      data-navigation-title={navigationTitle}
-    >
-      {actions}
-    </div>
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    CopyToClipboard: ({ title }: { title: string }) => (
-      <button data-testid="action-copy" data-title={title}>
-        {title}
-      </button>
-    ),
-    ShowInFinder: () => <button data-testid="action-show-finder" />,
-    OpenWith: () => <button data-testid="action-open-with" />,
-  },
-  Icon: {
-    Clipboard: "clipboard-icon",
-  },
-}));
+jest.mock("@raycast/api");
 
 describe("AgentDetail", () => {
   const mockAgent: Agent = {
@@ -79,7 +46,7 @@ describe("AgentDetail", () => {
   it("should render copy action", () => {
     render(<AgentDetail agent={mockAgent} />);
 
-    const copyAction = screen.getByTestId("action-copy");
+    const copyAction = screen.getByTestId("action-copy-agent-content");
     expect(copyAction).toHaveAttribute("data-title", "Copy Agent Content");
   });
 

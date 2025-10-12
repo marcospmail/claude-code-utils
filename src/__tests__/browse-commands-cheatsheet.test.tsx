@@ -8,93 +8,7 @@ import BrowseCommandsCheatsheet from "../commands/cheatsheet/list";
 import React from "react";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  List: Object.assign(
-    ({
-      children,
-      searchBarPlaceholder,
-      filtering,
-    }: {
-      children: React.ReactNode;
-      searchBarPlaceholder?: string;
-      filtering?: boolean;
-    }) => (
-      <div
-        data-testid="list"
-        data-filtering={filtering}
-        data-placeholder={searchBarPlaceholder}
-      >
-        {children}
-      </div>
-    ),
-    {
-      Section: ({
-        children,
-        title,
-      }: {
-        children: React.ReactNode;
-        title: string;
-      }) => (
-        <div data-testid="list-section" title={title}>
-          {children}
-        </div>
-      ),
-      Item: ({
-        title,
-        subtitle,
-        actions,
-      }: {
-        title: string;
-        subtitle?: string;
-        actions?: React.ReactNode;
-      }) => (
-        <div data-testid="list-item" title={title} data-subtitle={subtitle}>
-          {actions}
-        </div>
-      ),
-    },
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    Push: ({ title }: { title: string }) => (
-      <button data-testid="action-push" data-title={title}>
-        {title}
-      </button>
-    ),
-    CopyToClipboard: ({
-      title,
-      content,
-    }: {
-      title: string;
-      content: string;
-    }) => (
-      <button
-        data-testid="action-copy"
-        data-title={title}
-        data-content={content}
-      >
-        {title}
-      </button>
-    ),
-  },
-  Icon: {
-    Terminal: "terminal-icon",
-    Keyboard: "keyboard-icon",
-    Flag: "flag-icon",
-    Stars: "stars-icon",
-    Code: "code-icon",
-    Eye: "eye-icon",
-    Clipboard: "clipboard-icon",
-    Document: "document-icon",
-    NewDocument: "newdocument-icon",
-    Hashtag: "hashtag-icon",
-    Gear: "gear-icon",
-    Plus: "plus-icon",
-    Message: "message-icon",
-  },
-}));
+jest.mock("@raycast/api");
 
 // Mock commands data
 jest.mock("../constants/commands-data", () => ({
@@ -271,7 +185,7 @@ describe("BrowseCommandsCheatsheet", () => {
   it("should render List.Section components for categories", () => {
     const { container } = render(<BrowseCommandsCheatsheet />);
     const sections = container.querySelectorAll(
-      '[title*="Commands"], [title*="Keyboard Shortcuts"]',
+      '[data-title*="Commands"], [data-title*="Keyboard Shortcuts"]',
     );
     expect(sections.length).toBeGreaterThan(0);
   });
@@ -279,7 +193,7 @@ describe("BrowseCommandsCheatsheet", () => {
   it("should render List.Item components for commands", () => {
     const { container } = render(<BrowseCommandsCheatsheet />);
     const items = container.querySelectorAll(
-      '[title="/help"], [title="/clear"], [title="Ctrl+C"]',
+      '[data-title="/help"], [data-title="/clear"], [data-title="Ctrl+C"]',
     );
     expect(items.length).toBeGreaterThan(0);
   });

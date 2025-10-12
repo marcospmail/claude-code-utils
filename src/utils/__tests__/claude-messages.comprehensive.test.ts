@@ -25,7 +25,7 @@ import {
   createSnippet,
   deleteSnippet,
   ParsedMessage,
-} from "../claudeMessages";
+} from "../claude-messages";
 
 // Mock dependencies
 jest.mock("fs");

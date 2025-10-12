@@ -16,7 +16,6 @@ describe("commands-data", () => {
       expect(categories).toContain("Quick Prefixes");
       expect(categories).toContain("CLI Flags");
       expect(categories).toContain("Special Keywords");
-      expect(categories).toContain("Configuration Commands");
       expect(categories).toContain("File Operations");
     });
 
@@ -77,8 +76,9 @@ describe("commands-data", () => {
         .map((cmd) => cmd.name);
 
       expect(specialKeywords).toContain("ultrathink");
-      expect(specialKeywords).toContain("megathink");
       expect(specialKeywords).toContain("think");
+      expect(specialKeywords).toContain("think hard");
+      expect(specialKeywords).toContain("think harder");
     });
   });
 

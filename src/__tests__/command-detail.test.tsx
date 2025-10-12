@@ -8,44 +8,7 @@ import CommandDetail from "../commands/cheatsheet/detail";
 import { CommandItem } from "../commands-data";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  Detail: ({
-    markdown,
-    actions,
-  }: {
-    markdown: string;
-    actions: React.ReactNode;
-  }) => (
-    <div data-testid="detail" data-markdown={markdown}>
-      {actions}
-    </div>
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    CopyToClipboard: ({
-      title,
-      content,
-    }: {
-      title: string;
-      content: string;
-    }) => (
-      <button
-        data-testid="action-copy"
-        data-title={title}
-        data-content={content}
-      >
-        {title}
-      </button>
-    ),
-  },
-  Icon: {
-    Clipboard: "clipboard-icon",
-    Code: "code-icon",
-    Document: "document-icon",
-  },
-}));
+jest.mock("@raycast/api");
 
 describe("CommandDetail", () => {
   const mockCommand: CommandItem = {
@@ -134,32 +97,29 @@ describe("CommandDetail", () => {
   });
 
   it("should render copy command action", () => {
-    const { getAllByTestId } = render(<CommandDetail command={mockCommand} />);
-    const copyActions = getAllByTestId("action-copy");
-    const copyCommandAction = copyActions.find(
-      (action) => action.getAttribute("data-title") === "Copy Command",
-    );
+    const { getByTestId } = render(<CommandDetail command={mockCommand} />);
+    const copyCommandAction = getByTestId("action-copy-command");
     expect(copyCommandAction).toBeInTheDocument();
+    expect(copyCommandAction).toHaveAttribute("data-title", "Copy Command");
     expect(copyCommandAction).toHaveAttribute("data-content", "/help");
   });
 
   it("should render copy usage action when usage is provided", () => {
-    const { getAllByTestId } = render(<CommandDetail command={mockCommand} />);
-    const copyActions = getAllByTestId("action-copy");
-    const copyUsageAction = copyActions.find(
-      (action) => action.getAttribute("data-title") === "Copy Usage",
-    );
+    const { getByTestId } = render(<CommandDetail command={mockCommand} />);
+    const copyUsageAction = getByTestId("action-copy-usage");
     expect(copyUsageAction).toBeInTheDocument();
+    expect(copyUsageAction).toHaveAttribute("data-title", "Copy Usage");
     expect(copyUsageAction).toHaveAttribute("data-content", "/help");
   });
 
   it("should render copy first example action when examples are provided", () => {
-    const { getAllByTestId } = render(<CommandDetail command={mockCommand} />);
-    const copyActions = getAllByTestId("action-copy");
-    const copyExampleAction = copyActions.find(
-      (action) => action.getAttribute("data-title") === "Copy First Example",
-    );
+    const { getByTestId } = render(<CommandDetail command={mockCommand} />);
+    const copyExampleAction = getByTestId("action-copy-first-example");
     expect(copyExampleAction).toBeInTheDocument();
+    expect(copyExampleAction).toHaveAttribute(
+      "data-title",
+      "Copy First Example",
+    );
     expect(copyExampleAction).toHaveAttribute("data-content", "/help");
   });
 

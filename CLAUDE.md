@@ -30,28 +30,38 @@ This is a Raycast extension with 8 commands following the **List + Detail patter
 
 ### Data Flow
 
-**Claude Messages System** (`src/utils/claudeMessages.ts`):
+**Claude Messages System** (`src/utils/claude-messages.ts`):
 - Reads from `~/.claude/projects/` directory where Claude Code stores conversations
 - Uses **streaming parsers** to handle large JSONL files without loading entire files into memory
 - Scans 5 most recent projects × 5 most recent files per project (configurable via constants)
 - Processes timestamped JSONL format with line-by-line reading via `createReadStream` + `readline`
 - Key functions: `getSentMessages()`, `getReceivedMessages()`, `getSnippets()`, `pinMessage()`, `unpinMessage()`
 
-**Search Architecture** (`src/utils/aiSearch.ts`):
+**Search Architecture** (`src/utils/ai-search.ts`):
 - Two modes: Normal (keyword) and AI (semantic)
 - AI search uses Raycast's `AI.ask()` API (requires Raycast Pro)
 - Search is debounced at 500ms (`AI_SEARCH_DEBOUNCE_MS`) to prevent API spam
 - Functions: `semanticSearchMessages()`, `normalSearchMessages()`, `semanticSearchSnippets()`, `normalSearchSnippets()`
 
-**Agents & Commands** (`src/utils/agents.ts`, `src/utils/slashCommands.ts`):
+**Agents & Commands** (`src/utils/agents.ts`, `src/utils/commands.ts`):
 - Read markdown files from `~/.claude/agents/` and `~/.claude/commands/`
 - Parse YAML frontmatter for metadata
 - Generate formatted names from kebab-case filenames
+- Key functions: `getAgents()`, `getSlashCommands()`, `getSlashCommand()`
 
 **Changelog Fetching** (`src/utils/changelog.ts`):
 - Fetches from `https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md`
 - Parses markdown to extract versions and changes
 - Supports network simulation for testing (see below)
+
+**Shared Constants** (`src/utils/constants.ts`):
+- Centralized constants used across the extension
+- Contains Claude Code changelog URLs
+
+**Markdown Formatters** (`src/utils/markdown-formatters.ts`):
+- Utility functions for generating formatted markdown content
+- Used in agent and slash command detail views
+- Key function: `generateFileContentMarkdown()`
 
 ### Component Patterns
 
@@ -80,7 +90,7 @@ useEffect(() => {
 >
 ```
 
-**Date Grouping** (`src/utils/dateGrouping.ts`):
+**Date Grouping** (`src/utils/date-grouping.ts`):
 - Messages are grouped by date periods (Today, Yesterday, This Week, etc.)
 - Uses `groupMessagesByDate()` function that returns sections with titles
 - Applied in sent-messages and received-messages list views
@@ -89,7 +99,7 @@ useEffect(() => {
 
 **Jest Configuration** (`jest.config.js`):
 - Uses `ts-jest` preset with `jsdom` environment
-- Mocks `@raycast/api` via `src/__mocks__/raycast-api.ts`
+- Mocks `@raycast/api` via `src/__mocks__/@raycast/api.tsx`
 - Setup file: `src/__tests__/setup.ts`
 - Tests located in `src/__tests__/` and `src/utils/__tests__/`
 
@@ -128,7 +138,7 @@ NETWORK_DELAY_MS=5000
 SIMULATE_SLOW_NETWORK=true npm run dev
 ```
 - Only works in development mode (`environment.isDevelopment`)
-- Uses `dotenv` package (loaded in `src/utils/networkSimulation.ts`)
+- Uses `dotenv` package (loaded in `src/utils/network-simulation.ts`)
 - Applied to changelog fetching; can be added to other async operations
 
 ### React DevTools Integration
@@ -141,7 +151,7 @@ SIMULATE_SLOW_NETWORK=true npm run dev
 ### File Naming
 - Commands: kebab-case (e.g., `browse-snippets.tsx`)
 - Components: PascalCase exports (e.g., `export default BrowseSnippets`)
-- Utilities: camelCase (e.g., `claudeMessages.ts`)
+- Utilities: kebab-case (e.g., `claude-messages.ts`)
 
 ### Code Quality
 - **Always run `npm run fix-lint` after changes** - this is critical for consistency
@@ -155,7 +165,7 @@ SIMULATE_SLOW_NETWORK=true npm run dev
 - Pinned messages: `~/.claude/pinned_messages.json`
 
 ### Performance Considerations
-- Large JSONL files: Use streaming parsers (see `claudeMessages.ts`)
+- Large JSONL files: Use streaming parsers (see `claude-messages.ts`)
 - AI search: Always debounce (500ms minimum)
 - Limit scanning to most recent data (5 projects × 5 files default)
 - Use `useMemo` for expensive computations in React components

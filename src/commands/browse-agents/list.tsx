@@ -1,6 +1,6 @@
-import { ActionPanel, Action, List, Icon } from "@raycast/api";
+import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { getAgents, Agent } from "../../utils/agents";
+import { Agent, getAgents } from "../../utils/agents";
 import AgentDetail from "./detail";
 
 export default function BrowseAgents() {
@@ -13,8 +13,8 @@ export default function BrowseAgents() {
       try {
         const loadedAgents = await getAgents();
         setAgents(loadedAgents);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load agents");
+      } catch {
+        setError("Failed to load agents");
       } finally {
         setIsLoading(false);
       }
@@ -66,6 +66,10 @@ export default function BrowseAgents() {
                 <Action.ShowInFinder
                   path={agent.filePath}
                   shortcut={{ modifiers: ["cmd", "shift"], key: "f" }}
+                />
+                <Action.OpenWith
+                  path={agent.filePath}
+                  shortcut={{ modifiers: ["cmd"], key: "o" }}
                 />
               </ActionPanel>
             }

@@ -1,12 +1,10 @@
-import { simulateNetworkDelay } from "./networkSimulation";
+import { CLAUDE_CODE_CHANGELOG_RAW_URL } from "./constants";
+import { simulateNetworkDelay } from "./network-simulation";
 
 export interface ChangelogVersion {
   version: string;
   changes: string[];
 }
-
-const CHANGELOG_URL =
-  "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md";
 
 function parseChangelog(markdown: string): ChangelogVersion[] {
   const versions: ChangelogVersion[] = [];
@@ -32,7 +30,6 @@ function parseChangelog(markdown: string): ChangelogVersion[] {
       currentVersion = versionMatch[1];
       currentChanges = [];
     } else if (line.trim().startsWith("-") || line.trim().startsWith("*")) {
-      // Add change item (remove leading "- " or "* ")
       const change = line.trim().substring(2).trim();
       if (change) {
         currentChanges.push(change);
@@ -40,7 +37,7 @@ function parseChangelog(markdown: string): ChangelogVersion[] {
     }
   }
 
-  // Don't forget the last version
+  // Add last version
   if (currentVersion) {
     versions.push({
       version: currentVersion,
@@ -53,7 +50,7 @@ function parseChangelog(markdown: string): ChangelogVersion[] {
 
 export async function fetchChangelog(): Promise<ChangelogVersion[]> {
   return simulateNetworkDelay(async () => {
-    const response = await fetch(CHANGELOG_URL);
+    const response = await fetch(CLAUDE_CODE_CHANGELOG_RAW_URL);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch changelog: ${response.status}`);

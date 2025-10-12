@@ -1,4 +1,4 @@
-import { ParsedMessage } from "./claudeMessages";
+import { ParsedMessage } from "./claude-messages";
 
 /**
  * Date category for message grouping

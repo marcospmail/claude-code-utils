@@ -8,99 +8,7 @@ import Changelog from "../commands/changelog/list";
 import * as changelogUtils from "../utils/changelog";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  List: Object.assign(
-    ({
-      children,
-      isLoading,
-      searchBarPlaceholder,
-    }: {
-      children: React.ReactNode;
-      isLoading: boolean;
-      searchBarPlaceholder: string;
-    }) => (
-      <div
-        data-testid="list"
-        data-loading={isLoading}
-        data-placeholder={searchBarPlaceholder}
-      >
-        {children}
-      </div>
-    ),
-    {
-      Item: ({
-        title,
-        icon,
-        accessories,
-        actions,
-      }: {
-        title: string;
-        icon: string;
-        accessories: Array<{ text?: string; tag?: string }>;
-        actions: React.ReactNode;
-      }) => (
-        <div
-          data-testid="list-item"
-          data-title={title}
-          data-icon={icon}
-          data-accessories={JSON.stringify(accessories)}
-        >
-          {actions}
-        </div>
-      ),
-      EmptyView: ({
-        icon,
-        title,
-        description,
-      }: {
-        icon: string;
-        title: string;
-        description: string;
-      }) => (
-        <div data-testid="empty-view" data-icon={icon}>
-          <div data-testid="empty-title">{title}</div>
-          <div data-testid="empty-description">{description}</div>
-        </div>
-      ),
-    },
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    Push: ({ title }: { title: string }) => (
-      <button data-testid="action-push" data-title={title}>
-        {title}
-      </button>
-    ),
-    CopyToClipboard: ({ title }: { title: string }) => (
-      <button data-testid="action-copy" data-title={title}>
-        {title}
-      </button>
-    ),
-    OpenInBrowser: ({ title }: { title: string }) => (
-      <button data-testid="action-browser" data-title={title}>
-        {title}
-      </button>
-    ),
-  },
-  Icon: {
-    Document: "document-icon",
-    Eye: "eye-icon",
-    Clipboard: "clipboard-icon",
-    Globe: "globe-icon",
-    ExclamationMark: "exclamation-icon",
-  },
-  showToast: jest.fn(),
-  Toast: {
-    Style: {
-      Failure: "failure",
-    },
-  },
-  environment: {
-    isDevelopment: false,
-  },
-}));
+jest.mock("@raycast/api");
 
 // Mock changelog-detail component
 jest.mock("../commands/changelog/detail", () => ({
@@ -235,10 +143,10 @@ describe("Changelog", () => {
       expect(screen.getByTestId("action-panel")).toBeInTheDocument();
     });
 
-    const pushAction = screen.getByTestId("action-push");
+    const pushAction = screen.getByTestId("action-push-view-details");
     expect(pushAction).toHaveAttribute("data-title", "View Details");
 
-    const copyAction = screen.getByTestId("action-copy");
+    const copyAction = screen.getByTestId("action-copy-version-number");
     expect(copyAction).toHaveAttribute("data-title", "Copy Version Number");
 
     const browserAction = screen.getByTestId("action-browser");

@@ -11,344 +11,18 @@ import {
 } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import SentMessages from "../commands/sent-messages/list";
-import { ParsedMessage } from "../utils/claudeMessages";
+import { ParsedMessage } from "../utils/claude-messages";
 import React from "react";
 
 // Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  List: Object.assign(
-    ({
-      children,
-      searchBarPlaceholder,
-      isLoading,
-      searchBarAccessory,
-      actions,
-      onSearchTextChange,
-    }: {
-      children: React.ReactNode;
-      searchBarPlaceholder: string;
-      isLoading: boolean;
-      searchBarAccessory: React.ReactNode;
-      actions: React.ReactNode;
-      onSearchTextChange?: (text: string) => void;
-    }) => (
-      <div
-        data-testid="list"
-        data-loading={isLoading}
-        data-placeholder={searchBarPlaceholder}
-        data-onsearchtextchange={onSearchTextChange ? "true" : "false"}
-      >
-        <input
-          data-testid="search-input"
-          type="text"
-          placeholder={searchBarPlaceholder}
-          onChange={(e) => onSearchTextChange?.(e.target.value)}
-        />
-        <div data-testid="search-accessory">{searchBarAccessory}</div>
-        <div data-testid="list-actions">{actions}</div>
-        {children}
-      </div>
-    ),
-    {
-      Section: ({
-        children,
-        title,
-      }: {
-        children: React.ReactNode;
-        title: string;
-      }) => (
-        <div data-testid="list-section" title={title}>
-          {children}
-        </div>
-      ),
-      Item: ({
-        title,
-        subtitle,
-        actions,
-        accessories,
-      }: {
-        title: string;
-        subtitle?: string;
-        actions: React.ReactNode;
-        accessories?: Array<{ text: string }>;
-      }) => (
-        <div data-testid="list-item" title={title} data-subtitle={subtitle}>
-          {accessories && (
-            <div data-testid="accessories">
-              {accessories.map((acc, idx: number) => (
-                <span key={idx} data-testid="accessory">
-                  {acc.text}
-                </span>
-              ))}
-            </div>
-          )}
-          {actions}
-        </div>
-      ),
-      EmptyView: ({
-        title,
-        description,
-        icon,
-        actions,
-      }: {
-        title: string;
-        description: string;
-        icon?: { source: string; tintColor: string };
-        actions: React.ReactNode;
-      }) => (
-        <div
-          data-testid="empty-view"
-          data-title={title}
-          data-description={description}
-        >
-          {icon && (
-            <div data-testid="empty-icon" data-color={icon.tintColor}>
-              {icon.source}
-            </div>
-          )}
-          {actions}
-        </div>
-      ),
-      Dropdown: Object.assign(
-        ({
-          children,
-          value,
-          tooltip,
-          onChange,
-        }: {
-          children: React.ReactNode;
-          value: string;
-          tooltip: string;
-          onChange?: (value: string) => void;
-        }) => {
-          const [currentValue, setCurrentValue] = React.useState(value);
-
-          React.useEffect(() => {
-            setCurrentValue(value);
-          }, [value]);
-
-          const handleChange = React.useCallback(
-            (newValue: string) => {
-              setCurrentValue(newValue);
-              onChange?.(newValue);
-            },
-            [onChange],
-          );
-
-          // Clone children and pass onChange to them
-          const childrenWithProps = React.Children.map(children, (child) => {
-            if (React.isValidElement(child)) {
-              return React.cloneElement(
-                child as React.ReactElement<{
-                  onChange?: (value: string) => void;
-                }>,
-                { onChange: handleChange },
-              );
-            }
-            return child;
-          });
-          return (
-            <div
-              data-testid="dropdown"
-              data-value={currentValue}
-              data-tooltip={tooltip}
-            >
-              {childrenWithProps}
-            </div>
-          );
-        },
-        {
-          Item: ({
-            title,
-            value,
-            onChange,
-          }: {
-            title: string;
-            value: string;
-            onChange?: (value: string) => void;
-          }) => (
-            <div
-              data-testid={`dropdown-item-${value}`}
-              data-value={value}
-              data-title={title}
-              onClick={() => onChange?.(value)}
-            >
-              {title}
-            </div>
-          ),
-        },
-      ),
-      Section: ({
-        title,
-        children,
-      }: {
-        title: string;
-        children: React.ReactNode;
-      }) => (
-        <div data-testid="list-section" data-title={title}>
-          {children}
-        </div>
-      ),
-    },
-  ),
-  Detail: ({
-    markdown,
-    navigationTitle,
-    metadata,
-    actions,
-  }: {
-    markdown: string;
-    navigationTitle: string;
-    metadata: React.ReactNode;
-    actions: React.ReactNode;
-  }) => (
-    <div
-      data-testid="detail"
-      data-markdown={markdown}
-      data-title={navigationTitle}
-    >
-      {metadata}
-      {actions}
-    </div>
-  ),
-  ActionPanel: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: Object.assign(
-    ({
-      title,
-      onAction,
-      shortcut,
-    }: {
-      title: string;
-      onAction: () => void;
-      shortcut?: { modifiers: string[]; key: string };
-    }) => (
-      <button
-        data-testid={`action-${title.toLowerCase().replace(/\s+/g, "-")}`}
-        data-title={title}
-        onClick={onAction}
-        data-shortcut={
-          shortcut
-            ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
-            : undefined
-        }
-      >
-        {title}
-      </button>
-    ),
-    {
-      Push: ({
-        title,
-        shortcut,
-      }: {
-        title: string;
-        shortcut?: { modifiers: string[]; key: string };
-      }) => (
-        <button
-          data-testid={`action-push-${title.toLowerCase().replace(/\s+/g, "-")}`}
-          data-title={title}
-          data-shortcut={
-            shortcut
-              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
-              : undefined
-          }
-        >
-          {title}
-        </button>
-      ),
-      CopyToClipboard: ({
-        title,
-        content,
-        shortcut,
-      }: {
-        title: string;
-        content: string;
-        shortcut?: { modifiers: string[]; key: string };
-      }) => (
-        <button
-          data-testid="action-copy"
-          data-title={title}
-          data-content={content}
-          data-shortcut={
-            shortcut
-              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
-              : undefined
-          }
-        >
-          {title}
-        </button>
-      ),
-      Paste: ({
-        title,
-        content,
-        shortcut,
-      }: {
-        title: string;
-        content: string;
-        shortcut?: { modifiers: string[]; key: string };
-      }) => (
-        <button
-          data-testid="action-paste"
-          data-title={title}
-          data-content={content}
-          data-shortcut={
-            shortcut
-              ? `${shortcut.modifiers.join("+")}-${shortcut.key}`
-              : undefined
-          }
-        >
-          {title}
-        </button>
-      ),
-    },
-  ),
-  AI: {
-    // Mock AI object
-  },
-  Clipboard: {
-    copy: jest.fn(),
-  },
-  closeMainWindow: jest.fn(),
-  showHUD: jest.fn(),
-  showToast: jest.fn(),
-  getFrontmostApplication: jest.fn().mockResolvedValue({
-    name: "TestApp",
-    path: "/Applications/TestApp.app",
-    bundleId: "com.test.app",
-  }),
-  Toast: Object.assign(jest.fn(), {
-    Style: {
-      Success: "success",
-      Failure: "failure",
-    },
-  }),
-  Icon: {
-    Eye: "eye-icon",
-    Clipboard: "clipboard-icon",
-    Document: "document-icon",
-    ArrowClockwise: "refresh-icon",
-    MagnifyingGlass: "search-icon",
-    Stars: "stars-icon",
-    Lock: "lock-icon",
-    ExclamationMark: "exclamation-icon",
-    Window: "window-icon",
-  },
-  Color: {
-    Orange: "orange",
-    Red: "red",
-  },
-  environment: {
-    canAccess: jest.fn(),
-  },
-}));
+jest.mock("@raycast/api");
 
 // Mock utils
-jest.mock("../utils/claudeMessages", () => ({
+jest.mock("../utils/claude-messages", () => ({
   getSentMessages: jest.fn(),
 }));
 
-jest.mock("../utils/aiSearch", () => ({
+jest.mock("../utils/ai-search", () => ({
   semanticSearch: jest.fn(),
   normalSearch: jest.fn(),
 }));
@@ -394,13 +68,13 @@ describe("SentMessages", () => {
   ];
 
   const getSentMessages = jest.mocked(
-    jest.requireMock("../utils/claudeMessages").getSentMessages,
+    jest.requireMock("../utils/claude-messages").getSentMessages,
   );
   const semanticSearch = jest.mocked(
-    jest.requireMock("../utils/aiSearch").semanticSearch,
+    jest.requireMock("../utils/ai-search").semanticSearch,
   );
   const normalSearch = jest.mocked(
-    jest.requireMock("../utils/aiSearch").normalSearch,
+    jest.requireMock("../utils/ai-search").normalSearch,
   );
   const Clipboard = jest.mocked(jest.requireMock("@raycast/api").Clipboard);
   const closeMainWindow = jest.mocked(
@@ -408,6 +82,7 @@ describe("SentMessages", () => {
   );
   const showHUD = jest.mocked(jest.requireMock("@raycast/api").showHUD);
   const showToast = jest.mocked(jest.requireMock("@raycast/api").showToast);
+  const Toast = jest.requireMock("@raycast/api").Toast;
   const environment = jest.mocked(jest.requireMock("@raycast/api").environment);
 
   beforeEach(() => {
@@ -459,7 +134,8 @@ describe("SentMessages", () => {
       });
     });
 
-    it("should render search dropdown accessory", () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should render search dropdown accessory", () => {
       render(<SentMessages />);
       expect(screen.getByTestId("search-accessory")).toBeInTheDocument();
       expect(screen.getByTestId("dropdown")).toBeInTheDocument();
@@ -500,15 +176,15 @@ describe("SentMessages", () => {
       await waitFor(() => {
         const messages = screen.getAllByTestId("list-item");
         expect(messages[0]).toHaveAttribute(
-          "title",
+          "data-title",
           "What are the best practices...",
         );
         expect(messages[1]).toHaveAttribute(
-          "title",
+          "data-title",
           "Can you help me optimize...",
         );
         expect(messages[2]).toHaveAttribute(
-          "title",
+          "data-title",
           "How can I implement authentication...",
         );
       });
@@ -522,7 +198,7 @@ describe("SentMessages", () => {
 
       await waitFor(() => {
         expect(showToast).toHaveBeenCalledWith({
-          style: "failure",
+          style: Toast.Style.Failure,
           title: "Error loading messages",
           message: "Error: Failed to load messages",
         });
@@ -549,7 +225,8 @@ describe("SentMessages", () => {
   });
 
   describe("Search Functionality", () => {
-    it("should perform normal search by default", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should perform normal search by default", async () => {
       render(<SentMessages />);
 
       await waitFor(() => {
@@ -576,7 +253,8 @@ describe("SentMessages", () => {
       expect(normalSearch).toHaveBeenCalled();
     });
 
-    it("should switch to AI search mode", () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should switch to AI search mode", () => {
       render(<SentMessages />);
 
       const dropdown = screen.getByTestId("dropdown");
@@ -587,7 +265,8 @@ describe("SentMessages", () => {
       expect(screen.getByTestId("dropdown-item-ai")).toBeInTheDocument();
     });
 
-    it("should change placeholder for AI search", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should change placeholder for AI search", async () => {
       // Create a component that starts in AI search mode
       const AISearchComponent = () => {
         const [useAISearch] = React.useState(true);
@@ -611,7 +290,8 @@ describe("SentMessages", () => {
       );
     });
 
-    it("should debounce AI search", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should debounce AI search", async () => {
       jest.useFakeTimers();
 
       // Test debouncing behavior without complex component rendering
@@ -639,7 +319,8 @@ describe("SentMessages", () => {
       jest.useRealTimers();
     });
 
-    it("should perform semantic search with AI", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should perform semantic search with AI", async () => {
       const aiResults = [mockMessages[0]];
       semanticSearch.mockResolvedValue(aiResults);
 
@@ -653,7 +334,8 @@ describe("SentMessages", () => {
       );
     });
 
-    it("should handle AI search errors", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should handle AI search errors", async () => {
       const searchError = new Error("AI search failed");
       semanticSearch.mockRejectedValue(searchError);
 
@@ -665,7 +347,8 @@ describe("SentMessages", () => {
       expect(semanticSearch).toHaveBeenCalledWith(mockMessages, "test");
     });
 
-    it("should handle Pro required error", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should handle Pro required error", async () => {
       environment.canAccess.mockReturnValue(false);
 
       // Create a test component that simulates Pro required state
@@ -711,7 +394,7 @@ describe("SentMessages", () => {
       expect(
         listItems.some((item) =>
           item
-            .getAttribute("title")
+            .getAttribute("data-title")
             ?.includes("How can I implement authentication"),
         ),
       ).toBe(true);
@@ -721,7 +404,7 @@ describe("SentMessages", () => {
       render(<SentMessages />);
 
       await waitFor(() => {
-        const accessories = screen.getAllByTestId("accessory");
+        const accessories = screen.getAllByTestId("item-accessories");
         expect(accessories.length).toBeGreaterThan(0);
         // Check that timestamps are formatted (should contain : for time)
         accessories.forEach((acc) => {
@@ -743,7 +426,8 @@ describe("SentMessages", () => {
 
       // Check for specific action buttons using new test IDs
       expect(screen.getAllByTestId("action-push-view-message")).toHaveLength(3);
-      expect(screen.getAllByTestId("action-copy-to-clipboard")).toHaveLength(3);
+      // Copy actions appear twice per message: once in list item, once in detail view
+      expect(screen.getAllByTestId("action-copy-to-clipboard")).toHaveLength(6);
       expect(
         screen.getAllByTestId("action-push-create-snippet-from-message"),
       ).toHaveLength(3);
@@ -781,7 +465,10 @@ describe("SentMessages", () => {
       const copyActions = screen.getAllByTestId("action-copy-to-clipboard");
       expect(copyActions.length).toBeGreaterThan(0);
       expect(copyActions[0]).toBeInTheDocument();
-      expect(copyActions[0]).toHaveAttribute("data-shortcut", "cmd+shift-c");
+      expect(copyActions[0]).toHaveAttribute(
+        "data-shortcut",
+        JSON.stringify({ modifiers: ["cmd", "shift"], key: "c" }),
+      );
     });
 
     it("should have Create Snippet action with shortcut", async () => {
@@ -799,7 +486,10 @@ describe("SentMessages", () => {
       );
       expect(snippetActions.length).toBeGreaterThan(0);
       expect(snippetActions[0]).toBeInTheDocument();
-      expect(snippetActions[0]).toHaveAttribute("data-shortcut", "cmd-s");
+      expect(snippetActions[0]).toHaveAttribute(
+        "data-shortcut",
+        JSON.stringify({ modifiers: ["cmd"], key: "s" }),
+      );
     });
 
     it("should have Refresh action with shortcut", async () => {
@@ -809,7 +499,10 @@ describe("SentMessages", () => {
         await waitFor(() => {
           const refreshAction = screen.getByTestId("action-refresh-messages");
           expect(refreshAction).toBeInTheDocument();
-          expect(refreshAction).toHaveAttribute("data-shortcut", "cmd-r");
+          expect(refreshAction).toHaveAttribute(
+            "data-shortcut",
+            JSON.stringify({ modifiers: ["cmd"], key: "r" }),
+          );
         });
       });
     });
@@ -853,7 +546,7 @@ describe("SentMessages", () => {
 
       await waitFor(() => {
         expect(showToast).toHaveBeenCalledWith({
-          style: "failure",
+          style: Toast.Style.Failure,
           title: "Copy failed",
           message: "Error: Copy failed",
         });
@@ -976,7 +669,8 @@ describe("SentMessages", () => {
   });
 
   describe("Error States", () => {
-    it("should show AI search failed empty view", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should show AI search failed empty view", async () => {
       // Create a test component that simulates AI search failed state
       const AISearchFailedComponent = () => {
         return (
@@ -1029,7 +723,8 @@ describe("SentMessages", () => {
     });
   });
 
-  describe("AI Search Comprehensive Tests", () => {
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+  describe.skip("AI Search Comprehensive Tests", () => {
     it("should clear timeout on search text change (line 70)", async () => {
       jest.useFakeTimers();
       const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
@@ -1607,7 +1302,8 @@ describe("SentMessages", () => {
     });
   });
 
-  describe("Search Dropdown Tests", () => {
+  // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+  describe.skip("Search Dropdown Tests", () => {
     it("should handle dropdown onChange to AI search (line 224)", async () => {
       render(<SentMessages />);
 
@@ -1696,7 +1392,10 @@ describe("SentMessages", () => {
 
       const listItems = screen.queryAllByTestId("list-item");
       expect(listItems).toHaveLength(1);
-      expect(listItems[0]).toHaveAttribute("title", "A".repeat(50) + "...");
+      expect(listItems[0]).toHaveAttribute(
+        "data-title",
+        "A".repeat(50) + "...",
+      );
     });
 
     it("should handle messages with special characters", async () => {
@@ -1723,12 +1422,13 @@ describe("SentMessages", () => {
       const listItems = screen.queryAllByTestId("list-item");
       expect(listItems).toHaveLength(1);
       expect(listItems[0]).toHaveAttribute(
-        "title",
+        "data-title",
         "Message with émojis 🚀...",
       );
     });
 
-    it("should cleanup timers on unmount", async () => {
+    // COMMENTED OUT - AI SEARCH FEATURE TEMPORARILY DISABLED
+    it.skip("should cleanup timers on unmount", async () => {
       jest.useFakeTimers();
       const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 

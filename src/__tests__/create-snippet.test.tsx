@@ -7,120 +7,25 @@ import "@testing-library/jest-dom";
 import CreateSnippet, {
   CreateSnippetProps,
 } from "../commands/create-snippet/list";
-import { createSnippet, type Snippet } from "../utils/claudeMessages";
-import * as RaycastAPI from "@raycast/api";
+import { createSnippet, type Snippet } from "../utils/claude-messages";
 import { LaunchType } from "@raycast/api";
 
-interface MockFormProps {
-  children: React.ReactNode;
-  isLoading: boolean;
-  actions: React.ReactNode;
-}
-
-interface MockFormFieldProps {
-  id: string;
-  title: string;
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-}
-
-interface MockActionPanelProps {
-  children: React.ReactNode;
-}
-
-interface MockSubmitFormProps {
-  title: string;
-  onSubmit: () => void;
-}
-
-// Mock Raycast API
-jest.mock("@raycast/api", () => ({
-  Form: Object.assign(
-    ({ children, isLoading, actions }: MockFormProps) => (
-      <form data-testid="form" data-loading={isLoading}>
-        {children}
-        {actions}
-      </form>
-    ),
-    {
-      TextField: ({
-        id,
-        title,
-        placeholder,
-        value,
-        onChange,
-      }: MockFormFieldProps) => (
-        <input
-          data-testid={`form-textfield-${id}`}
-          data-title={title}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ),
-      TextArea: ({
-        id,
-        title,
-        placeholder,
-        value,
-        onChange,
-      }: MockFormFieldProps) => (
-        <textarea
-          data-testid={`form-textarea-${id}`}
-          data-title={title}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ),
-    },
-  ),
-  ActionPanel: ({ children }: MockActionPanelProps) => (
-    <div data-testid="action-panel">{children}</div>
-  ),
-  Action: {
-    SubmitForm: ({ title, onSubmit }: MockSubmitFormProps) => (
-      <button
-        data-testid="action-submit-form"
-        data-title={title}
-        onClick={onSubmit}
-        type="submit"
-      >
-        {title}
-      </button>
-    ),
-  },
-  showToast: jest.fn(),
-  Toast: {
-    Style: {
-      Success: "success",
-      Failure: "failure",
-      Animated: "animated",
-    },
-  },
-  launchCommand: jest.fn(),
-  LaunchType: {
-    UserInitiated: "userInitiated",
-    Background: "background",
-  },
-  LaunchProps: {},
-}));
+// Use centralized mock
+jest.mock("@raycast/api");
 
 // Mock the createSnippet utility function
-jest.mock("../utils/claudeMessages", () => ({
+jest.mock("../utils/claude-messages", () => ({
   createSnippet: jest.fn(),
 }));
 
 const mockCreateSnippet = createSnippet as jest.MockedFunction<
   typeof createSnippet
 >;
-const mockShowToast = RaycastAPI.showToast as jest.MockedFunction<
-  typeof RaycastAPI.showToast
->;
-const mockLaunchCommand = RaycastAPI.launchCommand as jest.MockedFunction<
-  typeof RaycastAPI.launchCommand
->;
+
+// Get mocked functions from centralized mock
+const raycastApi = jest.requireMock("@raycast/api");
+const mockShowToast = raycastApi.showToast as jest.Mock;
+const mockLaunchCommand = raycastApi.launchCommand as jest.Mock;
 
 describe("CreateSnippet", () => {
   beforeEach(() => {
@@ -142,7 +47,9 @@ describe("CreateSnippet", () => {
       const titleField = screen.getByTestId("form-textfield-title");
       expect(titleField).toBeInTheDocument();
       expect(titleField).toHaveAttribute("data-title", "Title (Optional)");
-      expect(titleField).toHaveAttribute(
+
+      const titleInput = screen.getByTestId("textfield-title");
+      expect(titleInput).toHaveAttribute(
         "placeholder",
         "Enter snippet title...",
       );
@@ -151,7 +58,9 @@ describe("CreateSnippet", () => {
       const contentField = screen.getByTestId("form-textarea-content");
       expect(contentField).toBeInTheDocument();
       expect(contentField).toHaveAttribute("data-title", "Content");
-      expect(contentField).toHaveAttribute(
+
+      const contentTextarea = screen.getByTestId("textarea-content");
+      expect(contentTextarea).toHaveAttribute(
         "placeholder",
         "Enter snippet content...",
       );
@@ -175,8 +84,8 @@ describe("CreateSnippet", () => {
     it("should render with empty initial values when no props provided", () => {
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
 
       expect(titleField).toHaveValue("");
       expect(contentField).toHaveValue("");
@@ -192,8 +101,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet {...props} />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
 
       expect(titleField).toHaveValue("Test Title");
       expect(contentField).toHaveValue("Test Content");
@@ -211,8 +120,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet {...launchProps} />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
 
       expect(titleField).toHaveValue("Launch Title");
       expect(contentField).toHaveValue("Launch Content");
@@ -223,8 +132,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet {...launchProps} />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
 
       expect(titleField).toHaveValue("");
       expect(contentField).toHaveValue("");
@@ -237,8 +146,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet {...props} />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
 
       expect(titleField).toHaveValue("");
       expect(contentField).toHaveValue("Only Content");
@@ -249,7 +158,7 @@ describe("CreateSnippet", () => {
     it("should update title field when typing", () => {
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
+      const titleField = screen.getByTestId("textfield-title");
 
       fireEvent.change(titleField, { target: { value: "New Title" } });
 
@@ -259,7 +168,7 @@ describe("CreateSnippet", () => {
     it("should update content field when typing", () => {
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
 
       fireEvent.change(contentField, { target: { value: "New Content" } });
 
@@ -269,8 +178,8 @@ describe("CreateSnippet", () => {
     it("should handle multiple input changes", () => {
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
 
       fireEvent.change(titleField, { target: { value: "Title 1" } });
       fireEvent.change(contentField, { target: { value: "Content 1" } });
@@ -305,7 +214,7 @@ describe("CreateSnippet", () => {
     it("should show error toast when content is only whitespace", async () => {
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: "   \n\t  " } });
@@ -333,7 +242,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: "Valid content" } });
@@ -359,8 +268,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(titleField, { target: { value: "Test Title" } });
@@ -399,7 +308,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: "Content only" } });
@@ -434,8 +343,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(titleField, { target: { value: "  Trimmed Title  " } });
@@ -462,7 +371,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
       const form = screen.getByTestId("form");
 
@@ -494,7 +403,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: "Test content" } });
@@ -517,7 +426,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: "Test content" } });
@@ -537,7 +446,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
       const form = screen.getByTestId("form");
 
@@ -562,7 +471,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: "Test content" } });
@@ -595,8 +504,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(titleField, { target: { value: specialTitle } });
@@ -624,7 +533,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: longContent } });
@@ -648,7 +557,7 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const contentField = screen.getByTestId("form-textarea-content");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(contentField, { target: { value: multilineContent } });
@@ -672,8 +581,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(titleField, { target: { value: "My Snippet" } });
@@ -700,8 +609,8 @@ describe("CreateSnippet", () => {
 
       render(<CreateSnippet />);
 
-      const titleField = screen.getByTestId("form-textfield-title");
-      const contentField = screen.getByTestId("form-textarea-content");
+      const titleField = screen.getByTestId("textfield-title");
+      const contentField = screen.getByTestId("textarea-content");
       const submitButton = screen.getByTestId("action-submit-form");
 
       fireEvent.change(titleField, { target: { value: "   " } });

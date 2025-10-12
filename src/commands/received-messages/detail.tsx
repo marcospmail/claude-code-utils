@@ -6,7 +6,7 @@ import {
   Icon,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { ParsedMessage } from "../../utils/claudeMessages";
+import { ParsedMessage } from "../../utils/claude-messages";
 import CreateSnippet from "../create-snippet/list";
 
 interface MessageDetailProps {
@@ -14,21 +14,16 @@ interface MessageDetailProps {
 }
 
 export default function MessageDetail({ message }: MessageDetailProps) {
-  const [frontmostApp, setFrontmostApp] = useState<string>("Active App");
+  const [frontmostApp, setFrontmostApp] = useState<string>("");
   const [appIcon, setAppIcon] = useState<Icon | { fileIcon: string }>(
     Icon.Window,
   );
 
   useEffect(() => {
-    getFrontmostApplication()
-      .then((app) => {
-        setFrontmostApp(app.name);
-        setAppIcon({ fileIcon: app.path });
-      })
-      .catch(() => {
-        setFrontmostApp("Active App");
-        setAppIcon(Icon.Window);
-      });
+    getFrontmostApplication().then((app) => {
+      setFrontmostApp(app.name);
+      setAppIcon({ fileIcon: app.path });
+    });
   }, []);
 
   return (
@@ -36,12 +31,14 @@ export default function MessageDetail({ message }: MessageDetailProps) {
       markdown={message.content}
       actions={
         <ActionPanel>
-          <Action.Paste
-            title={`Paste to ${frontmostApp}`}
-            content={message.content}
-            icon={appIcon}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
+          {!!frontmostApp && (
+            <Action.Paste
+              title={`Paste to ${frontmostApp}`}
+              content={message.content}
+              icon={appIcon}
+              shortcut={{ modifiers: ["cmd"], key: "enter" }}
+            />
+          )}
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={message.content}

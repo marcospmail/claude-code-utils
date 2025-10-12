@@ -52,7 +52,7 @@ import {
   getSnippets,
   createSnippet,
   deleteSnippet,
-} from "../claudeMessages";
+} from "../claude-messages";
 
 describe("claudeMessages - Focused Tests", () => {
   beforeEach(() => {
