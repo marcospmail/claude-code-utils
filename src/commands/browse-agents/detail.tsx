@@ -30,18 +30,23 @@ export default function AgentDetail({ agent }: AgentDetailProps) {
       navigationTitle={agent.name}
       actions={
         <ActionPanel>
-          {frontmostApp && (
-            <Action.Paste
-              title={`Paste to ${frontmostApp.name}`}
-              content={agent.content}
-              icon={frontmostApp.path}
-            />
-          )}
+          <Action.Paste
+            title={
+              frontmostApp?.name
+                ? `Paste to ${frontmostApp.name}`
+                : "Paste to Active App"
+            }
+            content={agent.content}
+            {...(frontmostApp?.path && {
+              icon: { fileIcon: frontmostApp.path },
+            })}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+          />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={agent.content}
             icon={Icon.Clipboard}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
           />
           <Action.ShowInFinder
             path={agent.filePath}

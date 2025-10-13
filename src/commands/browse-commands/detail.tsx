@@ -32,18 +32,23 @@ export default function SlashCommandDetail({
       navigationTitle={command.name}
       actions={
         <ActionPanel>
-          {frontmostApp && (
-            <Action.Paste
-              title={`Paste to ${frontmostApp.name}`}
-              content={command.content}
-              icon={frontmostApp.path}
-            />
-          )}
+          <Action.Paste
+            title={
+              frontmostApp?.name
+                ? `Paste to ${frontmostApp.name}`
+                : "Paste to Active App"
+            }
+            content={command.content}
+            {...(frontmostApp?.path && {
+              icon: { fileIcon: frontmostApp.path },
+            })}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+          />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={command.content}
             icon={Icon.Clipboard}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
           />
           <Action.ShowInFinder
             path={command.filePath}
