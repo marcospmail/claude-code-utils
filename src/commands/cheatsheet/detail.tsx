@@ -4,6 +4,7 @@ import {
   Application,
   Detail,
   getFrontmostApplication,
+  Icon,
 } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { CommandItem } from "../../constants/commands-data";
@@ -60,13 +61,24 @@ export default function CommandDetail({ command }: CommandDetailProps) {
       navigationTitle={command.name}
       actions={
         <ActionPanel>
-          {frontmostApp && (
-            <Action.Paste
-              title={`Paste to ${frontmostApp?.name}`}
-              content={command.name}
-              icon={frontmostApp?.path}
-            />
-          )}
+          <Action.Paste
+            title={
+              frontmostApp?.name
+                ? `Paste to ${frontmostApp.name}`
+                : "Paste to Active App"
+            }
+            content={command.usage || command.name}
+            {...(frontmostApp?.path && {
+              icon: { fileIcon: frontmostApp.path },
+            })}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
+          />
+          <Action.CopyToClipboard
+            title="Copy to Clipboard"
+            content={command.usage || command.name}
+            icon={Icon.Clipboard}
+            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+          />
         </ActionPanel>
       }
     />
