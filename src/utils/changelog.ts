@@ -63,3 +63,9 @@ export async function fetchChangelog(): Promise<ChangelogVersion[]> {
     return parseChangelog(data);
   });
 }
+
+export function formatChangelogVersionChanges(
+  version: ChangelogVersion,
+): string {
+  return version.changes.map((change) => `- ${change}`).join("\n");
+}
