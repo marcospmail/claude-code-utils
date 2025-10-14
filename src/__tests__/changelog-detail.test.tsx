@@ -9,6 +9,9 @@ import { ChangelogVersion } from "../utils/changelog";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
+  environment: {
+    isDevelopment: false,
+  },
   Detail: ({
     markdown,
     navigationTitle,
@@ -30,6 +33,15 @@ jest.mock("@raycast/api", () => ({
     <div data-testid="action-panel">{children}</div>
   ),
   Action: {
+    Paste: ({ title, content }: { title: string; content: string }) => (
+      <button
+        data-testid="action-paste"
+        data-title={title}
+        data-content={content}
+      >
+        {title}
+      </button>
+    ),
     CopyToClipboard: ({ title }: { title: string }) => (
       <button data-testid="action-copy" data-title={title}>
         {title}
@@ -46,6 +58,10 @@ jest.mock("@raycast/api", () => ({
     Document: "document-icon",
     Globe: "globe-icon",
   },
+  getFrontmostApplication: jest.fn().mockResolvedValue({
+    name: "Test App",
+    path: "/Applications/Test.app",
+  }),
 }));
 
 describe("ChangelogDetail", () => {
@@ -81,24 +97,19 @@ describe("ChangelogDetail", () => {
     expect(markdown).toContain("- Updated documentation");
   });
 
-  it("should render copy version action", () => {
+  it("should render copy action", async () => {
     render(<ChangelogDetail version={mockVersion} />);
 
-    const actions = screen.getAllByTestId("action-copy");
-    const copyVersionAction = actions.find(
-      (action) => action.getAttribute("data-title") === "Copy Version Number",
-    );
-    expect(copyVersionAction).toBeInTheDocument();
+    const copyAction = await screen.findByTestId("action-copy");
+    expect(copyAction).toBeInTheDocument();
+    expect(copyAction).toHaveAttribute("data-title", "Copy to Clipboard");
   });
 
-  it("should render copy changes action", () => {
+  it("should render paste action", async () => {
     render(<ChangelogDetail version={mockVersion} />);
 
-    const actions = screen.getAllByTestId("action-copy");
-    const copyChangesAction = actions.find(
-      (action) => action.getAttribute("data-title") === "Copy All Changes",
-    );
-    expect(copyChangesAction).toBeInTheDocument();
+    const pasteAction = await screen.findByTestId("action-paste");
+    expect(pasteAction).toBeInTheDocument();
   });
 
   it("should render open in browser action", () => {
@@ -204,17 +215,16 @@ describe("ChangelogDetail", () => {
     });
   });
 
-  it("should have all required actions", () => {
+  it("should have all required actions", async () => {
     render(<ChangelogDetail version={mockVersion} />);
 
     const actionPanel = screen.getByTestId("action-panel");
     expect(actionPanel).toBeInTheDocument();
 
-    const copyActions = screen.getAllByTestId("action-copy");
-    expect(copyActions).toHaveLength(2); // Copy version and copy changes
-
-    const browserActions = screen.getAllByTestId("action-browser");
-    expect(browserActions).toHaveLength(1);
+    // Should have paste, copy, and browser actions
+    await screen.findByTestId("action-paste");
+    expect(screen.getByTestId("action-copy")).toBeInTheDocument();
+    expect(screen.getByTestId("action-browser")).toBeInTheDocument();
   });
 
   it("should handle changes with newlines", () => {

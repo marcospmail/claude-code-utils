@@ -236,10 +236,10 @@ describe("Changelog", () => {
     });
 
     const pushAction = screen.getByTestId("action-push");
-    expect(pushAction).toHaveAttribute("data-title", "View Details");
+    expect(pushAction).toHaveAttribute("data-title", "View Changes");
 
     const copyAction = screen.getByTestId("action-copy");
-    expect(copyAction).toHaveAttribute("data-title", "Copy Version Number");
+    expect(copyAction).toHaveAttribute("data-title", "Copy to Clipboard");
 
     const browserAction = screen.getByTestId("action-browser");
     expect(browserAction).toHaveAttribute("data-title", "View on GitHub");
