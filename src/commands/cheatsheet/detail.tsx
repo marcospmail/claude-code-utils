@@ -1,25 +1,16 @@
-import {
-  Action,
-  ActionPanel,
-  Application,
-  Detail,
-  getFrontmostApplication,
-  Icon,
-} from "@raycast/api";
-import { useEffect, useState } from "react";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import { PasteAction } from "../../components/paste-action";
 import { CommandItem } from "../../constants/commands-data";
 import {
   formatCodeBlock,
   formatContentMarkdown,
-} from "../../utils/markdown-formatters";
+} from "../../utils/markdown-formatter";
 
 interface CommandDetailProps {
   command: CommandItem;
 }
 
 export default function CommandDetail({ command }: CommandDetailProps) {
-  const [frontmostApp, setFrontmostApp] = useState<Application>();
-
   // Build sections dynamically using push
   const sections: string[] = [];
 
@@ -49,35 +40,18 @@ export default function CommandDetail({ command }: CommandDetailProps) {
   // Format with title using the utility function
   const markdown = formatContentMarkdown(command.name, content);
 
-  useEffect(() => {
-    getFrontmostApplication().then((app) => {
-      setFrontmostApp(app);
-    });
-  }, []);
-
   return (
     <Detail
       markdown={markdown}
       navigationTitle={command.name}
       actions={
         <ActionPanel>
-          <Action.Paste
-            title={
-              frontmostApp?.name
-                ? `Paste to ${frontmostApp.name}`
-                : "Paste to Active App"
-            }
-            content={command.usage || command.name}
-            {...(frontmostApp?.path && {
-              icon: { fileIcon: frontmostApp.path },
-            })}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
+          <PasteAction content={command.usage || command.name} />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={command.usage || command.name}
             icon={Icon.Clipboard}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
           />
         </ActionPanel>
       }

@@ -177,7 +177,7 @@ describe("CommandDetail", () => {
     const { getByTestId } = render(<CommandDetail command={mockCommand} />);
     const detail = getByTestId("detail");
     const markdown = detail.getAttribute("data-markdown");
-    expect(markdown).toContain("```bash");
+    expect(markdown).toContain("```markdown");
     expect(markdown).toContain("```");
   });
 
