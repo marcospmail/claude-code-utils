@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import MessageDetail from "../commands/sent-messages/detail";
-import { ParsedMessage } from "../utils/claude-messages";
+import { ParsedMessage } from "../utils/claude-message";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -168,15 +168,17 @@ describe("MessageDetail (Sent Messages)", () => {
     expect(pasteAction.getAttribute("data-title")).toContain("Finder");
   });
 
-  it("should not render paste action when getFrontmostApplication fails", async () => {
+  it("should show fallback title when getFrontmostApplication fails", async () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockRejectedValue(new Error("No app found"));
 
-    const { queryByTestId } = render(<MessageDetail message={mockMessage} />);
+    const { getByTestId } = render(<MessageDetail message={mockMessage} />);
 
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => {
+      expect(getByTestId("paste-action")).toBeTruthy();
+    });
 
-    const pasteAction = queryByTestId("paste-action");
-    expect(pasteAction).toBeNull();
+    const pasteAction = getByTestId("paste-action");
+    expect(pasteAction.getAttribute("data-title")).toBe("Paste to Active App");
   });
 });

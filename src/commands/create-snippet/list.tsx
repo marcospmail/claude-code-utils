@@ -9,7 +9,7 @@ import {
   LaunchProps,
 } from "@raycast/api";
 import { useState } from "react";
-import { createSnippet } from "../../utils/claude-messages";
+import { createSnippet } from "../../utils/claude-message";
 
 export interface CreateSnippetProps {
   content?: string;

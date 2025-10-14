@@ -1,13 +1,6 @@
-import {
-  Action,
-  ActionPanel,
-  Application,
-  Detail,
-  getFrontmostApplication,
-  Icon,
-} from "@raycast/api";
-import { useEffect, useState } from "react";
-import { Snippet } from "../../utils/claude-messages";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import { PasteAction } from "../../components/paste-action";
+import { Snippet } from "../../utils/claude-message";
 import CreateSnippet from "../create-snippet/list";
 
 interface SnippetDetailProps {
@@ -19,14 +12,6 @@ export default function SnippetDetail({
   snippet,
   onDelete,
 }: SnippetDetailProps) {
-  const [frontmostApp, setFrontmostApp] = useState<Application>();
-
-  useEffect(() => {
-    getFrontmostApplication().then((app) => {
-      setFrontmostApp(app);
-    });
-  }, []);
-
   return (
     <Detail
       markdown={snippet.content}
@@ -50,22 +35,11 @@ export default function SnippetDetail({
       }
       actions={
         <ActionPanel>
-          <Action.Paste
-            title={
-              frontmostApp?.name
-                ? `Paste to ${frontmostApp.name}`
-                : "Paste to Active App"
-            }
-            content={snippet.content}
-            {...(frontmostApp?.path && {
-              icon: { fileIcon: frontmostApp.path },
-            })}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
+          <PasteAction content={snippet.content} />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={snippet.content}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
           />
           <Action.Push
             title="Duplicate Snippet"

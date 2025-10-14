@@ -12,7 +12,7 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import SentMessages from "../commands/sent-messages/list";
-import { ParsedMessage } from "../utils/claude-messages";
+import { ParsedMessage } from "../utils/claude-message";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -255,7 +255,7 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Mock utils
-jest.mock("../utils/claude-messages", () => ({
+jest.mock("../utils/claude-message", () => ({
   getSentMessages: jest.fn(),
 }));
 
@@ -304,7 +304,7 @@ describe("SentMessages", () => {
   ];
 
   const getSentMessages = jest.mocked(
-    jest.requireMock("../utils/claude-messages").getSentMessages,
+    jest.requireMock("../utils/claude-message").getSentMessages,
   );
   const normalSearchMessages = jest.mocked(
     jest.requireMock("../utils/ai-search").normalSearchMessages,

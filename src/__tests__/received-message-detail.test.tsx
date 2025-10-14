@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import MessageDetail from "../commands/received-messages/detail";
-import { ParsedMessage } from "../utils/claude-messages";
+import { ParsedMessage } from "../utils/claude-message";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -184,13 +184,15 @@ describe("MessageDetail (Received Messages)", () => {
     const { getFrontmostApplication } = jest.requireMock("@raycast/api");
     getFrontmostApplication.mockRejectedValue(new Error("Failed to get app"));
 
-    const { queryByTestId } = render(<MessageDetail message={mockMessage} />);
+    const { getByTestId } = render(<MessageDetail message={mockMessage} />);
 
     // Wait for useEffect to complete
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => {
+      expect(getByTestId("paste-action")).toBeTruthy();
+    });
 
-    // When getFrontmostApplication fails, no paste action should be rendered
-    const pasteAction = queryByTestId("paste-action");
-    expect(pasteAction).toBeNull();
+    // When getFrontmostApplication fails, paste action still renders with fallback title
+    const pasteAction = getByTestId("paste-action");
+    expect(pasteAction.getAttribute("data-title")).toBe("Paste to Active App");
   });
 });

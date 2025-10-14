@@ -11,7 +11,7 @@ import {
 } from "@raycast/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { normalSearch } from "../../utils/ai-search";
-import { getSentMessages, ParsedMessage } from "../../utils/claude-messages";
+import { getSentMessages, ParsedMessage } from "../../utils/claude-message";
 import {
   formatSectionTitle,
   groupMessagesByDate,

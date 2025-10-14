@@ -7,7 +7,7 @@ import "@testing-library/jest-dom";
 import CreateSnippet, {
   CreateSnippetProps,
 } from "../commands/create-snippet/list";
-import { createSnippet, type Snippet } from "../utils/claude-messages";
+import { createSnippet, type Snippet } from "../utils/claude-message";
 import * as RaycastAPI from "@raycast/api";
 import { LaunchType } from "@raycast/api";
 
@@ -108,7 +108,7 @@ jest.mock("@raycast/api", () => ({
 }));
 
 // Mock the createSnippet utility function
-jest.mock("../utils/claude-messages", () => ({
+jest.mock("../utils/claude-message", () => ({
   createSnippet: jest.fn(),
 }));
 

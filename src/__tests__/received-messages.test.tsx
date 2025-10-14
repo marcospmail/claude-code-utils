@@ -14,7 +14,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import React from "react";
 import ReceivedMessages from "../commands/received-messages/list";
 import { normalSearch } from "../utils/ai-search";
-import { ParsedMessage, getReceivedMessages } from "../utils/claude-messages";
+import { ParsedMessage, getReceivedMessages } from "../utils/claude-message";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -327,7 +327,7 @@ jest.mock("@raycast/api", () => ({
   },
 }));
 
-jest.mock("../utils/claude-messages", () => ({
+jest.mock("../utils/claude-message", () => ({
   getReceivedMessages: jest.fn(),
 }));
 
@@ -394,7 +394,7 @@ describe("ReceivedMessages", () => {
 
     // Get fresh references to mocks for each test
     mockGetReceivedMessages = jest.requireMock(
-      "../utils/claude-messages",
+      "../utils/claude-message",
     ).getReceivedMessages;
     mockNormalSearch = jest.requireMock("../utils/ai-search").normalSearch;
     mockShowToast = jest.requireMock("@raycast/api").showToast;
