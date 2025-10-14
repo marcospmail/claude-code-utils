@@ -145,6 +145,14 @@ SIMULATE_SLOW_NETWORK=true npm run dev
 - Linting must pass before committing (enforced by Husky pre-commit hooks)
 - Use TypeScript strict mode - all utilities and components are fully typed
 
+### Post-Change Verification (REQUIRED)
+After making any code changes, **ALWAYS verify the project is in a working state** by running:
+1. `npm run fix-lint` - Auto-fix any linting issues
+2. `npm run build` - Ensure compilation succeeds without errors
+3. `npm test` - Verify all tests pass
+
+**Do NOT consider a task complete until all three checks pass.** If any check fails, fix the issues before finishing.
+
 ### Data Sources
 - Claude Code projects: `~/.claude/projects/`
 - Claude Code agents: `~/.claude/agents/`
