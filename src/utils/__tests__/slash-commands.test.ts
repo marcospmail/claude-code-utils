@@ -7,7 +7,7 @@ jest.mock("os", () => ({
 }));
 
 import { readdir, readFile } from "fs/promises";
-import { getSlashCommands } from "../commands";
+import { getSlashCommands } from "../command";
 
 const mockReaddir = readdir as jest.MockedFunction<typeof readdir>;
 const mockReadFile = readFile as jest.MockedFunction<typeof readFile>;

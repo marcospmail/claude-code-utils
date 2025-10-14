@@ -20,8 +20,8 @@ ${content}`;
  * @param language - The language for syntax highlighting (default: "bash")
  * @returns Formatted code block string
  */
-export function formatCodeBlock(code: string, language = "bash"): string {
-  return `\`\`\`${language}
+export function formatCodeBlock(code: string, language = "markdown"): string {
+  return `\`\`\`\`${language}
 ${code}
-\`\`\``;
+\`\`\`\``;
 }
