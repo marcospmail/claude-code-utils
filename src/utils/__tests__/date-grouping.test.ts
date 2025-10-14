@@ -1,5 +1,5 @@
 import { groupMessagesByDate, formatSectionTitle } from "../date-grouping";
-import { ParsedMessage } from "../claude-messages";
+import { ParsedMessage } from "../claude-message";
 
 // Helper function to create test messages
 function createMessage(
