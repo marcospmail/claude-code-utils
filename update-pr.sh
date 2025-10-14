@@ -30,9 +30,15 @@ rsync -av \
   --exclude 'node_modules' \
   --exclude '.git' \
   --exclude 'update-pr.sh' \
+  --exclude '.last-pr-sync' \
+  --exclude 'coverage' \
   --exclude '.DS_Store' \
   "$SOURCE_DIR/" \
   "$TEMP_DIR/extensions/claude-code-utils/"
+
+# Also remove any accidentally copied files
+rm -f "$TEMP_DIR/extensions/claude-code-utils/update-pr.sh"
+rm -f "$TEMP_DIR/extensions/claude-code-utils/.last-pr-sync"
 
 # Step 3: Commit and push (already in TEMP_DIR)
 
