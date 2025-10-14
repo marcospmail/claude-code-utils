@@ -1,7 +1,10 @@
 import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { getSlashCommands, SlashCommand } from "../../utils/commands";
-import SlashCommandDetail from "./detail";
+import {
+  getSlashCommands as getCommands,
+  SlashCommand,
+} from "../../utils/command";
+import CommandDetail from "./detail";
 
 export default function BrowseCommands() {
   const [commands, setCommands] = useState<SlashCommand[]>([]);
@@ -11,7 +14,7 @@ export default function BrowseCommands() {
   useEffect(() => {
     async function loadCommands() {
       try {
-        const loadedCommands = await getSlashCommands();
+        const loadedCommands = await getCommands();
         setCommands(loadedCommands);
       } catch (err) {
         setError(
@@ -57,7 +60,7 @@ export default function BrowseCommands() {
                 <Action.Push
                   title="View Command Details"
                   icon={Icon.Eye}
-                  target={<SlashCommandDetail command={command} />}
+                  target={<CommandDetail command={command} />}
                 />
                 <Action.CopyToClipboard
                   title="Copy to Clipboard"

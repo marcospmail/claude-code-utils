@@ -4,8 +4,8 @@
 
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
-import SlashCommandDetail from "../commands/browse-commands/detail";
-import { SlashCommand } from "../utils/commands";
+import CommandDetail from "../commands/browse-commands/detail";
+import { SlashCommand } from "../utils/command";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -66,32 +66,32 @@ describe("SlashCommandDetail", () => {
   };
 
   it("should render command detail", () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     const detail = screen.getByTestId("detail");
     expect(detail).toBeInTheDocument();
   });
 
   it("should display command name in navigation title", () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     const detail = screen.getByTestId("detail");
     expect(detail).toHaveAttribute("data-navigation-title", "Test Command");
   });
 
   it("should include command name and content in markdown", () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     const detail = screen.getByTestId("detail");
     const markdown = detail.getAttribute("data-markdown");
 
     expect(markdown).toContain("# Test Command");
-    expect(markdown).toContain("---"); // HR separator
+    expect(markdown).toContain("```markdown"); // Code block wrapper
     expect(markdown).toContain("This is a test command.");
   });
 
   it("should render paste action as primary", async () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     // Wait for getFrontmostApplication to resolve
     await screen.findByTestId("action-paste");
@@ -99,11 +99,11 @@ describe("SlashCommandDetail", () => {
     const pasteAction = screen.getByTestId("action-paste");
     expect(pasteAction).toBeInTheDocument();
     expect(pasteAction).toHaveAttribute("data-title", "Paste to Test App");
-    expect(pasteAction).toHaveAttribute("data-content", mockCommand.content);
+    expect(pasteAction).toHaveAttribute("data-content", "/" + mockCommand.name);
   });
 
   it("should render copy to clipboard action with cmd+enter", () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     const copyAction = screen.getByTestId("action-copy");
     expect(copyAction).toBeInTheDocument();
@@ -111,13 +111,13 @@ describe("SlashCommandDetail", () => {
   });
 
   it("should render show in finder action", () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     expect(screen.getByTestId("action-show-finder")).toBeInTheDocument();
   });
 
   it("should render open with action", () => {
-    render(<SlashCommandDetail command={mockCommand} />);
+    render(<CommandDetail command={mockCommand} />);
 
     expect(screen.getByTestId("action-open-with")).toBeInTheDocument();
   });
@@ -130,7 +130,7 @@ describe("SlashCommandDetail", () => {
       filePath: "/path/to/special-command.md",
     };
 
-    render(<SlashCommandDetail command={specialCommand} />);
+    render(<CommandDetail command={specialCommand} />);
 
     const detail = screen.getByTestId("detail");
     const markdown = detail.getAttribute("data-markdown");
