@@ -96,17 +96,20 @@ npm run build && npm run publish
 
 ## Screenshots
 
-![Browse Agents](media/claude-code-utils-1.png)
-
-![Browse Commands](media/claude-code-utils-2.png)
-
-![Browse Snippets](media/claude-code-utils-3.png)
-
-![Received Messages](media/claude-code-utils-4.png)
-
-![Sent Messages](media/claude-code-utils-5.png)
-
-![Commands Cheat Sheet](media/claude-code-utils-6.png)
+<table>
+  <tr>
+    <td><img src="media/claude-code-utils-1.png" alt="Browse Agents" width="400"/></td>
+    <td><img src="media/claude-code-utils-2.png" alt="Browse Commands" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="media/claude-code-utils-3.png" alt="Browse Snippets" width="400"/></td>
+    <td><img src="media/claude-code-utils-4.png" alt="Received Messages" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="media/claude-code-utils-5.png" alt="Sent Messages" width="400"/></td>
+    <td><img src="media/claude-code-utils-6.png" alt="Commands Cheat Sheet" width="400"/></td>
+  </tr>
+</table>
 
 ## License
 
