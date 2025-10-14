@@ -1,28 +1,14 @@
-import {
-  ActionPanel,
-  Action,
-  Application,
-  Detail,
-  Icon,
-  getFrontmostApplication,
-} from "@raycast/api";
-import { useEffect, useState } from "react";
-import { Agent } from "../../utils/agents";
-import { formatContentMarkdown } from "../../utils/markdown-formatters";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import { PasteAction } from "../../components/paste-action";
+import { Agent } from "../../utils/agent";
+import { formatCodeBlock } from "../../utils/markdown-formatter";
 
 interface AgentDetailProps {
   agent: Agent;
 }
 
 export default function AgentDetail({ agent }: AgentDetailProps) {
-  const markdown = formatContentMarkdown(agent.name, agent.content);
-  const [frontmostApp, setFrontmostApp] = useState<Application>();
-
-  useEffect(() => {
-    getFrontmostApplication().then((app) => {
-      setFrontmostApp(app);
-    });
-  }, []);
+  const markdown = formatCodeBlock(agent.content);
 
   return (
     <Detail
@@ -30,23 +16,12 @@ export default function AgentDetail({ agent }: AgentDetailProps) {
       navigationTitle={agent.name}
       actions={
         <ActionPanel>
-          <Action.Paste
-            title={
-              frontmostApp?.name
-                ? `Paste to ${frontmostApp.name}`
-                : "Paste to Active App"
-            }
-            content={agent.content}
-            {...(frontmostApp?.path && {
-              icon: { fileIcon: frontmostApp.path },
-            })}
-            shortcut={{ modifiers: ["cmd"], key: "enter" }}
-          />
+          <PasteAction content={"/" + agent.name} />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={agent.content}
             icon={Icon.Clipboard}
-            shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
+            shortcut={{ modifiers: ["cmd"], key: "enter" }}
           />
           <Action.ShowInFinder
             path={agent.filePath}

@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { Agent, getAgents } from "../../utils/agents";
+import { Agent, getAgents } from "../../utils/agent";
 import AgentDetail from "./detail";
 
 export default function BrowseAgents() {

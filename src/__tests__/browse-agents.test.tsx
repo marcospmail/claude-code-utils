@@ -5,7 +5,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import BrowseAgents from "../commands/browse-agents/list";
-import * as agentsUtils from "../utils/agents";
+import * as agentsUtils from "../utils/agent";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -95,7 +95,7 @@ jest.mock("../commands/browse-agents/detail", () => ({
 }));
 
 // Mock agents utils
-jest.mock("../utils/agents");
+jest.mock("../utils/agent");
 
 const mockGetAgents = agentsUtils.getAgents as jest.MockedFunction<
   typeof agentsUtils.getAgents

@@ -6,7 +6,7 @@ jest.mock("os", () => ({
   homedir: jest.fn(() => "/home/user"),
 }));
 
-import { getAgents } from "../agents";
+import { getAgents } from "../agent";
 import { readdir, readFile } from "fs/promises";
 
 const mockReaddir = readdir as jest.MockedFunction<typeof readdir>;

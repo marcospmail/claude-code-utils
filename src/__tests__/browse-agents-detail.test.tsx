@@ -5,7 +5,7 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import AgentDetail from "../commands/browse-agents/detail";
-import { Agent } from "../utils/agents";
+import { Agent } from "../utils/agent";
 
 // Mock Raycast API
 jest.mock("@raycast/api", () => ({
@@ -86,7 +86,7 @@ describe("AgentDetail", () => {
     const markdown = detail.getAttribute("data-markdown");
 
     expect(markdown).toContain("# Test Agent");
-    expect(markdown).toContain("---"); // HR separator
+    expect(markdown).toContain("```markdown"); // Code block wrapper
     expect(markdown).toContain("This is a test agent.");
   });
 
@@ -99,7 +99,7 @@ describe("AgentDetail", () => {
     const pasteAction = screen.getByTestId("action-paste");
     expect(pasteAction).toBeInTheDocument();
     expect(pasteAction).toHaveAttribute("data-title", "Paste to Test App");
-    expect(pasteAction).toHaveAttribute("data-content", mockAgent.content);
+    expect(pasteAction).toHaveAttribute("data-content", "/" + mockAgent.name);
   });
 
   it("should render copy to clipboard action with cmd+enter", () => {
