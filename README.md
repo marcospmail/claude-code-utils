@@ -94,6 +94,20 @@ npm run build && npm run publish
 - **No External Storage** - Your messages are never uploaded or stored externally
 - **Open Source** - Full source code available for review
 
+## Screenshots
+
+![Browse Agents](media/claude-code-utils-1.png)
+
+![Browse Commands](media/claude-code-utils-2.png)
+
+![Browse Snippets](media/claude-code-utils-3.png)
+
+![Received Messages](media/claude-code-utils-4.png)
+
+![Sent Messages](media/claude-code-utils-5.png)
+
+![Commands Cheat Sheet](media/claude-code-utils-6.png)
+
 ## License
 
 MIT License - see LICENSE file for details
