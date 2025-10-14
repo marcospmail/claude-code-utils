@@ -8,8 +8,7 @@ interface MessageDetailProps {
 }
 
 export default function MessageDetail({ message }: MessageDetailProps) {
-  // Extract first line or first 50 characters for title
-  const title = message.preview || "Sent Message";
+  const title = message.preview;
 
   return (
     <Detail
