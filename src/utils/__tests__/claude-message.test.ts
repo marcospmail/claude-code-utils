@@ -14,7 +14,7 @@ import {
   getSnippets,
   createSnippet,
   deleteSnippet,
-} from "../claude-messages";
+} from "../claude-message";
 
 // Mock all external dependencies
 jest.mock("fs", () => ({
