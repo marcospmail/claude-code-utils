@@ -1,13 +1,13 @@
 import {
-  ActionPanel,
   Action,
-  List,
+  ActionPanel,
   Icon,
+  List,
   showToast,
   Toast,
 } from "@raycast/api";
-import { useState, useEffect } from "react";
-import { fetchChangelog, ChangelogVersion } from "../../utils/changelog";
+import { useEffect, useState } from "react";
+import { ChangelogVersion, fetchChangelog } from "../../utils/changelog";
 import ChangelogDetail from "./detail";
 
 export default function Changelog() {
@@ -69,13 +69,15 @@ export default function Changelog() {
           actions={
             <ActionPanel>
               <Action.Push
-                title="View Details"
+                title="View Changes"
                 target={<ChangelogDetail version={version} />}
                 icon={Icon.Eye}
               />
               <Action.CopyToClipboard
-                title="Copy Version Number"
-                content={version.version}
+                title="Copy to Clipboard"
+                content={version.changes
+                  .map((change) => `- ${change}`)
+                  .join("\n")}
                 icon={Icon.Clipboard}
               />
               <Action.OpenInBrowser

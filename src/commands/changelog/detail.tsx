@@ -1,5 +1,9 @@
-import { ActionPanel, Action, Detail, Icon } from "@raycast/api";
-import { ChangelogVersion } from "../../utils/changelog";
+import { Action, ActionPanel, Detail, Icon } from "@raycast/api";
+import { PasteAction } from "../../components/paste-action";
+import {
+  ChangelogVersion,
+  formatChangelogVersionChanges,
+} from "../../utils/changelog";
 
 interface ChangelogDetailProps {
   version: ChangelogVersion;
@@ -11,7 +15,7 @@ export default function ChangelogDetail({ version }: ChangelogDetailProps) {
 
 ## Changes
 
-${version.changes.map((change) => `- ${change}`).join("\n")}
+${formatChangelogVersionChanges(version)}
   `;
 
   return (
@@ -20,13 +24,9 @@ ${version.changes.map((change) => `- ${change}`).join("\n")}
       navigationTitle={`Version ${version.version}`}
       actions={
         <ActionPanel>
+          <PasteAction content={formatChangelogVersionChanges(version)} />
           <Action.CopyToClipboard
-            title="Copy Version Number"
-            content={version.version}
-            icon={Icon.Clipboard}
-          />
-          <Action.CopyToClipboard
-            title="Copy All Changes"
+            title="Copy to Clipboard"
             content={version.changes.join("\n")}
             icon={Icon.Document}
           />
