@@ -1574,4 +1574,183 @@ describe("claudeMessages", () => {
       expect(result[1].content).toBe("Assistant message 1");
     });
   });
+
+  describe("Path Extraction", () => {
+    it("should extract project name, file name, project directory, and full path from sent messages", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["my-project"] as any)
+        .mockResolvedValueOnce(["conversation.jsonl"] as any)
+        .mockResolvedValueOnce(["conversation.jsonl"] as any);
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
+
+      mockedHomedir.mockReturnValue("/home/user");
+      mockedJoin.mockImplementation((...args) => args.join("/"));
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Test message",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+        mockReadlineInterface.close();
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          role: "user",
+          content: "Test message",
+          timestamp: expect.any(Date),
+          sessionId: expect.any(String),
+          projectPath: expect.any(String),
+          fileName: "conversation.jsonl",
+          projectDir: expect.any(String),
+          fullPath: expect.any(String),
+        }),
+      );
+    });
+
+    it("should extract path information from received messages", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["test-project"] as any)
+        .mockResolvedValueOnce(["session.jsonl"] as any)
+        .mockResolvedValueOnce(["session.jsonl"] as any);
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
+
+      mockedHomedir.mockReturnValue("/home/user");
+      mockedJoin.mockImplementation((...args) => args.join("/"));
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getReceivedMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "assistant",
+              content: "Assistant response",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+        mockReadlineInterface.close();
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          role: "assistant",
+          content: "Assistant response",
+          timestamp: expect.any(Date),
+          sessionId: expect.any(String),
+          projectPath: expect.any(String),
+          fileName: "session.jsonl",
+          projectDir: expect.any(String),
+          fullPath: expect.any(String),
+        }),
+      );
+    });
+
+    it("should handle missing path information gracefully", async () => {
+      mockedReaddir
+        .mockResolvedValueOnce(["project"] as any)
+        .mockResolvedValueOnce(["file.jsonl"] as any)
+        .mockResolvedValueOnce(["file.jsonl"] as any);
+
+      const mockProjectStat = {
+        isDirectory: () => true,
+        mtime: new Date("2023-01-01"),
+      };
+      const mockFileStat = { mtime: new Date("2023-01-02") };
+
+      mockedStat
+        .mockResolvedValueOnce(mockProjectStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats)
+        .mockResolvedValueOnce(mockFileStat as unknown as fs.Stats);
+
+      mockedHomedir.mockReturnValue("/home/user");
+      mockedJoin.mockImplementation((...args) => args.join("/"));
+
+      const mockReadlineInterface = new MockReadlineInterface();
+      const mockFileStream = new MockFileStream();
+
+      mockedCreateReadStream.mockReturnValue(mockFileStream as any);
+      mockedCreateInterface.mockReturnValue(mockReadlineInterface as any);
+
+      const resultPromise = getSentMessages();
+
+      setTimeout(() => {
+        mockReadlineInterface.emit(
+          "line",
+          JSON.stringify({
+            message: {
+              role: "user",
+              content: "Test",
+            },
+            timestamp: 1672531200,
+          }),
+        );
+        mockReadlineInterface.close();
+      }, 10);
+
+      const result = await resultPromise;
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          role: "user",
+          content: "Test",
+          timestamp: expect.any(Date),
+          sessionId: expect.any(String),
+          projectPath: expect.any(String),
+          fileName: "file.jsonl",
+          projectDir: expect.any(String),
+          fullPath: expect.any(String),
+        }),
+      );
+    });
+  });
 });

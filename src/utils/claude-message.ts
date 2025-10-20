@@ -18,7 +18,9 @@ type JSONLMessage = {
   content: string | ContentItem[];
 };
 
-type JSONLData = {
+type JSONLEntry = {
+  type?: string;
+  summary?: string;
   message?: JSONLMessage;
   timestamp?: string | number;
 };
@@ -28,7 +30,10 @@ export type Message = {
   content: string;
   timestamp: Date;
   sessionId: string;
-  projectPath?: string;
+  projectPath: string;
+  fileName?: string;
+  projectDir: string;
+  fullPath: string;
 };
 
 export type ParsedMessage = Message & {
@@ -43,6 +48,20 @@ const MAX_PROJECTS_TO_SCAN = 5;
 const MAX_FILES_PER_PROJECT = 5;
 const MAX_MESSAGES_PER_FILE = 10;
 const UNIX_TIMESTAMP_THRESHOLD = 10000000000; // Timestamps below this are in seconds, not milliseconds
+
+/**
+ * Extracts path information from project and file paths
+ */
+function extractPathInformation(projectPath: string, filePath: string) {
+  return {
+    fileName: filePath
+      .split("/")
+      .filter((f) => f)
+      .pop(),
+    projectDir: projectPath,
+    fullPath: filePath,
+  };
+}
 
 /**
  * Convert Unix timestamp (seconds) to JavaScript Date object
@@ -105,7 +124,7 @@ async function parseUserMessagesOnlyStreaming(
         try {
           if (!line.trim()) return;
 
-          const data: JSONLData = JSON.parse(line);
+          const data: JSONLEntry = JSON.parse(line);
 
           if (data.message && data.message.role === "user") {
             let content = "";
@@ -129,6 +148,7 @@ async function parseUserMessagesOnlyStreaming(
               !content.includes("[Request interrupted")
             ) {
               const timestamp = parseTimestamp(data.timestamp);
+              const pathInfo = extractPathInformation(projectPath, filePath);
 
               userMessages.push({
                 role: "user",
@@ -136,6 +156,7 @@ async function parseUserMessagesOnlyStreaming(
                 timestamp,
                 sessionId,
                 projectPath,
+                ...pathInfo,
               });
             }
           }
@@ -206,7 +227,7 @@ async function parseAssistantMessagesOnlyStreaming(
         try {
           if (!line.trim()) return;
 
-          const data: JSONLData = JSON.parse(line);
+          const data: JSONLEntry = JSON.parse(line);
 
           if (data.message && data.message.role === "assistant") {
             let content: string | null = "";
@@ -225,6 +246,7 @@ async function parseAssistantMessagesOnlyStreaming(
             }
 
             const timestamp = parseTimestamp(data.timestamp);
+            const pathInfo = extractPathInformation(projectPath, filePath);
 
             if (content === null) {
               assistantMessages.push({
@@ -233,6 +255,7 @@ async function parseAssistantMessagesOnlyStreaming(
                 timestamp,
                 sessionId,
                 projectPath,
+                ...pathInfo,
               });
             } else if (content !== undefined && content !== "") {
               assistantMessages.push({
@@ -241,6 +264,7 @@ async function parseAssistantMessagesOnlyStreaming(
                 timestamp,
                 sessionId,
                 projectPath,
+                ...pathInfo,
               });
             }
           }

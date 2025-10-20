@@ -1,5 +1,6 @@
 import { Action, ActionPanel, Clipboard, closeMainWindow, Icon, List, showHUD, showToast, Toast } from "@raycast/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MessageDetailPanel } from "../../components/MessageDetailPanel";
 import { normalSearch } from "../../utils/ai-search";
 import { getSentMessages, ParsedMessage } from "../../utils/claude-message";
 import { formatSectionTitle, groupMessagesByDate } from "../../utils/date-grouping";
@@ -74,6 +75,7 @@ export default function SentMessages() {
 
   return (
     <List
+      isShowingDetail
       isLoading={isLoading}
       searchBarPlaceholder="Browse sent messages..."
       onSearchTextChange={setSearchText}
@@ -110,6 +112,7 @@ export default function SentMessages() {
                   }),
                 },
               ]}
+              detail={<MessageDetailPanel message={message} messageType="sent" />}
               actions={
                 <ActionPanel>
                   <Action.Push title="View Message" icon={Icon.Eye} target={<MessageDetail message={message} />} />
@@ -126,11 +129,32 @@ export default function SentMessages() {
                     target={<CreateSnippet content={message.content} />}
                   />
                   <Action
-                    title="Refresh Messages"
-                    icon={Icon.ArrowClockwise}
-                    shortcut={{ modifiers: ["cmd"], key: "r" }}
-                    onAction={loadMessages}
+                    title="Copy Conversation File Path"
+                    icon={Icon.CopyClipboard}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                    onAction={async () => {
+                      await Clipboard.copy(message.fullPath);
+                      await showToast({
+                        style: Toast.Style.Success,
+                        title: "Copied",
+                        message: "File path copied to clipboard",
+                      });
+                    }}
                   />
+                  <Action
+                    title="Copy Project Path"
+                    icon={Icon.Folder}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "d" }}
+                    onAction={async () => {
+                      await Clipboard.copy(message.projectDir);
+                      await showToast({
+                        style: Toast.Style.Success,
+                        title: "Copied",
+                        message: "Project path copied to clipboard",
+                      });
+                    }}
+                  />
+                  <Action.OpenWith path={message.fullPath} shortcut={{ modifiers: ["cmd"], key: "o" }} />
                 </ActionPanel>
               }
             />

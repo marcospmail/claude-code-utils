@@ -57,19 +57,46 @@ jest.mock("@raycast/api", () => ({
           {actions && <div data-testid="empty-view-actions">{actions}</div>}
         </div>
       ),
-      Item: ({
-        title,
-        accessories,
-        actions,
-      }: {
-        title: string;
-        accessories?: unknown[];
-        actions?: React.ReactNode;
-      }) => (
-        <div data-testid="list-item" data-title={title}>
-          {accessories && <div data-testid="item-accessories">{JSON.stringify(accessories)}</div>}
-          {actions && <div data-testid="item-actions">{actions}</div>}
-        </div>
+      Item: Object.assign(
+        ({
+          title,
+          accessories,
+          actions,
+          detail,
+        }: {
+          title: string;
+          accessories?: unknown[];
+          actions?: React.ReactNode;
+          detail?: React.ReactNode;
+        }) => (
+          <div data-testid="list-item" data-title={title}>
+            {accessories && <div data-testid="item-accessories">{JSON.stringify(accessories)}</div>}
+            {detail}
+            {actions && <div data-testid="item-actions">{actions}</div>}
+          </div>
+        ),
+        {
+          Detail: Object.assign(
+            ({ markdown, metadata }: { markdown?: string; metadata?: React.ReactNode }) => (
+              <div data-testid="list-item-detail" data-markdown={markdown}>
+                {metadata}
+              </div>
+            ),
+            {
+              Metadata: Object.assign(
+                ({ children }: { children: React.ReactNode }) => (
+                  <div data-testid="list-item-detail-metadata">{children}</div>
+                ),
+                {
+                  Label: ({ title, text }: { title: string; text: string }) => (
+                    <div data-testid="metadata-label" data-title={title} data-text={text} />
+                  ),
+                  Separator: () => <div data-testid="metadata-separator" />,
+                },
+              ),
+            },
+          ),
+        },
       ),
       Dropdown: Object.assign(
         ({
@@ -182,6 +209,15 @@ jest.mock("@raycast/api", () => ({
           {title}
         </button>
       ),
+      OpenWith: ({ path, shortcut }: { path: string; shortcut?: { modifiers: string[]; key: string } }) => (
+        <button
+          data-testid="action-open-with"
+          data-path={path}
+          data-shortcut={shortcut ? `${shortcut.modifiers.join("+")}-${shortcut.key}` : undefined}
+        >
+          Open With
+        </button>
+      ),
     },
   ),
   Detail: Object.assign(
@@ -290,6 +326,8 @@ describe("ReceivedMessages", () => {
         role: "assistant",
         sessionId: "session-1",
         projectPath: "/path/to/project",
+        projectDir: "/path/to/project",
+        fullPath: "/path/to/project/conversation.jsonl",
       },
       {
         id: "2",
@@ -299,6 +337,8 @@ describe("ReceivedMessages", () => {
         role: "user",
         sessionId: "session-1",
         projectPath: "/path/to/project",
+        projectDir: "/path/to/project",
+        fullPath: "/path/to/project/conversation.jsonl",
       },
       {
         id: "3",
@@ -308,6 +348,8 @@ describe("ReceivedMessages", () => {
         role: "assistant",
         sessionId: "session-2",
         projectPath: "/path/to/other-project",
+        projectDir: "/path/to/other-project",
+        fullPath: "/path/to/other-project/conversation.jsonl",
       },
     ];
 
@@ -525,7 +567,9 @@ describe("ReceivedMessages", () => {
       const messagesWithoutPath = [
         {
           ...mockMessages[0],
-          projectPath: undefined,
+          projectPath: "",
+          projectDir: "",
+          fullPath: "",
         },
       ];
       mockGetReceivedMessages.mockResolvedValue(messagesWithoutPath);
@@ -613,6 +657,9 @@ describe("ReceivedMessages", () => {
           timestamp: new Date(),
           role: "assistant" as const,
           sessionId: "",
+          projectPath: "",
+          projectDir: "",
+          fullPath: "",
         },
       ];
 
@@ -774,7 +821,9 @@ describe("ReceivedMessages", () => {
       // Test with no project path
       const messageWithoutPath = {
         ...mockMessages[0],
-        projectPath: undefined,
+        projectPath: "",
+        projectDir: "",
+        fullPath: "",
       };
       rerender(<TestMessageDetail message={messageWithoutPath} />);
       expect(getByTestId("project-label")).toHaveTextContent("Unknown");
@@ -842,7 +891,9 @@ describe("ReceivedMessages", () => {
     it("should handle missing projectPath in MessageDetail (lines 185-187)", () => {
       const messageWithoutPath = {
         ...mockMessages[0],
-        projectPath: undefined,
+        projectPath: "",
+        projectDir: "",
+        fullPath: "",
       };
 
       const TestMessageDetail = ({ message }: { message: ParsedMessage }) => (
