@@ -102,10 +102,38 @@ git push origin "$BRANCH"
 echo "💾 Saving sync marker..."
 echo "$CURRENT_HEAD" > "$SYNC_MARKER"
 
+# Check if PR exists and handle PR creation
+echo "🔍 Checking for existing PR..."
+PR_INFO=$(gh pr list --repo raycast/extensions --head marcospmail:ext/claude-code-utils --state open --json number,url --jq '.[0]')
+
+if [[ -n "$PR_INFO" ]]; then
+  PR_NUMBER=$(echo "$PR_INFO" | jq -r '.number')
+  PR_URL=$(echo "$PR_INFO" | jq -r '.url')
+  echo "✅ PR #$PR_NUMBER updated successfully!"
+  echo "🔗 View PR: $PR_URL"
+else
+  echo "📝 No existing PR found."
+  read -p "Create a new PR to raycast/extensions? (y/n): " CREATE_PR
+
+  if [[ "$CREATE_PR" =~ ^[Yy]$ ]]; then
+    echo "🚀 Creating new PR..."
+    PR_URL=$(gh pr create \
+      --repo raycast/extensions \
+      --head marcospmail:ext/claude-code-utils \
+      --base main \
+      --title "Update Claude Code Utils extension" \
+      --body "Updates from development repository" \
+      --json url --jq '.url')
+
+    echo "✅ PR created successfully!"
+    echo "🔗 View PR: $PR_URL"
+  else
+    echo "✅ Changes pushed to fork. You can create a PR manually later."
+    echo "🔗 Fork: https://github.com/marcospmail/raycast-extensions/tree/ext/claude-code-utils"
+  fi
+fi
+
 # Step 4: Clean up
 echo "🧹 Cleaning up temporary files..."
 cd /tmp
 rm -rf "$TEMP_DIR"
-
-echo "✅ PR updated successfully!"
-echo "🔗 View PR: https://github.com/raycast/extensions/pull/22162"
