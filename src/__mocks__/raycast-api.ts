@@ -87,8 +87,16 @@ export const Form = Object.assign(() => null, {
 
 export const List = Object.assign(() => null, {
   EmptyView: () => null,
-  Item: () => null,
+  Item: Object.assign(() => null, {
+    Detail: Object.assign(() => null, {
+      Metadata: Object.assign(() => null, {
+        Label: () => null,
+        Separator: () => null,
+      }),
+    }),
+  }),
   Dropdown: Object.assign(() => null, {
     Item: () => null,
   }),
+  Section: () => null,
 });

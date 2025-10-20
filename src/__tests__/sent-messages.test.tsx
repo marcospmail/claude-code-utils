@@ -46,29 +46,56 @@ jest.mock("@raycast/api", () => ({
           {children}
         </div>
       ),
-      Item: ({
-        title,
-        subtitle,
-        actions,
-        accessories,
-      }: {
-        title: string;
-        subtitle?: string;
-        actions: React.ReactNode;
-        accessories?: Array<{ text: string }>;
-      }) => (
-        <div data-testid="list-item" title={title} data-subtitle={subtitle}>
-          {accessories && (
-            <div data-testid="accessories">
-              {accessories.map((acc, idx: number) => (
-                <span key={idx} data-testid="accessory">
-                  {acc.text}
-                </span>
-              ))}
-            </div>
-          )}
-          {actions}
-        </div>
+      Item: Object.assign(
+        ({
+          title,
+          subtitle,
+          actions,
+          accessories,
+          detail,
+        }: {
+          title: string;
+          subtitle?: string;
+          actions: React.ReactNode;
+          accessories?: Array<{ text: string }>;
+          detail?: React.ReactNode;
+        }) => (
+          <div data-testid="list-item" title={title} data-subtitle={subtitle}>
+            {accessories && (
+              <div data-testid="accessories">
+                {accessories.map((acc, idx: number) => (
+                  <span key={idx} data-testid="accessory">
+                    {acc.text}
+                  </span>
+                ))}
+              </div>
+            )}
+            {detail}
+            {actions}
+          </div>
+        ),
+        {
+          Detail: Object.assign(
+            ({ markdown, metadata }: { markdown?: string; metadata?: React.ReactNode }) => (
+              <div data-testid="list-item-detail" data-markdown={markdown}>
+                {metadata}
+              </div>
+            ),
+            {
+              Metadata: Object.assign(
+                ({ children }: { children: React.ReactNode }) => (
+                  <div data-testid="list-item-detail-metadata">{children}</div>
+                ),
+                {
+                  Label: ({ title, text }: { title: string; text: string }) => (
+                    <div data-testid="metadata-label" data-title={title} data-text={text} />
+                  ),
+                  Separator: () => <div data-testid="metadata-separator" />,
+                },
+              ),
+            },
+          ),
+        },
       ),
       EmptyView: ({
         title,
@@ -174,6 +201,15 @@ jest.mock("@raycast/api", () => ({
           {title}
         </button>
       ),
+      OpenWith: ({ path, shortcut }: { path: string; shortcut?: { modifiers: string[]; key: string } }) => (
+        <button
+          data-testid="action-open-with"
+          data-path={path}
+          data-shortcut={shortcut ? `${shortcut.modifiers.join("+")}-${shortcut.key}` : undefined}
+        >
+          Open With
+        </button>
+      ),
     },
   ),
   Clipboard: {
@@ -239,6 +275,8 @@ describe("SentMessages", () => {
       timestamp: new Date("2024-01-01T12:00:00"),
       sessionId: "session-1",
       projectPath: "/path/to/project1",
+      projectDir: "/path/to/project1",
+      fullPath: "/path/to/project1/conversation.jsonl",
     },
     {
       id: "2",
@@ -248,6 +286,8 @@ describe("SentMessages", () => {
       timestamp: new Date("2024-01-02T14:30:00"),
       sessionId: "session-2",
       projectPath: "/path/to/project2",
+      projectDir: "/path/to/project2",
+      fullPath: "/path/to/project2/conversation.jsonl",
     },
     {
       id: "3",
@@ -256,6 +296,9 @@ describe("SentMessages", () => {
       role: "user",
       timestamp: new Date("2024-01-03T09:15:00"),
       sessionId: "session-1",
+      projectPath: "/path/to/project1",
+      projectDir: "/path/to/project1",
+      fullPath: "/path/to/project1/conversation.jsonl",
     },
   ];
 
@@ -606,7 +649,9 @@ describe("SentMessages", () => {
     it("should handle missing project path in detail view", () => {
       const messageWithoutProject: ParsedMessage = {
         ...mockMessages[0],
-        projectPath: undefined,
+        projectPath: "",
+        projectDir: "",
+        fullPath: "",
       };
 
       const TestMessageDetail = () => {
@@ -755,6 +800,8 @@ describe("SentMessages", () => {
         timestamp: new Date("2024-01-01T12:00:00"),
         sessionId: "session-1",
         projectPath: "/path/to/project1",
+        projectDir: "/path/to/project1",
+        fullPath: "/path/to/project1/conversation.jsonl",
       };
 
       // Test MessageDetail component logic directly
@@ -781,7 +828,9 @@ describe("SentMessages", () => {
     it("should handle missing projectPath in MessageDetail", () => {
       const messageWithoutPath = {
         ...mockMessages[0],
-        projectPath: undefined,
+        projectPath: "",
+        projectDir: "",
+        fullPath: "",
       };
 
       const TestMessageDetail = ({ message }: { message: ParsedMessage }) => (
@@ -861,6 +910,9 @@ describe("SentMessages", () => {
         role: "user",
         timestamp: new Date(),
         sessionId: "session-long",
+        projectPath: "/test/project/path",
+        projectDir: "/test/project/path",
+        fullPath: "/test/project/path/conversation.jsonl",
       };
 
       getSentMessages.mockResolvedValue([longMessage]);
@@ -884,6 +936,9 @@ describe("SentMessages", () => {
         role: "user",
         timestamp: new Date(),
         sessionId: "session-special",
+        projectPath: "/test/project/path",
+        projectDir: "/test/project/path",
+        fullPath: "/test/project/path/conversation.jsonl",
       };
 
       getSentMessages.mockResolvedValue([specialMessage]);
