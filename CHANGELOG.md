@@ -1,5 +1,9 @@
 # Claude Code Utils Changelog
 
+## [Claude Code Utils 1.1.0] - {PR_MERGE_DATE}
+
+- Added metadata detail panel in the sent/received messages listing
+
 ## [Initial Release] - {PR_MERGE_DATE}
 
 - Browse received messages from Claude Code
