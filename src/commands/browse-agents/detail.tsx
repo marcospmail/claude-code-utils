@@ -16,7 +16,7 @@ export default function AgentDetail({ agent }: AgentDetailProps) {
       navigationTitle={agent.name}
       actions={
         <ActionPanel>
-          <PasteAction content={"/" + agent.name} />
+          <PasteAction content={"@" + agent.name} />
           <Action.CopyToClipboard
             title="Copy to Clipboard"
             content={agent.content}
