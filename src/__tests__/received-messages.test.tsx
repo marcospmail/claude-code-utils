@@ -382,19 +382,6 @@ describe("ReceivedMessages", () => {
       );
     });
 
-    it("should display message accessories with formatted time", async () => {
-      const { container, getByTestId } = render(<ReceivedMessages />);
-
-      await waitFor(() => {
-        expect(mockGetReceivedMessages).toHaveBeenCalled();
-        expect(getByTestId("list")).toHaveAttribute("data-loading", "false");
-      });
-
-      const listItems = container.querySelectorAll('[data-testid="list-item"]');
-      const accessories = listItems[0].querySelector('[data-testid="item-accessories"]');
-      expect(accessories?.textContent).toContain("text");
-    });
-
     it("should handle loading error", async () => {
       const error = new Error("Failed to load messages");
       mockGetReceivedMessages.mockRejectedValue(error);

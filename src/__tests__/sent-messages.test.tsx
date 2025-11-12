@@ -407,19 +407,6 @@ describe("SentMessages", () => {
       );
     });
 
-    it("should display formatted timestamp as accessory", async () => {
-      render(<SentMessages />);
-
-      await waitFor(() => {
-        const accessories = screen.getAllByTestId("accessory");
-        expect(accessories.length).toBeGreaterThan(0);
-        // Check that timestamps are formatted (should contain : for time)
-        accessories.forEach((acc) => {
-          expect(acc.textContent).toMatch(/\d{1,2}:\d{2}/);
-        });
-      });
-    });
-
     it("should render message actions", async () => {
       render(<SentMessages />);
 

@@ -100,16 +100,6 @@ export default function SentMessages() {
             <List.Item
               key={message.id}
               title={message.preview}
-              accessories={[
-                {
-                  text: message.timestamp.toLocaleString([], {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                },
-              ]}
               actions={
                 <ActionPanel>
                   <Action.Push title="View Message" icon={Icon.Eye} target={<MessageDetail message={message} />} />
