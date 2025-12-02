@@ -35,7 +35,7 @@ This is a Raycast extension with 8 commands following the **List + Detail patter
 - Uses **streaming parsers** to handle large JSONL files without loading entire files into memory
 - Scans 5 most recent projects × 5 most recent files per project (configurable via constants)
 - Processes timestamped JSONL format with line-by-line reading via `createReadStream` + `readline`
-- Key functions: `getSentMessages()`, `getReceivedMessages()`, `getSnippets()`, `pinMessage()`, `unpinMessage()`
+- Key functions: `getSentMessages()`, `getReceivedMessages()`, `getSnippets()`
 
 **Search Architecture** (`src/utils/ai-search.ts`):
 - Keyword search functionality for filtering messages and snippets
@@ -157,7 +157,6 @@ After making any code changes, **ALWAYS verify the project is in a working state
 - Claude Code projects: `~/.claude/projects/`
 - Claude Code agents: `~/.claude/agents/`
 - Claude Code commands: `~/.claude/commands/`
-- Pinned messages: `~/.claude/pinned_messages.json`
 
 ### Performance Considerations
 - Large JSONL files: Use streaming parsers (see `claude-messages.ts`)
