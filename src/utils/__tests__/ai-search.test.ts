@@ -21,6 +21,9 @@ describe("aiSearch", () => {
       role: "user",
       timestamp: new Date("2024-01-01"),
       sessionId: "session-1",
+      projectPath: "/test/project/path",
+      projectDir: "/test/project/path",
+      fullPath: "/test/project/path/conversation.jsonl",
     },
     {
       id: "2",
@@ -29,6 +32,9 @@ describe("aiSearch", () => {
       role: "assistant",
       timestamp: new Date("2024-01-02"),
       sessionId: "session-1",
+      projectPath: "/test/project/path",
+      projectDir: "/test/project/path",
+      fullPath: "/test/project/path/conversation.jsonl",
     },
     {
       id: "3",
@@ -37,6 +43,9 @@ describe("aiSearch", () => {
       role: "user",
       timestamp: new Date("2024-01-03"),
       sessionId: "session-2",
+      projectPath: "/test/project/path2",
+      projectDir: "/test/project/path2",
+      fullPath: "/test/project/path2/conversation.jsonl",
     },
   ];
 

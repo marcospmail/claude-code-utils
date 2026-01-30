@@ -6,7 +6,7 @@ if (environment.isDevelopment) {
   loadEnv();
 }
 
-export interface NetworkSimulationConfig {
+interface NetworkSimulationConfig {
   enabled: boolean;
   delayMs: number;
 }

@@ -89,7 +89,7 @@ describe("AgentDetail", () => {
     const pasteAction = screen.getByTestId("action-paste");
     expect(pasteAction).toBeInTheDocument();
     expect(pasteAction).toHaveAttribute("data-title", "Paste to Test App");
-    expect(pasteAction).toHaveAttribute("data-content", "/" + mockAgent.name);
+    expect(pasteAction).toHaveAttribute("data-content", "@" + mockAgent.name);
   });
 
   it("should render copy to clipboard action with cmd+enter", () => {

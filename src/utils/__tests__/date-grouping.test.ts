@@ -10,6 +10,9 @@ function createMessage(timestamp: Date, content = "Test message"): ParsedMessage
     timestamp,
     sessionId: "test-session",
     preview: content.substring(0, 50),
+    projectPath: "/test/project/path",
+    projectDir: "/test/project/path",
+    fullPath: "/test/project/path/conversation.jsonl",
   };
 }
 

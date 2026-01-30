@@ -123,8 +123,11 @@ describe("CommandDetail", () => {
   it("should render paste action as primary", async () => {
     render(<CommandDetail command={mockCommand} />);
 
-    // Wait for getFrontmostApplication to resolve
+    // Wait for getFrontmostApplication to resolve and state to update
     const pasteAction = await screen.findByTestId("action-paste");
+
+    // Wait for the title to update with the app name
+    await screen.findByText("Paste to Test App");
 
     expect(pasteAction).toBeInTheDocument();
     expect(pasteAction).toHaveAttribute("data-title", "Paste to Test App");

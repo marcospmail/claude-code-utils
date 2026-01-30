@@ -49,6 +49,9 @@ const mockMessage: ParsedMessage = {
   timestamp: new Date("2025-01-01T12:00:00Z"),
   role: "user",
   sessionId: "test-session-1",
+  projectPath: "/test/project/path",
+  projectDir: "/test/project/path",
+  fullPath: "/test/project/path/conversation.jsonl",
 };
 
 describe("MessageDetail (Sent Messages)", () => {

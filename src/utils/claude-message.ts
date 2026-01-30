@@ -18,17 +18,22 @@ type JSONLMessage = {
   content: string | ContentItem[];
 };
 
-type JSONLData = {
+type JSONLEntry = {
+  type?: string;
+  summary?: string;
   message?: JSONLMessage;
   timestamp?: string | number;
 };
 
-export type Message = {
+type Message = {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
   sessionId: string;
-  projectPath?: string;
+  projectPath: string;
+  fileName?: string;
+  projectDir: string;
+  fullPath: string;
 };
 
 export type ParsedMessage = Message & {
@@ -43,6 +48,20 @@ const MAX_PROJECTS_TO_SCAN = 5;
 const MAX_FILES_PER_PROJECT = 5;
 const MAX_MESSAGES_PER_FILE = 10;
 const UNIX_TIMESTAMP_THRESHOLD = 10000000000; // Timestamps below this are in seconds, not milliseconds
+
+/**
+ * Extracts path information from project and file paths
+ */
+function extractPathInformation(projectPath: string, filePath: string) {
+  return {
+    fileName: filePath
+      .split("/")
+      .filter((f) => f)
+      .pop(),
+    projectDir: projectPath,
+    fullPath: filePath,
+  };
+}
 
 /**
  * Convert Unix timestamp (seconds) to JavaScript Date object
@@ -105,7 +124,7 @@ async function parseUserMessagesOnlyStreaming(
         try {
           if (!line.trim()) return;
 
-          const data: JSONLData = JSON.parse(line);
+          const data: JSONLEntry = JSON.parse(line);
 
           if (data.message && data.message.role === "user") {
             let content = "";
@@ -129,6 +148,7 @@ async function parseUserMessagesOnlyStreaming(
               !content.includes("[Request interrupted")
             ) {
               const timestamp = parseTimestamp(data.timestamp);
+              const pathInfo = extractPathInformation(projectPath, filePath);
 
               userMessages.push({
                 role: "user",
@@ -136,6 +156,7 @@ async function parseUserMessagesOnlyStreaming(
                 timestamp,
                 sessionId,
                 projectPath,
+                ...pathInfo,
               });
             }
           }
@@ -206,7 +227,7 @@ async function parseAssistantMessagesOnlyStreaming(
         try {
           if (!line.trim()) return;
 
-          const data: JSONLData = JSON.parse(line);
+          const data: JSONLEntry = JSON.parse(line);
 
           if (data.message && data.message.role === "assistant") {
             let content: string | null = "";
@@ -225,6 +246,7 @@ async function parseAssistantMessagesOnlyStreaming(
             }
 
             const timestamp = parseTimestamp(data.timestamp);
+            const pathInfo = extractPathInformation(projectPath, filePath);
 
             if (content === null) {
               assistantMessages.push({
@@ -233,6 +255,7 @@ async function parseAssistantMessagesOnlyStreaming(
                 timestamp,
                 sessionId,
                 projectPath,
+                ...pathInfo,
               });
             } else if (content !== undefined && content !== "") {
               assistantMessages.push({
@@ -241,6 +264,7 @@ async function parseAssistantMessagesOnlyStreaming(
                 timestamp,
                 sessionId,
                 projectPath,
+                ...pathInfo,
               });
             }
           }
@@ -276,6 +300,7 @@ async function parseAssistantMessagesOnlyStreaming(
 export async function getAllClaudeMessages(): Promise<Message[]> {
   try {
     // Get projects and sort by most recent file activity (not directory mtime)
+    // Also cache file stats to avoid re-reading later
     const projects = await readdir(CLAUDE_DIR);
     const projectsWithStats = [];
 
@@ -286,12 +311,16 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
         if (projectStat.isDirectory()) {
           // Get the most recent file modification time in this project
           let mostRecentFileTime = projectStat.mtime;
+          const fileStats: { name: string; path: string; mtime: Date }[] = [];
           try {
             const files = await readdir(projectPath);
-            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+            // Filter for .jsonl files, excluding agent-* files (internal subagent conversations)
+            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl") && !f.startsWith("agent-"));
 
             for (const file of jsonlFiles) {
-              const fileStat = await stat(join(projectPath, file));
+              const filePath = join(projectPath, file);
+              const fileStat = await stat(filePath);
+              fileStats.push({ name: file, path: filePath, mtime: fileStat.mtime });
               if (fileStat.mtime > mostRecentFileTime) {
                 mostRecentFileTime = fileStat.mtime;
               }
@@ -304,6 +333,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
             name: project,
             path: projectPath,
             mtime: mostRecentFileTime, // Use most recent file time
+            fileStats, // Cache file stats to avoid re-reading
           });
         }
       } catch {
@@ -318,30 +348,11 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
 
     const allMessages: Message[] = [];
 
-    // Process projects sequentially
+    // Process projects sequentially using cached file stats
     for (const project of sortedProjects) {
       try {
-        const files = await readdir(project.path);
-        const jsonlFiles = files.filter((file) => file.endsWith(".jsonl"));
-
-        // Get stats for ALL jsonl files to sort properly
-        const filesWithStats = [];
-        for (const file of jsonlFiles) {
-          try {
-            const filePath = join(project.path, file);
-            const fileStat = await stat(filePath);
-            filesWithStats.push({
-              name: file,
-              path: filePath,
-              mtime: fileStat.mtime,
-            });
-          } catch {
-            continue;
-          }
-        }
-
-        // Sort by modification time and take only the most recent files
-        const sortedFiles = filesWithStats
+        // Use cached file stats from first pass (already sorted by mtime, newest first)
+        const sortedFiles = project.fileStats
           .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
           .slice(0, MAX_FILES_PER_PROJECT);
 
@@ -386,6 +397,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     const projectsWithStats = [];
 
     // Get most recent file modification time for each project (not directory mtime)
+    // Also cache file stats to avoid re-reading later
     for (const project of projects) {
       try {
         const projectPath = join(CLAUDE_DIR, project);
@@ -393,12 +405,16 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
         if (projectStat.isDirectory()) {
           // Get the most recent file modification time in this project
           let mostRecentFileTime = projectStat.mtime;
+          const fileStats: { name: string; path: string; mtime: Date }[] = [];
           try {
             const files = await readdir(projectPath);
-            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+            // Filter for .jsonl files, excluding agent-* files (internal subagent conversations)
+            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl") && !f.startsWith("agent-"));
 
             for (const file of jsonlFiles) {
-              const fileStat = await stat(join(projectPath, file));
+              const filePath = join(projectPath, file);
+              const fileStat = await stat(filePath);
+              fileStats.push({ name: file, path: filePath, mtime: fileStat.mtime });
               if (fileStat.mtime > mostRecentFileTime) {
                 mostRecentFileTime = fileStat.mtime;
               }
@@ -411,6 +427,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
             name: project,
             path: projectPath,
             mtime: mostRecentFileTime, // Use most recent file time to detect active sessions
+            fileStats, // Cache file stats to avoid re-reading
           });
         }
       } catch {
@@ -429,32 +446,8 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     // STEP 3: Process each of the 5 selected projects to find conversation files
     for (const project of sortedProjects) {
       try {
-        // Get all conversation files (.jsonl) in this project
-        const files = await readdir(project.path);
-        const jsonlFiles = files.filter((file) => file.endsWith(".jsonl")); // Each .jsonl = one conversation session
-
-        // STEP 4: Find the most recent conversation files in this project
-        // We need to sort by modification time to get the latest conversations
-        const filesWithStats = [];
-
-        // Get modification time for ALL files first (before limiting)
-        // This was the bug fix - we were limiting BEFORE sorting, which chose wrong files
-        for (const file of jsonlFiles) {
-          try {
-            const filePath = join(project.path, file);
-            const fileStat = await stat(filePath);
-            filesWithStats.push({
-              name: file,
-              path: filePath,
-              mtime: fileStat.mtime, // When this conversation file was last modified
-            });
-          } catch {
-            continue;
-          }
-        }
-
-        // Sort files by newest first, then take only the 2 most recent conversation files
-        const sortedFiles = filesWithStats
+        // Use cached file stats from STEP 1 (already sorted by mtime, newest first)
+        const sortedFiles = project.fileStats
           .sort((a, b) => b.mtime.getTime() - a.mtime.getTime()) // Newest conversations first
           .slice(0, MAX_FILES_PER_PROJECT); // Only process 5 most recent conversation files per project
 
