@@ -3,12 +3,12 @@ import { ParsedMessage } from "./claude-message";
 /**
  * Date category for message grouping
  */
-export type DateCategory = "Today" | "Yesterday" | "This Week" | "This Month" | "This Year" | string; // Year numbers like "2024"
+type DateCategory = "Today" | "Yesterday" | "This Week" | "This Month" | "This Year" | string; // Year numbers like "2024"
 
 /**
  * Grouped messages by date category
  */
-export interface MessageGroup {
+interface MessageGroup {
   category: DateCategory;
   messages: ParsedMessage[];
   sortKey: number; // For ordering sections

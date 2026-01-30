@@ -25,7 +25,7 @@ type JSONLEntry = {
   timestamp?: string | number;
 };
 
-export type Message = {
+type Message = {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
