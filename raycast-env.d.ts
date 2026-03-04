@@ -34,10 +34,10 @@ declare namespace Preferences {
   export type Changelog = ExtensionPreferences & {}
   /** Preferences accessible in the `search-sessions` command */
   export type SearchSessions = ExtensionPreferences & {}
-  /** Preferences accessible in the `prompt-library` command */
-  export type PromptLibrary = ExtensionPreferences & {}
   /** Preferences accessible in the `transform-selection` command */
   export type TransformSelection = ExtensionPreferences & {}
+  /** Preferences accessible in the `chat` command */
+  export type Chat = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -59,9 +59,9 @@ declare namespace Arguments {
   export type Changelog = {}
   /** Arguments passed to the `search-sessions` command */
   export type SearchSessions = {}
-  /** Arguments passed to the `prompt-library` command */
-  export type PromptLibrary = {}
   /** Arguments passed to the `transform-selection` command */
   export type TransformSelection = {}
+  /** Arguments passed to the `chat` command */
+  export type Chat = {}
 }
 

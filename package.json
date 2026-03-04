@@ -77,15 +77,15 @@
       "mode": "view"
     },
     {
-      "name": "prompt-library",
-      "title": "Prompt Library",
-      "description": "Browse and run predefined Claude prompts on your code",
-      "mode": "view"
-    },
-    {
       "name": "transform-selection",
       "title": "Transform Selection",
       "description": "Transform selected text using Claude AI",
+      "mode": "view"
+    },
+    {
+      "name": "chat",
+      "title": "Chat",
+      "description": "Send a quick chat message to Claude and get a response",
       "mode": "view"
     }
   ],
