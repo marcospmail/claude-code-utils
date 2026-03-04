@@ -86,11 +86,26 @@ export async function isClaudeInstalled(): Promise<boolean> {
   }
 }
 
-export async function executePrompt(prompt: string, options?: { model?: string }): Promise<ClaudeResponse> {
+export async function executePrompt(
+  prompt: string,
+  options?: { model?: string; systemPrompt?: string },
+): Promise<ClaudeResponse> {
   const claudePath = await getClaudePath();
 
   // Use --print + stdin for prompt delivery (more reliable than -p flag for multi-line prompts)
-  const args = ["--print", "--output-format", "json"];
+  // Disable all settings/plugins/skills so responses aren't contaminated by CLAUDE.md or plugins
+  const args = [
+    "--print",
+    "--output-format",
+    "json",
+    "--setting-sources",
+    "",
+    "--disable-slash-commands",
+    "--no-session-persistence",
+  ];
+  if (options?.systemPrompt) {
+    args.push("--system-prompt", options.systemPrompt);
+  }
   if (options?.model) {
     args.push("--model", options.model);
   }
@@ -106,7 +121,7 @@ export async function executePrompt(prompt: string, options?: { model?: string }
 
   return new Promise((resolve, reject) => {
     const proc = spawn(claudePath, args, {
-      cwd: homedir(),
+      cwd: "/tmp",
       env: cleanEnv,
       stdio: ["pipe", "pipe", "pipe"],
     });
