@@ -1,6 +1,16 @@
-import { Action, ActionPanel, Clipboard, closeMainWindow, Icon, List, showHUD, showToast, Toast } from "@raycast/api";
+import {
+  Action,
+  ActionPanel,
+  Clipboard,
+  closeMainWindow,
+  Color,
+  Icon,
+  List,
+  showHUD,
+  showToast,
+  Toast,
+} from "@raycast/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageDetailPanel } from "../../components/MessageDetailPanel";
 import { normalSearch } from "../../utils/ai-search";
 import { getReceivedMessages, ParsedMessage } from "../../utils/claude-message";
 import { formatSectionTitle, groupMessagesByDate } from "../../utils/date-grouping";
@@ -102,6 +112,20 @@ export default function ReceivedMessages() {
             <List.Item
               key={message.id}
               title={message.preview}
+              accessories={[{ tag: { value: message.projectName, color: Color.Blue } }, { date: message.timestamp }]}
+              detail={
+                <List.Item.Detail
+                  markdown={message.content}
+                  metadata={
+                    <List.Item.Detail.Metadata>
+                      <List.Item.Detail.Metadata.Label title="Project" text={message.projectName} />
+                      <List.Item.Detail.Metadata.Separator />
+                      <List.Item.Detail.Metadata.Label title="Session ID" text={message.sessionId} />
+                      <List.Item.Detail.Metadata.Label title="Date" text={message.timestamp.toLocaleString()} />
+                    </List.Item.Detail.Metadata>
+                  }
+                />
+              }
               actions={
                 <ActionPanel>
                   <Action.Push title="View Message" icon={Icon.Eye} target={<MessageDetail message={message} />} />
@@ -116,6 +140,11 @@ export default function ReceivedMessages() {
                     icon={Icon.Document}
                     shortcut={{ modifiers: ["cmd"], key: "s" }}
                     target={<CreateSnippet content={message.content} />}
+                  />
+                  <Action.CopyToClipboard
+                    title="Copy Session ID"
+                    content={message.sessionId}
+                    shortcut={{ modifiers: ["cmd"], key: "." }}
                   />
                   <Action
                     title="Copy Conversation File Path"

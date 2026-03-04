@@ -7,7 +7,10 @@
 
 /* eslint-disable @typescript-eslint/ban-types */
 
-type ExtensionPreferences = {}
+type ExtensionPreferences = {
+  /** Claude CLI Path - Custom path to the Claude CLI binary (leave empty for auto-detection) */
+  "claudeCliPath"?: string
+}
 
 /** Preferences accessible in all the extension's commands */
 declare type Preferences = ExtensionPreferences
@@ -29,6 +32,12 @@ declare namespace Preferences {
   export type BrowseCommands = ExtensionPreferences & {}
   /** Preferences accessible in the `changelog` command */
   export type Changelog = ExtensionPreferences & {}
+  /** Preferences accessible in the `search-sessions` command */
+  export type SearchSessions = ExtensionPreferences & {}
+  /** Preferences accessible in the `prompt-library` command */
+  export type PromptLibrary = ExtensionPreferences & {}
+  /** Preferences accessible in the `transform-selection` command */
+  export type TransformSelection = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -48,5 +57,11 @@ declare namespace Arguments {
   export type BrowseCommands = {}
   /** Arguments passed to the `changelog` command */
   export type Changelog = {}
+  /** Arguments passed to the `search-sessions` command */
+  export type SearchSessions = {}
+  /** Arguments passed to the `prompt-library` command */
+  export type PromptLibrary = {}
+  /** Arguments passed to the `transform-selection` command */
+  export type TransformSelection = {}
 }
 

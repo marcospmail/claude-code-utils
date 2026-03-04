@@ -16,7 +16,12 @@ const AGENTS_DIR = join(homedir(), ".claude", "agents");
  * Get all agent files from ~/.claude/agents
  */
 export async function getAgents(): Promise<Agent[]> {
-  const files = await readdir(AGENTS_DIR);
+  let files: string[];
+  try {
+    files = await readdir(AGENTS_DIR);
+  } catch {
+    return [];
+  }
   const agentFiles = files.filter((file) => file.endsWith(".md"));
 
   const agents = await Promise.all(

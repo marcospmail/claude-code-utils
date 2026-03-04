@@ -1,4 +1,3 @@
-// import { homedir } from "os"; // TEMPORARY: commented out for mock folder
 import { readdir, readFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
@@ -17,7 +16,12 @@ const COMMANDS_DIR = join(homedir(), ".claude", "commands");
  * Get all command files from ~/.claude/commands
  */
 export async function getSlashCommands(): Promise<SlashCommand[]> {
-  const files = await readdir(COMMANDS_DIR);
+  let files: string[];
+  try {
+    files = await readdir(COMMANDS_DIR);
+  } catch {
+    return [];
+  }
   const commandFiles = files.filter((file) => file.endsWith(".md"));
 
   const commands = await Promise.all(
