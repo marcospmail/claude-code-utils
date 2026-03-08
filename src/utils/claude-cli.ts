@@ -36,7 +36,7 @@ async function findClaudeInPath(): Promise<string> {
   });
 }
 
-async function getOAuthToken(): Promise<string | undefined> {
+export async function getOAuthToken(): Promise<string | undefined> {
   return new Promise((resolve) => {
     const account = userInfo().username;
     execFile(

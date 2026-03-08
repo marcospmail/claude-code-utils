@@ -36,6 +36,10 @@ View and manage your Claude Code commands from `~/.claude/commands`.
 
 View the latest Claude Code changelog with updates, releases, and new features directly from the official repository.
 
+### 📊 **Claude Usage Monitor**
+
+Monitor your Claude API usage limits in real-time. Displays 5-hour and 7-day usage percentages in the menu bar with automatic refresh every 5 minutes. Click to see detailed breakdown with reset countdowns and copy-to-clipboard actions.
+
 ## Installation
 
 ### From Raycast Store
@@ -75,6 +79,8 @@ npm run build && npm run publish
    - **Browse Agents** - View Claude Code agents
    - **Browse Commands** - View Claude Code commands
    - **Changelog** - View Claude Code updates and releases
+   - **Claude Usage** - Monitor API usage in menu bar
+   - **Search Sessions** - Deep search through Claude Code conversations
 
 ## Technical Details
 

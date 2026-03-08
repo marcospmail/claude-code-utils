@@ -87,6 +87,13 @@
       "title": "Chat",
       "description": "Send a quick chat message to Claude and get a response",
       "mode": "view"
+    },
+    {
+      "name": "usage-monitor",
+      "title": "Claude Usage",
+      "description": "Monitor Claude AI usage limits in real-time from the menu bar",
+      "mode": "menu-bar",
+      "interval": "5m"
     }
   ],
   "preferences": [
