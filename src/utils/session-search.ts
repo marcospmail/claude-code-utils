@@ -45,13 +45,37 @@ interface SessionFileInfo {
   mtime: Date;
 }
 
+function sanitizeText(text: string): string {
+  // Remove lone surrogates that cause JSON serialization failures in Raycast
+  let result = "";
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      // High surrogate — only keep if followed by a valid low surrogate
+      const next = text.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        result += text[i] + text[i + 1];
+        i++;
+      }
+      // else: lone high surrogate, drop it
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      // Lone low surrogate, drop it
+    } else {
+      result += text[i];
+    }
+  }
+  return result;
+}
+
 function extractTextContent(content: string | ContentItem[]): string {
-  if (typeof content === "string") return content;
+  if (typeof content === "string") return sanitizeText(content);
   if (Array.isArray(content)) {
-    return content
-      .filter((item) => item.type === "text")
-      .map((item) => item.text || "")
-      .join("\n");
+    return sanitizeText(
+      content
+        .filter((item) => item.type === "text")
+        .map((item) => item.text || "")
+        .join("\n"),
+    );
   }
   return "";
 }
@@ -64,7 +88,7 @@ async function resolveProjectPath(projectDir: string, jsonlFiles: string[]): Pro
     const index = JSON.parse(content);
     const realPath = index.originalPath || index.entries?.[0]?.projectPath;
     if (realPath) {
-      const name = basename(realPath);
+      const name = sanitizeText(basename(realPath));
       if (name) return { path: realPath, name };
     }
   } catch {
@@ -75,13 +99,13 @@ async function resolveProjectPath(projectDir: string, jsonlFiles: string[]): Pro
   if (jsonlFiles.length > 0) {
     const cwd = await readCwdFromJsonl(join(CLAUDE_DIR, projectDir, jsonlFiles[0]));
     if (cwd) {
-      const name = basename(cwd);
+      const name = sanitizeText(basename(cwd));
       if (name) return { path: cwd, name };
     }
   }
 
   // 3. Fallback: use encoded directory name as-is
-  return { path: projectDir, name: projectDir };
+  return { path: projectDir, name: sanitizeText(projectDir) };
 }
 
 function readCwdFromJsonl(filePath: string): Promise<string | null> {
@@ -225,8 +249,8 @@ function searchSessionFile(
           const data: JSONLEntry = JSON.parse(line);
 
           if (data.type === "summary" && data.summary) {
-            summary = data.summary;
-            if (!matched && data.summary.toLowerCase().includes(queryLower)) {
+            summary = sanitizeText(data.summary);
+            if (!matched && summary.toLowerCase().includes(queryLower)) {
               matched = true;
             }
           }
@@ -357,7 +381,7 @@ function getSessionMetadataFast(file: SessionFileInfo, signal?: AbortSignal): Pr
           const data: JSONLEntry = JSON.parse(line);
 
           if (data.type === "summary" && data.summary) {
-            summary = data.summary;
+            summary = sanitizeText(data.summary);
           }
 
           if (data.message) {
@@ -415,6 +439,16 @@ function getSessionMetadataFast(file: SessionFileInfo, signal?: AbortSignal): Pr
   });
 }
 
+function sanitizeResult(result: SessionSearchResult): SessionSearchResult {
+  return {
+    ...result,
+    projectName: sanitizeText(result.projectName),
+    projectPath: sanitizeText(result.projectPath),
+    firstMessage: sanitizeText(result.firstMessage),
+    summary: sanitizeText(result.summary),
+  };
+}
+
 export async function listAllSessions(signal?: AbortSignal): Promise<SessionSearchResult[]> {
   const files = await collectSessionFiles(signal);
   if (signal?.aborted) return [];
@@ -431,7 +465,7 @@ export async function listAllSessions(signal?: AbortSignal): Promise<SessionSear
       const result = await getSessionMetadataFast(file, signal);
       if (result && !seenIds.has(result.id)) {
         seenIds.add(result.id);
-        results.push(result);
+        results.push(sanitizeResult(result));
       }
     },
     CONCURRENCY_LIMIT,
@@ -464,7 +498,7 @@ export async function searchSessions(
       const result = await searchSessionFile(file, queryLower, signal);
       if (result && !seenIds.has(result.id)) {
         seenIds.add(result.id);
-        onMatch(result);
+        onMatch(sanitizeResult(result));
       }
     },
     CONCURRENCY_LIMIT,

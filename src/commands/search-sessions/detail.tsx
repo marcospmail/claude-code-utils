@@ -26,13 +26,34 @@ interface MessageItem {
   text: string;
 }
 
+function sanitizeText(text: string): string {
+  let result = "";
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = text.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        result += text[i] + text[i + 1];
+        i++;
+      }
+    } else if (code >= 0xdc00 && code <= 0xdfff) {
+      // drop lone low surrogate
+    } else {
+      result += text[i];
+    }
+  }
+  return result;
+}
+
 function extractText(content: string | ContentItem[]): string {
-  if (typeof content === "string") return content;
+  if (typeof content === "string") return sanitizeText(content);
   if (Array.isArray(content)) {
-    return content
-      .filter((item) => item.type === "text")
-      .map((item) => item.text || "")
-      .join("\n");
+    return sanitizeText(
+      content
+        .filter((item) => item.type === "text")
+        .map((item) => item.text || "")
+        .join("\n"),
+    );
   }
   return "";
 }

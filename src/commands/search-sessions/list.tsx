@@ -6,6 +6,24 @@ import SessionDetail from "./detail";
 const DEBOUNCE_MS = 300;
 const ALL_PROJECTS = "all";
 
+function hasSurrogate(str: string): boolean {
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdfff) return true;
+  }
+  return false;
+}
+
+function debugSurrogates(sessions: SessionSearchResult[]) {
+  for (const s of sessions) {
+    for (const [key, val] of Object.entries(s)) {
+      if (typeof val === "string" && hasSurrogate(val)) {
+        console.error(`[SURROGATE] session=${s.id} field=${key} len=${val.length}`);
+      }
+    }
+  }
+}
+
 export default function SearchSessions() {
   const [allSessions, setAllSessions] = useState<SessionSearchResult[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<SessionSearchResult[]>([]);
@@ -26,6 +44,7 @@ export default function SearchSessions() {
     listAllSessions(controller.signal)
       .then((sessions) => {
         if (!controller.signal.aborted) {
+          debugSurrogates(sessions);
           setAllSessions(sessions);
           setFilteredSessions(sessions);
           setIsLoading(false);
