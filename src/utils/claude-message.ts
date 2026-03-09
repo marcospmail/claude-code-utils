@@ -493,9 +493,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
 export async function getReceivedMessages(): Promise<ParsedMessage[]> {
   const allMessages = await getAllClaudeMessages();
 
-  const assistantMessages = allMessages.filter((msg) => msg.role === "assistant");
-
-  const parsedMessages = assistantMessages.map((msg, index) => {
+  const parsedMessages = allMessages.map((msg, index) => {
     const preview = msg.content
       ? msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : "")
       : "[Empty message]";
