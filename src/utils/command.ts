@@ -24,7 +24,7 @@ export async function getSlashCommands(): Promise<SlashCommand[]> {
   }
   const commandFiles = files.filter((file) => file.endsWith(".md"));
 
-  const commands = await Promise.all(
+  const results = await Promise.allSettled(
     commandFiles.map(async (file) => {
       const filePath = join(COMMANDS_DIR, file);
       const content = await readFile(filePath, "utf-8");
@@ -38,6 +38,10 @@ export async function getSlashCommands(): Promise<SlashCommand[]> {
       };
     }),
   );
+
+  const commands = results
+    .filter((r): r is PromiseFulfilledResult<SlashCommand> => r.status === "fulfilled")
+    .map((r) => r.value);
 
   return commands.sort((a, b) => a.name.localeCompare(b.name));
 }

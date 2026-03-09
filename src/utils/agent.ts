@@ -24,7 +24,7 @@ export async function getAgents(): Promise<Agent[]> {
   }
   const agentFiles = files.filter((file) => file.endsWith(".md"));
 
-  const agents = await Promise.all(
+  const results = await Promise.allSettled(
     agentFiles.map(async (file) => {
       const filePath = join(AGENTS_DIR, file);
       const content = await readFile(filePath, "utf-8");
@@ -38,6 +38,10 @@ export async function getAgents(): Promise<Agent[]> {
       };
     }),
   );
+
+  const agents = results
+    .filter((r): r is PromiseFulfilledResult<Agent> => r.status === "fulfilled")
+    .map((r) => r.value);
 
   return agents.sort((a, b) => a.name.localeCompare(b.name));
 }
