@@ -30,11 +30,15 @@ function parseChangelog(markdown: string): ChangelogVersion[] {
       // Start new version
       currentVersion = versionMatch[1];
       currentChanges = [];
-    } else if (line.trim().startsWith("-") || line.trim().startsWith("*")) {
-      // Add change item (remove leading "- " or "* ")
-      const change = line.trim().substring(2).trim();
-      if (change) {
-        currentChanges.push(change);
+    } else if (currentVersion) {
+      const trimmed = line.trim();
+      // Match list items: "- text" or "* text" (with optional leading whitespace for nesting)
+      const listMatch = trimmed.match(/^[-*]\s+(.*)/);
+      if (listMatch && listMatch[1]) {
+        // Preserve indentation for nested items
+        const indent = line.search(/\S/);
+        const prefix = indent > 0 ? "  ".repeat(Math.floor(indent / 2)) : "";
+        currentChanges.push(`${prefix}${listMatch[1]}`);
       }
     }
   }
