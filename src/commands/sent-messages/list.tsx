@@ -95,10 +95,14 @@ export default function SentMessages() {
         </ActionPanel>
       }
     >
-      {messages.length === 0 && !isLoading && (
+      {displayMessages.length === 0 && !isLoading && (
         <List.EmptyView
-          title="No messages found"
-          description="No sent messages found in your Claude history"
+          title={searchText.trim() ? "No matching messages" : "No messages found"}
+          description={
+            searchText.trim()
+              ? `No sent messages matching "${searchText}"`
+              : "No sent messages found in your Claude history"
+          }
           actions={
             <ActionPanel>
               <Action title="Refresh Messages" shortcut={{ modifiers: ["cmd"], key: "r" }} onAction={loadMessages} />
