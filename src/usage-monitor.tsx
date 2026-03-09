@@ -1,4 +1,4 @@
-import { Clipboard, MenuBarExtra, environment, LaunchType, Cache, showHUD } from "@raycast/api";
+import { Clipboard, MenuBarExtra, Cache, showHUD } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { UsageData, fetchUsageData, formatResetTime, formatUpdatedAgo, utilizationPercent } from "./utils/usage-api";
 
@@ -77,10 +77,7 @@ export default function UsageMonitor() {
   const fivePercent = data ? utilizationPercent(data.fiveHour.utilization) : 0;
   const sevenPercent = data ? utilizationPercent(data.sevenDay.utilization) : 0;
 
-  const title =
-    environment.launchType === LaunchType.Background
-      ? `5h:${fivePercent}% | 7d:${sevenPercent}%`
-      : `5h:${fivePercent}% | 7d:${sevenPercent}%`;
+  const title = `5h:${fivePercent}% | 7d:${sevenPercent}%`;
 
   return (
     <MenuBarExtra icon={undefined} title={title} isLoading={isLoading}>
