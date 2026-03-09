@@ -118,10 +118,12 @@ export default function BrowseSnippets() {
         </ActionPanel>
       }
     >
-      {snippets.length === 0 && !isLoading && (
+      {displaySnippets.length === 0 && !isLoading && (
         <List.EmptyView
-          title="No snippets yet"
-          description="Create your first snippet to get started"
+          title={searchText.trim() ? "No matching snippets" : "No snippets yet"}
+          description={
+            searchText.trim() ? `No snippets matching "${searchText}"` : "Create your first snippet to get started"
+          }
           actions={
             <ActionPanel>
               <Action.Push
