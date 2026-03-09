@@ -104,7 +104,7 @@ export default function SessionDetail({ session }: SessionDetailProps) {
 
     rl.on("close", () => {
       cleanup();
-      setMessages(collected.reverse());
+      setMessages(collected);
       setIsLoading(false);
     });
 
@@ -147,12 +147,14 @@ export default function SessionDetail({ session }: SessionDetailProps) {
                 content={session.id}
                 shortcut={{ modifiers: ["cmd"], key: "." }}
               />
-              <Action.ShowInFinder
-                path={session.projectPath}
-                title="Open Project in Finder"
-                icon={Icon.Folder}
-                shortcut={{ modifiers: ["cmd"], key: "o" }}
-              />
+              {session.projectPath.startsWith("/") && (
+                <Action.ShowInFinder
+                  path={session.projectPath}
+                  title="Open Project in Finder"
+                  icon={Icon.Folder}
+                  shortcut={{ modifiers: ["cmd"], key: "o" }}
+                />
+              )}
             </ActionPanel>
           }
         />

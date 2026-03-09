@@ -119,6 +119,8 @@ export default function SearchSessions() {
 
   const handleProjectChange = useCallback(
     (project: string) => {
+      if (abortRef.current) abortRef.current.abort();
+      setIsDeepSearching(false);
       setSelectedProject(project);
       const query = searchText.trim().toLowerCase();
       const localMatches = applyFilters(allSessions, query, project);
@@ -162,7 +164,7 @@ export default function SearchSessions() {
           title={result.firstMessage.length > 60 ? result.firstMessage.slice(0, 60) + "..." : result.firstMessage}
           accessories={[
             { tag: { value: result.projectName, color: Color.Blue } },
-            { text: `${result.turnCount} turns` },
+            { text: `~${result.turnCount} turns` },
             { date: result.lastModified },
           ]}
           actions={
@@ -178,12 +180,14 @@ export default function SearchSessions() {
                 content={result.id}
                 shortcut={{ modifiers: ["cmd"], key: "." }}
               />
-              <Action.ShowInFinder
-                path={result.projectPath}
-                title="Open Project in Finder"
-                icon={Icon.Folder}
-                shortcut={{ modifiers: ["cmd"], key: "o" }}
-              />
+              {result.projectPath.startsWith("/") && (
+                <Action.ShowInFinder
+                  path={result.projectPath}
+                  title="Open Project in Finder"
+                  icon={Icon.Folder}
+                  shortcut={{ modifiers: ["cmd"], key: "o" }}
+                />
+              )}
             </ActionPanel>
           }
         />
