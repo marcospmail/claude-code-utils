@@ -91,19 +91,9 @@ export function formatResetTime(resetsAt: Date | null): string {
   const hours = Math.floor((totalMin % 1440) / 60);
   const minutes = totalMin % 60;
 
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (days > 0) return `${days}d${hours}h`;
+  if (hours > 0) return `${hours}h${minutes}m`;
   return `${minutes}m`;
-}
-
-export function formatUpdatedAgo(fetchedAt: Date): string {
-  const diffMs = Date.now() - fetchedAt.getTime();
-  const totalSec = Math.floor(diffMs / 1000);
-  const minutes = Math.floor(totalSec / 60);
-  const seconds = totalSec % 60;
-
-  if (minutes > 0) return `${minutes}m ${seconds}s ago`;
-  return `${seconds}s ago`;
 }
 
 export function utilizationPercent(utilization: number): number {

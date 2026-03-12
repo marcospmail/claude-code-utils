@@ -1,6 +1,6 @@
 import { Clipboard, MenuBarExtra, Cache, showHUD } from "@raycast/api";
 import { useEffect, useState } from "react";
-import { UsageData, fetchUsageData, formatResetTime, formatUpdatedAgo, utilizationPercent } from "./utils/usage-api";
+import { UsageData, fetchUsageData, formatResetTime, utilizationPercent } from "./utils/usage-api";
 
 const cache = new Cache();
 const CACHE_KEY = "usage-data";
@@ -67,9 +67,7 @@ export default function UsageMonitor() {
   if (error && !data) {
     return (
       <MenuBarExtra icon={undefined} title="--" isLoading={isLoading}>
-        <MenuBarExtra.Item title={error} onAction={refresh} />
-        <MenuBarExtra.Separator />
-        <MenuBarExtra.Item title="Refresh" shortcut={{ modifiers: ["cmd"], key: "r" }} onAction={refresh} />
+        <MenuBarExtra.Item title={error} />
       </MenuBarExtra>
     );
   }
@@ -77,7 +75,9 @@ export default function UsageMonitor() {
   const fivePercent = data ? utilizationPercent(data.fiveHour.utilization) : 0;
   const sevenPercent = data ? utilizationPercent(data.sevenDay.utilization) : 0;
 
-  const title = `5h:${fivePercent}% | 7d:${sevenPercent}%`;
+  const fiveReset = data ? formatResetTime(data.fiveHour.resetsAt) : "5h";
+  const sevenReset = data ? formatResetTime(data.sevenDay.resetsAt) : "7d";
+  const title = `${fiveReset}:${fivePercent}% | ${sevenReset}:${sevenPercent}%`;
 
   return (
     <MenuBarExtra icon={undefined} title={title} isLoading={isLoading}>
@@ -129,11 +129,6 @@ export default function UsageMonitor() {
           />
         </MenuBarExtra.Section>
       )}
-
-      <MenuBarExtra.Separator />
-      <MenuBarExtra.Item title={`Updated ${data ? formatUpdatedAgo(data.fetchedAt) : "never"}`} onAction={refresh} />
-      <MenuBarExtra.Separator />
-      <MenuBarExtra.Item title="Refresh" shortcut={{ modifiers: ["cmd"], key: "r" }} onAction={refresh} />
     </MenuBarExtra>
   );
 }
