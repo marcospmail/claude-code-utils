@@ -2,28 +2,21 @@ import { LocalStorage } from "@raycast/api";
 import { createHash } from "crypto";
 import { createReadStream } from "fs";
 import { readFile, readdir, stat } from "fs/promises";
-import { homedir } from "os";
 import { basename, join } from "path";
 import { createInterface } from "readline";
+import {
+  CLAUDE_DIR,
+  ContentItem,
+  HIGH_WATER_MARK,
+  JSONLEntry,
+  MAX_LINE_LENGTH,
+  MESSAGE_CONCURRENCY,
+  MESSAGE_FILE_LIMIT,
+  readCwdFromJsonl,
+  runWithConcurrency,
+} from "./claude-shared";
+
 const SNIPPETS_KEY = "claude-messages-snippets";
-
-// Type definitions for JSONL file content
-type ContentItem = {
-  type: string;
-  text?: string;
-};
-
-type JSONLMessage = {
-  role: "user" | "assistant" | "system";
-  content: string | ContentItem[];
-};
-
-type JSONLEntry = {
-  type?: string;
-  summary?: string;
-  message?: JSONLMessage;
-  timestamp?: string | number;
-};
 
 type Message = {
   role: "user" | "assistant" | "system";
@@ -42,11 +35,7 @@ export type ParsedMessage = Message & {
   preview: string;
 };
 
-const CLAUDE_DIR = join(homedir(), ".claude", "projects");
-
 const UNIX_TIMESTAMP_THRESHOLD = 10000000000; // Timestamps below this are in seconds, not milliseconds
-const CONCURRENCY_LIMIT = 10;
-const HIGH_WATER_MARK = 16 * 1024;
 
 async function resolveProjectName(projectDir: string, jsonlFiles: string[]): Promise<string> {
   const dirPath = join(CLAUDE_DIR, projectDir);
@@ -75,50 +64,6 @@ async function resolveProjectName(projectDir: string, jsonlFiles: string[]): Pro
 
   // 3. Fallback: use raw directory name
   return projectDir;
-}
-
-function readCwdFromJsonl(filePath: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const stream = createReadStream(filePath, { highWaterMark: HIGH_WATER_MARK });
-    const rl = createInterface({ input: stream, crlfDelay: Infinity, terminal: false });
-    let resolved = false;
-
-    const done = (value: string | null) => {
-      if (resolved) return;
-      resolved = true;
-      rl.close();
-      rl.removeAllListeners();
-      stream.destroy();
-      resolve(value);
-    };
-
-    rl.on("line", (line: string) => {
-      if (resolved) return;
-      try {
-        if (!line.trim()) return;
-        const data = JSON.parse(line);
-        if (data.cwd) done(data.cwd);
-      } catch {
-        // skip
-      }
-    });
-
-    rl.on("close", () => done(null));
-    rl.on("error", () => done(null));
-    stream.on("error", () => done(null));
-  });
-}
-
-async function runWithConcurrency<T>(items: T[], fn: (item: T) => Promise<void>, limit: number): Promise<void> {
-  let index = 0;
-  async function next(): Promise<void> {
-    while (index < items.length) {
-      const currentIndex = index++;
-      await fn(items[currentIndex]);
-    }
-  }
-  const workers = Array.from({ length: Math.min(limit, items.length) }, () => next());
-  await Promise.all(workers);
 }
 
 /**
@@ -185,7 +130,7 @@ async function parseUserMessagesOnlyStreaming(
     };
 
     try {
-      fileStream = createReadStream(filePath);
+      fileStream = createReadStream(filePath, { highWaterMark: HIGH_WATER_MARK });
 
       rl = createInterface({
         input: fileStream,
@@ -196,6 +141,9 @@ async function parseUserMessagesOnlyStreaming(
       rl.on("line", (line: string) => {
         try {
           if (!line.trim()) return;
+          if (line.length > MAX_LINE_LENGTH) return;
+          if (!line.includes('"role":"user"') && !line.includes('"role": "user"')) return;
+          if (line.includes('"tool_result"')) return;
 
           const data: JSONLEntry = JSON.parse(line);
 
@@ -219,7 +167,7 @@ async function parseUserMessagesOnlyStreaming(
 
               userMessages.push({
                 role: "user",
-                content,
+                content: content.slice(0, 200),
                 timestamp,
                 sessionId,
                 projectPath,
@@ -282,7 +230,7 @@ async function parseAssistantMessagesOnlyStreaming(
     };
 
     try {
-      fileStream = createReadStream(filePath);
+      fileStream = createReadStream(filePath, { highWaterMark: HIGH_WATER_MARK });
       rl = createInterface({
         input: fileStream,
         crlfDelay: Infinity,
@@ -292,6 +240,8 @@ async function parseAssistantMessagesOnlyStreaming(
       rl.on("line", (line: string) => {
         try {
           if (!line.trim()) return;
+          if (line.length > MAX_LINE_LENGTH) return;
+          if (!line.includes('"role":"assistant"') && !line.includes('"role": "assistant"')) return;
 
           const data: JSONLEntry = JSON.parse(line);
 
@@ -324,10 +274,10 @@ async function parseAssistantMessagesOnlyStreaming(
                 projectName,
                 ...pathInfo,
               });
-            } else if (content !== undefined && content !== "") {
+            } else if (content) {
               assistantMessages.push({
                 role: "assistant",
-                content: content,
+                content: content.slice(0, 200),
                 timestamp,
                 sessionId,
                 projectPath,
@@ -362,41 +312,63 @@ async function parseAssistantMessagesOnlyStreaming(
   });
 }
 
-export async function getAllClaudeMessages(): Promise<Message[]> {
-  try {
-    const projects = await readdir(CLAUDE_DIR);
-    const filesToProcess: { path: string; name: string; projectPath: string; projectName: string }[] = [];
+type FileEntry = {
+  path: string;
+  name: string;
+  projectPath: string;
+  projectName: string;
+  mtime: number;
+};
 
-    for (const project of projects) {
-      try {
-        const projectPath = join(CLAUDE_DIR, project);
-        const projectStat = await stat(projectPath);
-        if (!projectStat.isDirectory()) continue;
+async function collectRecentFiles(): Promise<FileEntry[]> {
+  const projects = await readdir(CLAUDE_DIR);
+  const files: FileEntry[] = [];
 
-        const entries = await readdir(projectPath);
-        const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
-        if (jsonlFiles.length === 0) continue;
+  for (const project of projects) {
+    try {
+      const projectPath = join(CLAUDE_DIR, project);
+      const projectStat = await stat(projectPath);
+      if (!projectStat.isDirectory()) continue;
 
-        const projectName = await resolveProjectName(project, jsonlFiles);
-        if (!projectName || projectName === "-" || projectName.length <= 1) continue;
+      const entries = await readdir(projectPath);
+      const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
+      if (jsonlFiles.length === 0) continue;
 
-        for (const file of jsonlFiles) {
-          filesToProcess.push({
-            path: join(projectPath, file),
+      const projectName = await resolveProjectName(project, jsonlFiles);
+      if (!projectName || projectName === "-" || projectName.length <= 1) continue;
+
+      for (const file of jsonlFiles) {
+        try {
+          const filePath = join(projectPath, file);
+          const fileStat = await stat(filePath);
+          files.push({
+            path: filePath,
             name: file,
             projectPath,
             projectName,
+            mtime: fileStat.mtimeMs,
           });
+        } catch {
+          continue;
         }
-      } catch {
-        continue;
       }
+    } catch {
+      continue;
     }
+  }
+
+  files.sort((a, b) => b.mtime - a.mtime);
+  return files.slice(0, MESSAGE_FILE_LIMIT);
+}
+
+export async function getAllClaudeMessages(): Promise<Message[]> {
+  try {
+    const recentFiles = await collectRecentFiles();
 
     const allMessages: Message[] = [];
 
     await runWithConcurrency(
-      filesToProcess,
+      recentFiles,
       async (file) => {
         try {
           const sessionId = file.name.replace(".jsonl", "");
@@ -411,7 +383,7 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
           // skip
         }
       },
-      CONCURRENCY_LIMIT,
+      MESSAGE_CONCURRENCY,
     );
 
     return allMessages
@@ -428,39 +400,12 @@ export async function getAllClaudeMessages(): Promise<Message[]> {
  */
 export async function getSentMessages(): Promise<ParsedMessage[]> {
   try {
-    const projects = await readdir(CLAUDE_DIR);
-    const filesToProcess: { path: string; name: string; projectPath: string; projectName: string }[] = [];
-
-    for (const project of projects) {
-      try {
-        const projectPath = join(CLAUDE_DIR, project);
-        const projectStat = await stat(projectPath);
-        if (!projectStat.isDirectory()) continue;
-
-        const entries = await readdir(projectPath);
-        const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
-        if (jsonlFiles.length === 0) continue;
-
-        const projectName = await resolveProjectName(project, jsonlFiles);
-        if (!projectName || projectName === "-" || projectName.length <= 1) continue;
-
-        for (const file of jsonlFiles) {
-          filesToProcess.push({
-            path: join(projectPath, file),
-            name: file,
-            projectPath,
-            projectName,
-          });
-        }
-      } catch {
-        continue;
-      }
-    }
+    const recentFiles = await collectRecentFiles();
 
     const allUserMessages: Message[] = [];
 
     await runWithConcurrency(
-      filesToProcess,
+      recentFiles,
       async (file) => {
         try {
           const sessionId = file.name.replace(".jsonl", "");
@@ -475,7 +420,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
           // skip
         }
       },
-      CONCURRENCY_LIMIT,
+      MESSAGE_CONCURRENCY,
     );
 
     const finalMessages = allUserMessages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -488,6 +433,91 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
   } catch {
     return [];
   }
+}
+
+export async function loadMessageContent(
+  filePath: string,
+  timestamp: Date,
+  role: "user" | "assistant",
+  contentPrefix: string,
+): Promise<string | null> {
+  return new Promise((resolve) => {
+    let fileStream: ReturnType<typeof createReadStream> | null = null;
+    let rl: ReturnType<typeof createInterface> | null = null;
+    let resolved = false;
+
+    const done = (value: string | null) => {
+      if (resolved) return;
+      resolved = true;
+      try {
+        if (rl) {
+          rl.close();
+          rl.removeAllListeners();
+          rl = null;
+        }
+        if (fileStream) {
+          fileStream.destroy();
+          fileStream = null;
+        }
+      } catch {
+        // Ignore cleanup errors
+      }
+      resolve(value);
+    };
+
+    try {
+      fileStream = createReadStream(filePath, { highWaterMark: HIGH_WATER_MARK });
+      rl = createInterface({
+        input: fileStream,
+        crlfDelay: Infinity,
+        terminal: false,
+      });
+
+      const targetTime = timestamp.getTime();
+
+      const roleStr = `"role":"${role}"`;
+      const roleStrSpaced = `"role": "${role}"`;
+
+      rl.on("line", (line: string) => {
+        if (resolved) return;
+        try {
+          if (!line.trim()) return;
+          if (line.length > MAX_LINE_LENGTH) return;
+          if (!line.includes(roleStr) && !line.includes(roleStrSpaced)) return;
+
+          const data: JSONLEntry = JSON.parse(line);
+
+          if (data.message && data.message.role === role) {
+            const lineTime = parseTimestamp(data.timestamp).getTime();
+            if (Math.abs(lineTime - targetTime) <= 1000) {
+              let content = "";
+              if (data.message.content) {
+                if (typeof data.message.content === "string") {
+                  content = data.message.content;
+                } else if (Array.isArray(data.message.content)) {
+                  content = data.message.content
+                    .filter((item: ContentItem) => item.type === "text")
+                    .map((item: ContentItem) => item.text || "")
+                    .join("\n");
+                }
+              }
+              if (content.startsWith(contentPrefix)) {
+                done(content);
+              }
+            }
+          }
+        } catch {
+          // Skip invalid JSON
+        }
+      });
+
+      rl.on("close", () => done(null));
+      rl.on("error", () => done(null));
+      fileStream.on("error", () => done(null));
+    } catch {
+      done(null);
+    }
+  });
 }
 
 export async function getReceivedMessages(): Promise<ParsedMessage[]> {
