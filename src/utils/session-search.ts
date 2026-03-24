@@ -1,30 +1,18 @@
 import { createReadStream } from "fs";
 import { readFile, readdir, stat } from "fs/promises";
-import { homedir } from "os";
 import { basename, join } from "path";
 import { createInterface } from "readline";
+import {
+  CLAUDE_DIR,
+  CONCURRENCY_LIMIT,
+  ContentItem,
+  HIGH_WATER_MARK,
+  JSONLEntry,
+  readCwdFromJsonl,
+  runWithConcurrency,
+} from "./claude-shared";
 
-const CLAUDE_DIR = join(homedir(), ".claude", "projects");
-const CONCURRENCY_LIMIT = 10;
-const HIGH_WATER_MARK = 16 * 1024;
 const MIN_QUERY_LENGTH = 3;
-
-type ContentItem = {
-  type: string;
-  text?: string;
-};
-
-type JSONLMessage = {
-  role: "user" | "assistant" | "system";
-  content: string | ContentItem[];
-};
-
-type JSONLEntry = {
-  type?: string;
-  summary?: string;
-  message?: JSONLMessage;
-  timestamp?: string | number;
-};
 
 export interface SessionSearchResult {
   id: string;
@@ -67,7 +55,8 @@ function sanitizeText(text: string): string {
   return result;
 }
 
-function extractTextContent(content: string | ContentItem[]): string {
+function extractTextContent(content: string | ContentItem[] | null): string {
+  if (!content) return "";
   if (typeof content === "string") return sanitizeText(content);
   if (Array.isArray(content)) {
     return sanitizeText(
@@ -106,40 +95,6 @@ async function resolveProjectPath(projectDir: string, jsonlFiles: string[]): Pro
 
   // 3. Fallback: use encoded directory name as-is
   return { path: projectDir, name: sanitizeText(projectDir) };
-}
-
-function readCwdFromJsonl(filePath: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const stream = createReadStream(filePath, { highWaterMark: HIGH_WATER_MARK });
-    const rl = createInterface({ input: stream, crlfDelay: Infinity, terminal: false });
-    let resolved = false;
-
-    const done = (value: string | null) => {
-      if (resolved) return;
-      resolved = true;
-      rl.close();
-      rl.removeAllListeners();
-      stream.destroy();
-      resolve(value);
-    };
-
-    rl.on("line", (line: string) => {
-      if (resolved) return;
-      try {
-        if (!line.trim()) return;
-        const data = JSON.parse(line);
-        if (data.cwd) {
-          done(data.cwd);
-        }
-      } catch {
-        // skip
-      }
-    });
-
-    rl.on("close", () => done(null));
-    rl.on("error", () => done(null));
-    stream.on("error", () => done(null));
-  });
 }
 
 async function collectSessionFiles(signal?: AbortSignal): Promise<SessionFileInfo[]> {
@@ -309,26 +264,6 @@ function searchSessionFile(
       resolve(null);
     }
   });
-}
-
-async function runWithConcurrency<T>(
-  items: T[],
-  fn: (item: T) => Promise<unknown>,
-  limit: number,
-  signal?: AbortSignal,
-): Promise<void> {
-  let index = 0;
-
-  async function next(): Promise<void> {
-    while (index < items.length) {
-      if (signal?.aborted) return;
-      const currentIndex = index++;
-      await fn(items[currentIndex]);
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(limit, items.length) }, () => next());
-  await Promise.all(workers);
 }
 
 function getSessionMetadataFast(file: SessionFileInfo, signal?: AbortSignal): Promise<SessionSearchResult | null> {
