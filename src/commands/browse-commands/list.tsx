@@ -59,6 +59,12 @@ export default function BrowseCommands() {
                   icon={Icon.Clipboard}
                   shortcut={{ modifiers: ["cmd"], key: "enter" }}
                 />
+                <Action.CopyToClipboard
+                  title="Copy Path"
+                  content={command.filePath}
+                  icon={Icon.Link}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                />
                 <Action.ShowInFinder path={command.filePath} shortcut={{ modifiers: ["cmd", "shift"], key: "f" }} />
                 <Action.OpenWith path={command.filePath} shortcut={{ modifiers: ["cmd"], key: "o" }} />
               </ActionPanel>
