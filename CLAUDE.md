@@ -1,16 +1,11 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Development Commands
 
-### Core Workflow
 - `pnpm run dev` - Start Raycast development server with hot reload
 - `pnpm run build` - Build extension for production
-- `pnpm run fix-lint` - Auto-fix linting issues (always run after code changes)
+- `pnpm run fix-lint` - Auto-fix linting issues
 - `pnpm run lint` - Check linting (must pass before committing)
-
-### Publishing
 - `pnpm run publish` - Publish to Raycast Store (not npm)
 
 ## Architecture Overview
@@ -51,35 +46,8 @@ This is a Raycast extension with 9 commands following the **List + Detail patter
 - Fetches from `https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md`
 - Parses markdown to extract versions and changes
 
-### Component Patterns
-
-**Common List Component Structure**:
-```typescript
-// State management
-const [items, setItems] = useState([]);
-const [isLoading, setIsLoading] = useState(true);
-const [searchText, setSearchText] = useState("");
-
-// Load data on mount
-useEffect(() => {
-  async function loadData() {
-    const data = await fetchFunction();
-    setItems(data);
-    setIsLoading(false);
-  }
-  loadData();
-}, []);
-
-// List with search
-<List
-  isLoading={isLoading}
-  searchBarPlaceholder="Search items..."
->
-```
-
 **Date Grouping** (`src/utils/date-grouping.ts`):
-- Messages are grouped by date periods (Today, Yesterday, This Week, etc.)
-- Uses `groupMessagesByDate()` function that returns sections with titles
+- Groups messages by date periods (Today, Yesterday, This Week, etc.) via `groupMessagesByDate()`
 - Applied in sent-messages and received-messages list views
 
 ## Special Features
@@ -100,28 +68,9 @@ SIMULATE_SLOW_NETWORK=true pnpm run dev
 
 ## Important Conventions
 
-### File Naming
-- Commands: kebab-case (e.g., `browse-snippets.tsx`)
-- Components: PascalCase exports (e.g., `export default BrowseSnippets`)
-- Utilities: kebab-case (e.g., `claude-message.ts`, `date-grouping.ts`)
-
-### Code Quality
-- **Always run `pnpm run fix-lint` after changes** - this is critical for consistency
-- Use TypeScript strict mode - all utilities and components are fully typed
-
 ### Post-Change Verification (REQUIRED)
-After making any code changes, **ALWAYS verify the project is in a working state** by running:
-1. `pnpm run fix-lint` - Auto-fix any linting issues
-2. `pnpm run build` - Ensure compilation succeeds without errors
+After any code changes, **ALWAYS** run these before considering a task complete:
+1. `pnpm run fix-lint` - Auto-fix linting issues
+2. `pnpm run build` - Ensure compilation succeeds
 
-**Do NOT consider a task complete until both checks pass.** If any check fails, fix the issues before finishing.
-
-### Data Sources
-- Claude Code projects: `~/.claude/projects/`
-- Claude Code agents: `~/.claude/agents/`
-- Claude Code commands: `~/.claude/commands/`
-
-### Performance Considerations
-- Large JSONL files: Use streaming parsers (see `claude-message.ts`)
-- Concurrent file processing with worker pool (10 parallel workers)
-- Use `useMemo` for expensive computations in React components
+Fix any failures before finishing.
