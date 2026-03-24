@@ -9,7 +9,6 @@ export interface SlashCommand {
   filePath: string;
 }
 
-// TEMPORARY: Using mock commands-raycast folder for screenshots
 const COMMANDS_DIR = join(homedir(), ".claude", "commands");
 
 /**

@@ -9,7 +9,6 @@ export interface Agent {
   filePath: string;
 }
 
-// TEMPORARY: Using mock agents-raycast folder for screenshots
 const AGENTS_DIR = join(homedir(), ".claude", "agents");
 
 /**
