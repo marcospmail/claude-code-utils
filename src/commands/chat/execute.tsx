@@ -1,5 +1,6 @@
-import { Action, ActionPanel, Clipboard, Detail, Icon, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Detail, Icon, showToast, Toast } from "@raycast/api";
 import { useEffect, useState } from "react";
+import { PasteAction } from "../../components/paste-action";
 import { ClaudeResponse, executePrompt } from "../../utils/claude-cli";
 
 interface ExecuteChatViewProps {
@@ -46,15 +47,8 @@ export default function ExecuteChatView({ message, model }: ExecuteChatViewProps
         <ActionPanel>
           {response?.result && (
             <>
+              <PasteAction content={response.result} />
               <Action.CopyToClipboard title="Copy Result" content={response.result} icon={Icon.Clipboard} />
-              <Action
-                title="Paste to Active App"
-                icon={Icon.AppWindow}
-                shortcut={{ modifiers: ["cmd", "shift"], key: "enter" }}
-                onAction={async () => {
-                  await Clipboard.paste(response.result);
-                }}
-              />
             </>
           )}
           <Action
