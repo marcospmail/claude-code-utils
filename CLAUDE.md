@@ -15,7 +15,7 @@ This is a Raycast extension with 10 commands following the **List + Detail patte
 - Each command has an entry point in `src/<command-name>.tsx` that exports from `src/commands/<command-name>/list.tsx`
 - List views (`list.tsx`) display searchable items
 - Detail views (`detail.tsx`) show full content with actions
-- Entry points exist for: `changelog`, `browse-agents`, `browse-commands`, `browse-snippets`, `create-snippet`, `sent-messages`, `received-messages`, `cheatsheet`, `search-sessions`, `browse-skills`, `chat`
+- Entry points exist for: `changelog`, `browse-agents`, `browse-commands`, `browse-snippets`, `create-snippet`, `sent-messages`, `received-messages`, `cheatsheet`, `search-sessions`, `browse-skills`, `chat`, `status`
 
 ### Shared Components (`src/components/`)
 - `message-list.tsx` — Reusable list view for both sent and received messages (accepts `role`, `fetchMessages`, `searchPlaceholder`, `emptyLabel`). Handles loading, search, date grouping, lazy full-content loading on selection.

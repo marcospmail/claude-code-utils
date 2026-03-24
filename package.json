@@ -107,6 +107,13 @@
       "keywords": ["skill", "custom"]
     },
     {
+      "name": "status",
+      "title": "Claude Status",
+      "description": "View Claude service status, active incidents, and incident history",
+      "mode": "view",
+      "keywords": ["status", "outage", "incident", "downtime", "health"]
+    },
+    {
       "name": "usage-monitor",
       "title": "Claude Usage",
       "description": "Monitor Claude AI usage limits in real-time from the menu bar",
