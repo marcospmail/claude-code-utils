@@ -2,7 +2,9 @@ import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
 import { useEffect, useState } from "react";
 import { createReadStream } from "fs";
 import { createInterface } from "readline";
+import { PasteAction } from "../../components/paste-action";
 import { SessionSearchResult } from "../../utils/session-search";
+import CreateSnippet from "../create-snippet/list";
 
 interface SessionDetailProps {
   session: SessionSearchResult;
@@ -141,7 +143,14 @@ export default function SessionDetail({ session }: SessionDetailProps) {
           }
           actions={
             <ActionPanel>
+              <PasteAction content={msg.text} />
               <Action.CopyToClipboard title="Copy Message" content={msg.text} />
+              <Action.Push
+                title="Create Snippet from Message"
+                icon={Icon.Document}
+                shortcut={{ modifiers: ["cmd"], key: "s" }}
+                target={<CreateSnippet content={msg.text} />}
+              />
               <Action.CopyToClipboard
                 title="Copy Session ID"
                 content={session.id}
