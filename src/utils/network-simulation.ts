@@ -11,9 +11,11 @@ interface NetworkSimulationConfig {
   delayMs: number;
 }
 
+const parsedDelay = parseInt(process.env.NETWORK_DELAY_MS as string);
+
 const config: NetworkSimulationConfig = {
-  enabled: environment.isDevelopment && process.env.SIMULATE_SLOW_NETWORK === "true",
-  delayMs: parseInt(process.env.NETWORK_DELAY_MS as string),
+  enabled: environment.isDevelopment && process.env.SIMULATE_SLOW_NETWORK === "true" && !isNaN(parsedDelay),
+  delayMs: parsedDelay,
 };
 
 export async function simulateNetworkDelay<T>(operation: () => Promise<T>): Promise<T> {

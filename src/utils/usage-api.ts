@@ -1,7 +1,6 @@
 import { getOAuthToken } from "./claude-cli";
 
 const USAGE_API_URL = "https://api.anthropic.com/api/oauth/usage";
-const CLAUDE_CODE_VERSION = "1.0.0";
 
 export interface UsageWindow {
   utilization: number;
@@ -39,7 +38,7 @@ export async function fetchUsageData(): Promise<UsageData> {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "User-Agent": `claude-code/${CLAUDE_CODE_VERSION}`,
+      "User-Agent": "claude-code/cli",
       Authorization: `Bearer ${token}`,
       "anthropic-beta": "oauth-2025-04-20",
     },
@@ -56,25 +55,32 @@ export async function fetchUsageData(): Promise<UsageData> {
   const sonnetRaw = json.seven_day_sonnet ?? json.sonnet_only;
   const extraRaw = json.extra_usage;
 
+  if (!fiveHour || typeof fiveHour.utilization !== "number") {
+    throw new Error("Invalid API response: missing five_hour data");
+  }
+  if (!sevenDay || typeof sevenDay.utilization !== "number") {
+    throw new Error("Invalid API response: missing seven_day data");
+  }
+
   return {
     fiveHour: {
-      utilization: (fiveHour?.utilization as number) ?? 0,
-      resetsAt: parseDate(fiveHour?.resets_at as string),
+      utilization: fiveHour.utilization as number,
+      resetsAt: parseDate(fiveHour.resets_at as string),
     },
     sevenDay: {
-      utilization: (sevenDay?.utilization as number) ?? 0,
-      resetsAt: parseDate(sevenDay?.resets_at as string),
+      utilization: sevenDay.utilization as number,
+      resetsAt: parseDate(sevenDay.resets_at as string),
     },
     sonnet: sonnetRaw
       ? {
-          utilization: (sonnetRaw.utilization as number) ?? 0,
+          utilization: sonnetRaw.utilization as number,
           resetsAt: parseDate(sonnetRaw.resets_at as string),
         }
       : null,
     extraUsage: {
-      isEnabled: (extraRaw?.is_enabled as boolean) ?? false,
-      monthlyLimit: (extraRaw?.monthly_limit as number) ?? null,
-      usedCredits: (extraRaw?.used_credits as number) ?? null,
+      isEnabled: Boolean(extraRaw?.is_enabled),
+      monthlyLimit: typeof extraRaw?.monthly_limit === "number" ? extraRaw.monthly_limit : null,
+      usedCredits: typeof extraRaw?.used_credits === "number" ? extraRaw.used_credits : null,
     },
     fetchedAt: new Date(),
   };
@@ -98,11 +104,4 @@ export function formatResetTime(resetsAt: Date | null): string {
 
 export function utilizationPercent(utilization: number): number {
   return Math.max(0, Math.round(utilization));
-}
-
-export function getStatusIcon(percent: number): string {
-  if (percent < 50) return "status-green";
-  if (percent < 70) return "status-yellow";
-  if (percent < 90) return "status-orange";
-  return "status-red";
 }
