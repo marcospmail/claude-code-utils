@@ -58,11 +58,13 @@ export default function Changelog() {
                 title="Copy to Clipboard"
                 content={version.changes.map((change) => `- ${change}`).join("\n")}
                 icon={Icon.Clipboard}
+                shortcut={{ modifiers: ["cmd"], key: "enter" }}
               />
               <Action.OpenInBrowser
                 title="View on GitHub"
                 url="https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md"
                 icon={Icon.Globe}
+                shortcut={{ modifiers: ["cmd"], key: "o" }}
               />
             </ActionPanel>
           }
