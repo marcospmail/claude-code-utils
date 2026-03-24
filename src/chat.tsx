@@ -1,1 +1,1 @@
-export { default } from "./commands/chat/chat-form";
+export { default } from "./commands/chat/list";

@@ -1,4 +1,4 @@
-import { Action, ActionPanel, Form, getSelectedText } from "@raycast/api";
+import { Action, ActionPanel, Form, getSelectedText, showToast, Toast } from "@raycast/api";
 import { useEffect, useState } from "react";
 import ExecuteChatView from "./execute";
 
@@ -30,7 +30,16 @@ export default function ChatForm() {
       navigationTitle="Chat with Claude"
       actions={
         <ActionPanel>
-          <Action.SubmitForm title="Send" onSubmit={() => setSubmitted(true)} />
+          <Action.SubmitForm
+            title="Send"
+            onSubmit={() => {
+              if (!message.trim()) {
+                showToast({ style: Toast.Style.Failure, title: "Message required", message: "Please enter a message" });
+                return;
+              }
+              setSubmitted(true);
+            }}
+          />
         </ActionPanel>
       }
     >
