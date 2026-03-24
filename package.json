@@ -26,74 +26,93 @@
       "name": "create-snippet",
       "title": "Create Snippet",
       "description": "Create a new reusable code snippet",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["snippet", "save", "template"]
     },
     {
       "name": "browse-snippets",
       "title": "Browse Snippets",
       "description": "View, search, and manage your saved code snippets",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["snippet", "search", "template"]
     },
     {
       "name": "received-messages",
       "title": "Received Messages",
       "description": "Browse messages received from Claude with AI-powered search",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["message", "response", "conversation"]
     },
     {
       "name": "sent-messages",
       "title": "Sent Messages",
       "description": "Browse messages you sent to Claude",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["message", "prompt", "conversation"]
     },
     {
       "name": "cheatsheet",
       "title": "Commands Cheat Sheet",
       "description": "Quick reference for all Claude Code commands and keyboard shortcuts",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["shortcut", "keyboard", "reference", "help"]
     },
     {
       "name": "browse-agents",
       "title": "Browse Agents",
       "description": "View and manage your Claude Code agents from ~/.claude/agents",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["agent", "persona", "configuration"]
     },
     {
       "name": "browse-commands",
       "title": "Browse Commands",
       "description": "View and manage your Claude Code commands from ~/.claude/commands",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["command", "slash", "custom"]
     },
     {
       "name": "changelog",
       "title": "Changelog",
       "description": "View Claude Code changelog with latest updates and releases",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["version", "release", "update"]
     },
     {
       "name": "search-sessions",
       "title": "Search Sessions",
       "description": "Deep search through all Claude Code session content",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["session", "history", "search"]
     },
     {
       "name": "transform-selection",
       "title": "Transform Selection",
       "description": "Transform selected text using Claude AI",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["transform", "convert", "selection"]
     },
     {
       "name": "chat",
       "title": "Chat",
       "description": "Send a quick chat message to Claude and get a response",
-      "mode": "view"
+      "mode": "view",
+      "keywords": ["chat", "ask", "prompt", "quick"]
+    },
+    {
+      "name": "browse-skills",
+      "title": "Browse Skills",
+      "description": "View and manage your Claude Code skills from ~/.claude/skills",
+      "mode": "view",
+      "keywords": ["skill", "custom"]
     },
     {
       "name": "usage-monitor",
       "title": "Claude Usage",
       "description": "Monitor Claude AI usage limits in real-time from the menu bar",
       "mode": "menu-bar",
-      "interval": "5m"
+      "interval": "3m",
+      "keywords": ["usage", "limit", "rate", "quota"]
     }
   ],
   "preferences": [

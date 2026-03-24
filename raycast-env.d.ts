@@ -38,6 +38,8 @@ declare namespace Preferences {
   export type TransformSelection = ExtensionPreferences & {}
   /** Preferences accessible in the `chat` command */
   export type Chat = ExtensionPreferences & {}
+  /** Preferences accessible in the `browse-skills` command */
+  export type BrowseSkills = ExtensionPreferences & {}
   /** Preferences accessible in the `usage-monitor` command */
   export type UsageMonitor = ExtensionPreferences & {}
 }
@@ -65,6 +67,8 @@ declare namespace Arguments {
   export type TransformSelection = {}
   /** Arguments passed to the `chat` command */
   export type Chat = {}
+  /** Arguments passed to the `browse-skills` command */
+  export type BrowseSkills = {}
   /** Arguments passed to the `usage-monitor` command */
   export type UsageMonitor = {}
 }
