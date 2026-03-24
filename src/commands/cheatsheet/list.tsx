@@ -41,6 +41,12 @@ export default function BrowseCommandsCheatsheet() {
               actions={
                 <ActionPanel>
                   <Action.Push title="View Details" target={<CommandDetail command={command} />} icon={Icon.Eye} />
+                  <Action.CopyToClipboard
+                    title="Copy to Clipboard"
+                    content={command.usage || command.name}
+                    icon={Icon.Clipboard}
+                    shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                  />
                 </ActionPanel>
               }
             />
@@ -58,6 +64,12 @@ export default function BrowseCommandsCheatsheet() {
                 actions={
                   <ActionPanel>
                     <Action.Push title="View Details" target={<CommandDetail command={command} />} icon={Icon.Eye} />
+                    <Action.CopyToClipboard
+                      title="Copy to Clipboard"
+                      content={command.usage || command.name}
+                      icon={Icon.Clipboard}
+                      shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                    />
                   </ActionPanel>
                 }
               />
