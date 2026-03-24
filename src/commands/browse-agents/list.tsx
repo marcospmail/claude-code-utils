@@ -55,6 +55,12 @@ export default function BrowseAgents() {
                   icon={Icon.Clipboard}
                   shortcut={{ modifiers: ["cmd"], key: "enter" }}
                 />
+                <Action.CopyToClipboard
+                  title="Copy Path"
+                  content={agent.filePath}
+                  icon={Icon.Link}
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+                />
                 <Action.ShowInFinder path={agent.filePath} shortcut={{ modifiers: ["cmd", "shift"], key: "f" }} />
                 <Action.OpenWith path={agent.filePath} shortcut={{ modifiers: ["cmd"], key: "o" }} />
               </ActionPanel>
