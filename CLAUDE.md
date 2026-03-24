@@ -11,11 +11,15 @@
 ## Architecture Overview
 
 ### Extension Structure
-This is a Raycast extension with 9 commands following the **List + Detail pattern**:
+This is a Raycast extension with 10 commands following the **List + Detail pattern**:
 - Each command has an entry point in `src/<command-name>.tsx` that exports from `src/commands/<command-name>/list.tsx`
 - List views (`list.tsx`) display searchable items
 - Detail views (`detail.tsx`) show full content with actions
-- Entry points exist for: `changelog`, `browse-agents`, `browse-commands`, `browse-snippets`, `create-snippet`, `sent-messages`, `received-messages`, `cheatsheet`, `search-sessions`
+- Entry points exist for: `changelog`, `browse-agents`, `browse-commands`, `browse-snippets`, `create-snippet`, `sent-messages`, `received-messages`, `cheatsheet`, `search-sessions`, `browse-skills`, `chat`
+
+### Shared Components (`src/components/`)
+- `message-list.tsx` — Reusable list view for both sent and received messages (accepts `role`, `fetchMessages`, `searchPlaceholder`, `emptyLabel`). Handles loading, search, date grouping, lazy full-content loading on selection.
+- `message-detail.tsx` — Reusable detail view for individual messages; lazily loads full content from JSONL on mount.
 
 ### Data Flow
 
@@ -48,7 +52,16 @@ This is a Raycast extension with 9 commands following the **List + Detail patter
 
 **Date Grouping** (`src/utils/date-grouping.ts`):
 - Groups messages by date periods (Today, Yesterday, This Week, etc.) via `groupMessagesByDate()`
-- Applied in sent-messages and received-messages list views
+- Applied in the shared `MessageList` component (sent-messages and received-messages)
+
+**Shared Claude Utilities** (`src/utils/claude-shared.ts`):
+- Extracted shared constants, types, and helpers used by both `claude-message.ts` and `session-search.ts`
+- Contains: `CLAUDE_DIR`, concurrency constants, `ContentItem`, `JSONLMessage`, `JSONLEntry` types, `readCwdFromJsonl()`, `runWithConcurrency()`
+
+**Skills** (`src/utils/skill.ts`):
+- Reads skill directories from `~/.claude/skills/`
+- Each skill is a directory with a `SKILL.md` file containing YAML frontmatter (name, description, model, context, allowed-tools)
+- Key function: `getSkills()`
 
 ## Special Features
 
