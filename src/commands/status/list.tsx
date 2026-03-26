@@ -138,10 +138,16 @@ export default function Status() {
       {incidents.length > 0 && (
         <List.Section title="Recent Incidents" subtitle={`${incidents.length} incidents`}>
           {incidents.map((incident) => {
-            const date = new Date(incident.started_at).toLocaleDateString("en-US", {
+            const startedAt = new Date(incident.started_at);
+            const date = startedAt.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
               year: "numeric",
+            });
+            const time = startedAt.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
             });
 
             return (
@@ -160,7 +166,7 @@ export default function Status() {
                       color: incidentImpactColor(incident.impact),
                     },
                   },
-                  { text: date },
+                  { text: `${date} ${time}` },
                 ]}
                 actions={
                   <ActionPanel>
