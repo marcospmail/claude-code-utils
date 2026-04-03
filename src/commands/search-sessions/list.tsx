@@ -154,7 +154,7 @@ export default function SearchSessions() {
               <Action.CopyToClipboard
                 title="Copy First Message"
                 content={result.firstMessage}
-                shortcut={{ modifiers: ["cmd"], key: "enter" }}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
               />
               <Action.CopyToClipboard
                 title="Copy Session ID"

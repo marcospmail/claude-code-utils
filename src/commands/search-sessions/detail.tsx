@@ -156,6 +156,11 @@ export default function SessionDetail({ session }: SessionDetailProps) {
                 content={session.id}
                 shortcut={{ modifiers: ["cmd"], key: "." }}
               />
+              <Action.CopyToClipboard
+                title="Copy Conversation File Path"
+                content={session.filePath}
+                shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
+              />
               {session.projectPath.startsWith("/") && (
                 <Action.ShowInFinder
                   path={session.projectPath}
