@@ -124,7 +124,7 @@ export default function UsageMonitor() {
     return (
       <MenuBarExtra title={error} isLoading={isLoading}>
         <MenuBarExtra.Item title="Claude Usage" onAction={() => open("https://claude.ai/settings/usage")} />
-        <MenuBarExtra.Item title="Refresh" onAction={() => backgroundFetchAndCache()} />
+        <MenuBarExtra.Item title="Refresh" onAction={() => refresh(true)} />
       </MenuBarExtra>
     );
   }
@@ -141,7 +141,7 @@ export default function UsageMonitor() {
   return (
     <MenuBarExtra title={title} isLoading={isLoading}>
       <MenuBarExtra.Item title="Claude Usage" onAction={() => open("https://claude.ai/settings/usage")} />
-      <MenuBarExtra.Item title="Refresh" onAction={() => backgroundFetchAndCache()} />
+      <MenuBarExtra.Item title="Refresh" onAction={() => refresh(true)} />
       <MenuBarExtra.Separator />
 
       <MenuBarExtra.Section title="5-Hour Window">
