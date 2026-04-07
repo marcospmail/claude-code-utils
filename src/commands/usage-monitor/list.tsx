@@ -173,9 +173,9 @@ export default function UsageMonitor() {
       {data?.extraUsage.isEnabled && data.extraUsage.usedCredits !== null && data.extraUsage.monthlyLimit !== null && (
         <MenuBarExtra.Section title="Extra Usage">
           <MenuBarExtra.Item
-            title={`$${data.extraUsage.usedCredits.toFixed(2)} / $${data.extraUsage.monthlyLimit.toFixed(2)}`}
+            title={`$${data.extraUsage.usedCredits.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / $${data.extraUsage.monthlyLimit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             onAction={copyValue(
-              `$${data.extraUsage.usedCredits.toFixed(2)} / $${data.extraUsage.monthlyLimit.toFixed(2)}`,
+              `$${data.extraUsage.usedCredits.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / $${data.extraUsage.monthlyLimit.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             )}
           />
         </MenuBarExtra.Section>

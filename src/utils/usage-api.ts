@@ -79,8 +79,8 @@ export async function fetchUsageData(): Promise<UsageData> {
       : null,
     extraUsage: {
       isEnabled: Boolean(extraRaw?.is_enabled),
-      monthlyLimit: typeof extraRaw?.monthly_limit === "number" ? extraRaw.monthly_limit : null,
-      usedCredits: typeof extraRaw?.used_credits === "number" ? extraRaw.used_credits : null,
+      monthlyLimit: typeof extraRaw?.monthly_limit === "number" ? extraRaw.monthly_limit / 100 : null,
+      usedCredits: typeof extraRaw?.used_credits === "number" ? extraRaw.used_credits / 100 : null,
     },
     fetchedAt: new Date(),
   };
