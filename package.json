@@ -120,6 +120,13 @@
       "mode": "menu-bar",
       "interval": "3m",
       "keywords": ["usage", "limit", "rate", "quota"]
+    },
+    {
+      "name": "claude-usage",
+      "title": "Claude Usage",
+      "description": "View Claude usage stats with progress bars, reset times, and refresh",
+      "mode": "view",
+      "keywords": ["usage", "limit", "rate", "quota", "sonnet", "refresh"]
     }
   ],
   "preferences": [

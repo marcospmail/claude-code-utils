@@ -44,6 +44,8 @@ declare namespace Preferences {
   export type Status = ExtensionPreferences & {}
   /** Preferences accessible in the `usage-monitor` command */
   export type UsageMonitor = ExtensionPreferences & {}
+  /** Preferences accessible in the `claude-usage` command */
+  export type ClaudeUsage = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -75,5 +77,7 @@ declare namespace Arguments {
   export type Status = {}
   /** Arguments passed to the `usage-monitor` command */
   export type UsageMonitor = {}
+  /** Arguments passed to the `claude-usage` command */
+  export type ClaudeUsage = {}
 }
 
