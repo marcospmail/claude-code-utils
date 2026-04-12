@@ -1,6 +1,6 @@
 # Claude Code Utils
 
-A powerful Raycast extension for browsing, searching, and managing your Claude Code conversations. Access your message history, create reusable snippets, and quickly reference Claude Code commands.
+A powerful Raycast extension for browsing, searching, and managing your Claude Code environment. Access your message history, create reusable snippets, browse agents/commands/skills, monitor usage, check service status, and more.
 
 ## Features
 
@@ -36,9 +36,33 @@ View and manage your Claude Code commands from `~/.claude/commands`.
 
 View the latest Claude Code changelog with updates, releases, and new features directly from the official repository.
 
-### 📊 **Claude Usage Monitor**
+### 🔍 **Search Sessions**
+
+Deep search through all Claude Code session content. Find any conversation across all your projects.
+
+### 🔄 **Transform Selection**
+
+Transform selected text using Claude AI. Highlight text anywhere and run a transformation prompt on it.
+
+### 💬 **Chat**
+
+Send a quick chat message to Claude and get a response directly from Raycast.
+
+### 🧩 **Browse Skills**
+
+View and manage your Claude Code skills from `~/.claude/skills/`.
+
+### 🚦 **Claude Status**
+
+View Claude service status, active incidents, and incident history.
+
+### 📊 **Claude Usage Monitor** (Menu Bar)
 
 Monitor your Claude API usage limits in real-time. Displays 5-hour and 7-day usage percentages in the menu bar with automatic refresh every 5 minutes. Click to see detailed breakdown with reset countdowns and copy-to-clipboard actions.
+
+### 📊 **Claude Usage** (View)
+
+View Claude usage stats with progress bars, reset times, and refresh. Full-screen view of your usage data.
 
 ## Installation
 
@@ -78,9 +102,13 @@ npm run build && npm run publish
    - **Commands Cheat Sheet** - Reference guide
    - **Browse Agents** - View Claude Code agents
    - **Browse Commands** - View Claude Code commands
+   - **Browse Skills** - View Claude Code skills
    - **Changelog** - View Claude Code updates and releases
-   - **Claude Usage** - Monitor API usage in menu bar
    - **Search Sessions** - Deep search through Claude Code conversations
+   - **Transform Selection** - Transform selected text with Claude AI
+   - **Chat** - Quick chat with Claude
+   - **Claude Status** - Check Claude service status
+   - **Claude Usage** - View usage stats and monitor in menu bar
 
 ## Technical Details
 
@@ -92,7 +120,7 @@ npm run build && npm run publish
 
 ### Limitations
 
-- Scans 5 most recent projects with 5 most recent conversation files per project
+- Scans up to 50 most recent conversation files across projects
 
 ## Privacy & Security
 
