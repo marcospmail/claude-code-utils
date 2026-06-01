@@ -28,6 +28,18 @@ export type JSONLEntry = {
   cwd?: string;
 };
 
+export function sanitizeText(text: string): string {
+  return text.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
+export function truncate(text: string, max: number, ellipsis = "..."): string {
+  if (text.length <= max) return text;
+  let end = max;
+  const last = text.charCodeAt(end - 1);
+  if (last >= 0xd800 && last <= 0xdbff) end -= 1;
+  return text.slice(0, end) + ellipsis;
+}
+
 export function readCwdFromJsonl(filePath: string): Promise<string | null> {
   return new Promise((resolve) => {
     const stream = createReadStream(filePath, { highWaterMark: HIGH_WATER_MARK });

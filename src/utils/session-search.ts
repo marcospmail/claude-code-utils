@@ -10,6 +10,7 @@ import {
   JSONLEntry,
   readCwdFromJsonl,
   runWithConcurrency,
+  sanitizeText,
 } from "./claude-shared";
 
 const MIN_QUERY_LENGTH = 3;
@@ -31,28 +32,6 @@ interface SessionFileInfo {
   projectPath: string;
   projectName: string;
   mtime: Date;
-}
-
-function sanitizeText(text: string): string {
-  // Remove lone surrogates that cause JSON serialization failures in Raycast
-  let result = "";
-  for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
-    if (code >= 0xd800 && code <= 0xdbff) {
-      // High surrogate — only keep if followed by a valid low surrogate
-      const next = text.charCodeAt(i + 1);
-      if (next >= 0xdc00 && next <= 0xdfff) {
-        result += text[i] + text[i + 1];
-        i++;
-      }
-      // else: lone high surrogate, drop it
-    } else if (code >= 0xdc00 && code <= 0xdfff) {
-      // Lone low surrogate, drop it
-    } else {
-      result += text[i];
-    }
-  }
-  return result;
 }
 
 function extractTextContent(content: string | ContentItem[] | null): string {

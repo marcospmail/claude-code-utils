@@ -14,6 +14,8 @@ import {
   MESSAGE_FILE_LIMIT,
   readCwdFromJsonl,
   runWithConcurrency,
+  sanitizeText,
+  truncate,
 } from "./claude-shared";
 
 const SNIPPETS_KEY = "claude-messages-snippets";
@@ -167,7 +169,7 @@ async function parseUserMessagesOnlyStreaming(
 
               userMessages.push({
                 role: "user",
-                content: content.slice(0, 200),
+                content: truncate(sanitizeText(content), 200, ""),
                 timestamp,
                 sessionId,
                 projectPath,
@@ -277,7 +279,7 @@ async function parseAssistantMessagesOnlyStreaming(
             } else if (content) {
               assistantMessages.push({
                 role: "assistant",
-                content: content.slice(0, 200),
+                content: truncate(sanitizeText(content), 200, ""),
                 timestamp,
                 sessionId,
                 projectPath,
@@ -428,7 +430,7 @@ export async function getSentMessages(): Promise<ParsedMessage[]> {
     return finalMessages.map((msg, index) => ({
       ...msg,
       id: `sent-${index}`,
-      preview: msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : ""),
+      preview: truncate(msg.content, 100),
     }));
   } catch {
     return [];
@@ -501,8 +503,9 @@ export async function loadMessageContent(
                     .join("\n");
                 }
               }
-              if (content.startsWith(contentPrefix)) {
-                done(content);
+              const safe = sanitizeText(content);
+              if (safe.startsWith(contentPrefix)) {
+                done(safe);
               }
             }
           }
@@ -524,9 +527,7 @@ export async function getReceivedMessages(): Promise<ParsedMessage[]> {
   const allMessages = await getAllClaudeMessages();
 
   const parsedMessages = allMessages.map((msg, index) => {
-    const preview = msg.content
-      ? msg.content.slice(0, 100) + (msg.content.length > 100 ? "..." : "")
-      : "[Empty message]";
+    const preview = msg.content ? truncate(msg.content, 100) : "[Empty message]";
     return {
       ...msg,
       id: `received-${index}`,
