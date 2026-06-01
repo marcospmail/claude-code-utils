@@ -1,10 +1,12 @@
 import { Action, ActionPanel, Color, Icon, List } from "@raycast/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { truncate } from "../../utils/claude-shared";
 import { listAllSessions, searchSessions, SessionSearchResult } from "../../utils/session-search";
 import SessionDetail from "./detail";
 
 const DEBOUNCE_MS = 300;
 const ALL_PROJECTS = "all";
+const PAGE_SIZE = 100;
 
 export default function SearchSessions() {
   const [allSessions, setAllSessions] = useState<SessionSearchResult[]>([]);
@@ -13,6 +15,7 @@ export default function SearchSessions() {
   const [isDeepSearching, setIsDeepSearching] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedProject, setSelectedProject] = useState(ALL_PROJECTS);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,6 +61,7 @@ export default function SearchSessions() {
   const handleSearch = useCallback(
     (text: string) => {
       setSearchText(text);
+      setVisibleCount(PAGE_SIZE);
 
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (abortRef.current) abortRef.current.abort();
@@ -103,6 +107,7 @@ export default function SearchSessions() {
       if (abortRef.current) abortRef.current.abort();
       setIsDeepSearching(false);
       setSelectedProject(project);
+      setVisibleCount(PAGE_SIZE);
       const query = searchText.trim().toLowerCase();
       const localMatches = applyFilters(allSessions, query, project);
       setFilteredSessions(localMatches);
@@ -116,6 +121,11 @@ export default function SearchSessions() {
       filtering={false}
       searchBarPlaceholder="Search all Claude Code sessions..."
       onSearchTextChange={handleSearch}
+      pagination={{
+        pageSize: PAGE_SIZE,
+        hasMore: visibleCount < filteredSessions.length,
+        onLoadMore: () => setVisibleCount((c) => c + PAGE_SIZE),
+      }}
       searchBarAccessory={
         <List.Dropdown tooltip="Filter by Project" value={selectedProject} onChange={handleProjectChange}>
           <List.Dropdown.Item title="All Projects" value={ALL_PROJECTS} />
@@ -139,10 +149,10 @@ export default function SearchSessions() {
           }
         />
       )}
-      {filteredSessions.map((result) => (
+      {filteredSessions.slice(0, visibleCount).map((result) => (
         <List.Item
           key={result.id}
-          title={result.firstMessage.length > 60 ? result.firstMessage.slice(0, 60) + "..." : result.firstMessage}
+          title={truncate(result.firstMessage, 60)}
           accessories={[
             { tag: { value: result.projectName, color: Color.Blue } },
             { text: `~${result.turnCount} turns` },

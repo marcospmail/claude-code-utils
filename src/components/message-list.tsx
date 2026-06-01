@@ -17,6 +17,8 @@ import { formatSectionTitle, groupMessagesByDate } from "../utils/date-grouping"
 import CreateSnippet from "../commands/create-snippet/list";
 import MessageDetail from "./message-detail";
 
+const PAGE_SIZE = 100;
+
 interface MessageListProps {
   role: "user" | "assistant";
   fetchMessages: () => Promise<ParsedMessage[]>;
@@ -28,6 +30,7 @@ export default function MessageList({ role, fetchMessages, searchPlaceholder, em
   const [messages, setMessages] = useState<ParsedMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [fullContentMap, setFullContentMap] = useState<Record<string, string>>({});
   const loadingRef = useRef(false);
   const loadedIdsRef = useRef(new Set<string>());
@@ -37,6 +40,7 @@ export default function MessageList({ role, fetchMessages, searchPlaceholder, em
     loadingRef.current = true;
     setIsLoading(true);
     setFullContentMap({});
+    setVisibleCount(PAGE_SIZE);
     loadedIdsRef.current.clear();
     try {
       const fetched = await fetchMessages();
@@ -58,6 +62,11 @@ export default function MessageList({ role, fetchMessages, searchPlaceholder, em
     loadMessages();
   }, []);
 
+  const handleSearchTextChange = useCallback((text: string) => {
+    setSearchText(text);
+    setVisibleCount(PAGE_SIZE);
+  }, []);
+
   const loadContent = useCallback(async (message: ParsedMessage) => {
     if (loadedIdsRef.current.has(message.id)) return;
     loadedIdsRef.current.add(message.id);
@@ -74,9 +83,13 @@ export default function MessageList({ role, fetchMessages, searchPlaceholder, em
     return messages;
   }, [messages, searchText]);
 
+  const visibleMessages = useMemo(() => {
+    return displayMessages.slice(0, visibleCount);
+  }, [displayMessages, visibleCount]);
+
   const messageGroups = useMemo(() => {
-    return groupMessagesByDate(displayMessages);
-  }, [displayMessages]);
+    return groupMessagesByDate(visibleMessages);
+  }, [visibleMessages]);
 
   const messageMap = useMemo(() => {
     const map: Record<string, ParsedMessage> = {};
@@ -118,7 +131,12 @@ export default function MessageList({ role, fetchMessages, searchPlaceholder, em
       isShowingDetail
       isLoading={isLoading}
       searchBarPlaceholder={searchPlaceholder}
-      onSearchTextChange={setSearchText}
+      onSearchTextChange={handleSearchTextChange}
+      pagination={{
+        pageSize: PAGE_SIZE,
+        hasMore: visibleCount < displayMessages.length,
+        onLoadMore: () => setVisibleCount((c) => c + PAGE_SIZE),
+      }}
       onSelectionChange={(id) => {
         if (id && messageMap[id] && !fullContentMap[id]) {
           loadContent(messageMap[id]);
