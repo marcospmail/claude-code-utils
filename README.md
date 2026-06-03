@@ -42,7 +42,7 @@ Deep search through all Claude Code session content. Find any conversation acros
 
 ### 🔄 **Transform Selection**
 
-Transform selected text using Claude AI. Highlight text anywhere and run a transformation prompt on it.
+Transform text using Claude AI. Seeded on first run with 11 built-in transforms (Explain Code, Find Bugs, Convert Language, Add Types, Optimize, Add Comments, Simplify, Write Tests, Generate Types, Markdown Table, Explain Regex), then fully user-manageable like snippets — create, edit, and delete transforms directly in Raycast. Prompts use `{{selection}}` (your selected text) and `{{clipboard}}` (clipboard contents) placeholders, read fresh each time you run a transform. Each transform has a configurable model (haiku/sonnet/opus), an optional effort level (model-dependent), an output mode (show the result or replace your selection in place), and an independent "Copy to clipboard" option. Runs via the local claude CLI.
 
 ### 💬 **Chat**
 

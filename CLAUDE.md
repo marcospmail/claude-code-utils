@@ -63,6 +63,16 @@ This is a Raycast extension with 15 commands following the **List + Detail patte
 - Each skill is a directory with a `SKILL.md` file containing YAML frontmatter (name, description, model, context, allowed-tools)
 - Key function: `getSkills()`
 
+**Transform Selection** (`src/utils/transform.ts`):
+- User-manageable transforms stored in Raycast `LocalStorage`, seeded on first run with 11 built-in defaults — mirrors the snippet LocalStorage pattern
+- Unified `Transform` type: `{ id, title, description, icon (name string), prompt, model, effort?, output, copyToClipboard, requiresVariable? }`
+- Prompts use `{{selection}}` (selected text) and `{{clipboard}}` (clipboard text) placeholders; a prompt must contain at least one. Input is read FRESH at run time — selection via `getSelectedText()`, clipboard via `Clipboard.readText()` — so a stale capture can never be reused
+- Storage keys: `transform-list` (array) and `transform-seeded` (first-run flag); once seeded, the stored array is used as-is even if empty (no re-seed)
+- Per-transform model (`haiku`/`sonnet`/`opus`, default `haiku`) and optional effort level (model-dependent: haiku — none; sonnet — low/medium/high/max; opus — adds xhigh)
+- Per-transform `output` (`show` = display result, `replace` = auto-paste over the selection via `closeMainWindow` + `Clipboard.paste`) plus an independent `copyToClipboard` flag; the two combine (e.g. replace + copy)
+- Key functions: `getTransforms()` (seeds once on first run; runs a one-time idempotent migration that rewrites `{{code}}` → `{{selection}}` and legacy `output: "clipboard"` → `output: "show"` + `copyToClipboard: true`), `saveTransform()` (create or update by id), `deleteTransform(id)`
+- Executes via `executePrompt` in `src/utils/claude-cli.ts`, which passes `--model` and (when set) `--effort` to the local claude CLI
+
 ## Special Features
 
 ### Network Simulation for Development
