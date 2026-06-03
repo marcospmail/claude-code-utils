@@ -88,7 +88,7 @@ export async function isClaudeInstalled(): Promise<boolean> {
 
 export async function executePrompt(
   prompt: string,
-  options?: { model?: string; systemPrompt?: string },
+  options?: { model?: string; systemPrompt?: string; effort?: string },
 ): Promise<ClaudeResponse> {
   const claudePath = await getClaudePath();
 
@@ -108,6 +108,9 @@ export async function executePrompt(
   }
   if (options?.model) {
     args.push("--model", options.model);
+  }
+  if (options?.effort) {
+    args.push("--effort", options.effort);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
