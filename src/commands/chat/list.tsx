@@ -1,60 +1,47 @@
-import { Action, ActionPanel, Form, getSelectedText, showToast, Toast } from "@raycast/api";
+import { Action, ActionPanel, Form, getSelectedText } from "@raycast/api";
 import { useEffect, useState } from "react";
-import ExecuteChatView from "./execute";
+import ChatConversation from "./execute";
 
 const MODELS = [
-  { value: "haiku", title: "Haiku" },
-  { value: "sonnet", title: "Sonnet" },
-  { value: "opus", title: "Opus" },
+  { value: "haiku", title: "Haiku (fast)" },
+  { value: "sonnet", title: "Sonnet (balanced)" },
+  { value: "opus", title: "Opus (powerful)" },
 ];
 
+const DEFAULT_MODEL = "sonnet";
+
 export default function ChatForm() {
-  const [message, setMessage] = useState("");
+  const [seed, setSeed] = useState("");
+  const [model, setModel] = useState(DEFAULT_MODEL);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     getSelectedText()
       .then((text) => {
-        if (text) setMessage(text);
+        if (text) setSeed(text);
       })
       .catch(() => {});
   }, []);
-  const [model, setModel] = useState("sonnet");
-  const [submitted, setSubmitted] = useState(false);
 
-  if (submitted) {
-    return <ExecuteChatView message={message} model={model} />;
+  if (started) {
+    return <ChatConversation model={model} seedMessage={seed} />;
   }
 
   return (
     <Form
-      navigationTitle="Chat with Claude"
+      navigationTitle="New Chat"
       actions={
         <ActionPanel>
-          <Action.SubmitForm
-            title="Send"
-            onSubmit={() => {
-              if (!message.trim()) {
-                showToast({ style: Toast.Style.Failure, title: "Message required", message: "Please enter a message" });
-                return;
-              }
-              setSubmitted(true);
-            }}
-          />
+          <Action.SubmitForm title="Start Chat" onSubmit={() => setStarted(true)} />
         </ActionPanel>
       }
     >
-      <Form.TextArea
-        id="message"
-        title="Message"
-        placeholder="Type your message..."
-        value={message}
-        onChange={setMessage}
-      />
       <Form.Dropdown id="model" title="Model" value={model} onChange={setModel}>
         {MODELS.map((m) => (
           <Form.Dropdown.Item key={m.value} value={m.value} title={m.title} />
         ))}
       </Form.Dropdown>
+      <Form.Description text="The model stays fixed for the whole conversation." />
     </Form>
   );
 }
