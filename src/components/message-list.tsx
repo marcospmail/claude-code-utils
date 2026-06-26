@@ -177,8 +177,10 @@ export default function MessageList({ role, fetchMessages, searchPlaceholder, em
                   metadata={
                     <List.Item.Detail.Metadata>
                       <List.Item.Detail.Metadata.Label title="Project" text={message.projectName} />
+                      <List.Item.Detail.Metadata.Label title="Project Path" text={message.projectDir} />
                       <List.Item.Detail.Metadata.Separator />
                       <List.Item.Detail.Metadata.Label title="Session ID" text={message.sessionId} />
+                      <List.Item.Detail.Metadata.Label title="Conversation File Path" text={message.fullPath} />
                       <List.Item.Detail.Metadata.Label title="Date" text={message.timestamp.toLocaleString()} />
                     </List.Item.Detail.Metadata>
                   }
