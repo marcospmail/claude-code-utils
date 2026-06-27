@@ -35,8 +35,10 @@ export default function MessageDetail({ message, fullContent: initialFullContent
       metadata={
         <Detail.Metadata>
           <Detail.Metadata.Label title="Project" text={message.projectName} />
+          <Detail.Metadata.Label title="Project Path" text={message.projectDir} />
           <Detail.Metadata.Separator />
           <Detail.Metadata.Label title="Session ID" text={message.sessionId} />
+          <Detail.Metadata.Label title="Conversation File Path" text={message.fullPath} />
           <Detail.Metadata.Label title="Date" text={message.timestamp.toLocaleString()} />
         </Detail.Metadata>
       }

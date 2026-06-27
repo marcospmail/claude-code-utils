@@ -39,17 +39,17 @@ export type ParsedMessage = Message & {
 
 const UNIX_TIMESTAMP_THRESHOLD = 10000000000; // Timestamps below this are in seconds, not milliseconds
 
-async function resolveProjectName(projectDir: string, jsonlFiles: string[]): Promise<string> {
+async function resolveProjectPath(projectDir: string, jsonlFiles: string[]): Promise<{ path: string; name: string }> {
   const dirPath = join(CLAUDE_DIR, projectDir);
 
-  // 1. Try sessions-index.json
+  // 1. Try sessions-index.json (has originalPath at root level)
   try {
     const content = await readFile(join(dirPath, "sessions-index.json"), "utf8");
     const index = JSON.parse(content);
     const realPath = index.originalPath || index.entries?.[0]?.projectPath;
     if (realPath) {
       const name = basename(realPath);
-      if (name) return name;
+      if (name) return { path: realPath, name };
     }
   } catch {
     // Try next source
@@ -60,12 +60,12 @@ async function resolveProjectName(projectDir: string, jsonlFiles: string[]): Pro
     const cwd = await readCwdFromJsonl(join(dirPath, jsonlFiles[0]));
     if (cwd) {
       const name = basename(cwd);
-      if (name) return name;
+      if (name) return { path: cwd, name };
     }
   }
 
-  // 3. Fallback: use raw directory name
-  return projectDir;
+  // 3. Fallback: use the storage directory path and raw directory name
+  return { path: dirPath, name: projectDir };
 }
 
 /**
@@ -328,26 +328,26 @@ async function collectRecentFiles(): Promise<FileEntry[]> {
 
   for (const project of projects) {
     try {
-      const projectPath = join(CLAUDE_DIR, project);
-      const projectStat = await stat(projectPath);
+      const projectDirPath = join(CLAUDE_DIR, project);
+      const projectStat = await stat(projectDirPath);
       if (!projectStat.isDirectory()) continue;
 
-      const entries = await readdir(projectPath);
+      const entries = await readdir(projectDirPath);
       const jsonlFiles = entries.filter((f) => f.endsWith(".jsonl"));
       if (jsonlFiles.length === 0) continue;
 
-      const projectName = await resolveProjectName(project, jsonlFiles);
-      if (!projectName || projectName === "-" || projectName.length <= 1) continue;
+      const resolved = await resolveProjectPath(project, jsonlFiles);
+      if (!resolved.name || resolved.name === "-" || resolved.name.length <= 1) continue;
 
       for (const file of jsonlFiles) {
         try {
-          const filePath = join(projectPath, file);
+          const filePath = join(projectDirPath, file);
           const fileStat = await stat(filePath);
           files.push({
             path: filePath,
             name: file,
-            projectPath,
-            projectName,
+            projectPath: resolved.path,
+            projectName: resolved.name,
             mtime: fileStat.mtimeMs,
           });
         } catch {
